@@ -1,3 +1,6 @@
+## this code was adapted from train_bde.ipynb to work with python's weird module system
+# functionality by itself should be the same however
+
 # %% [markdown]
 # # Train BonDNet 
 # 
