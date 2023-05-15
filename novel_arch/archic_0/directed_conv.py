@@ -1,5 +1,7 @@
 ## adapted from BonDnet paper
 
+#### NOT DONE!
+
 class GatedGCNConv(nn.Module):
     """
     Gated GCN layer.
