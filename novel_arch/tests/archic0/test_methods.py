@@ -1,8 +1,10 @@
 import dgl
-import numpy as np
+import torch
 
 from novel_arch.archic_0.directed_graph_transform import to_directed_mpnn_g
-def test_to_directed_mpnn_g():
+
+# check atleast that graph shape matches for a simple case
+def test_to_directed_mpnn_g_isomorphism():
     # original graph case is one atom with 3 others connected to it
     # 0 is the connected atom
     # bond n is connected to atom 0 and n + 1
@@ -11,8 +13,8 @@ def test_to_directed_mpnn_g():
     g2a = ([0,0,0,0], [0,1,2,3])
     ORIG = dgl.heterograph({
         # these three, if they exist, are just self-loops
-        ('bond', 'b2b', 'bond') : (np.arange(3), np.arange(3)),
-        ('atom', 'a2a', 'atom') : (np.arange(4), np.arange(4)),
+        ('bond', 'b2b', 'bond') : (torch.arange(3), torch.arange(3)),
+        ('atom', 'a2a', 'atom') : (torch.arange(4), torch.arange(4)),
         ('global', 'g2g', 'global') : ([0],[0]),
         
         ('bond', 'b2a', 'atom') : tuple(reversed(a2b)),
