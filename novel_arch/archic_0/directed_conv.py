@@ -1,8 +1,10 @@
 ## adapted from BonDnet paper
 
-#### NOT DONE!
+from bondnet.layer.utils import LinearN
+from torch import nn
+from typing import Callable, Union, Dict
 
-class GatedGCNConv(nn.Module):
+class GatedGCNConvDMPNN(nn.Module):
     """
     Gated GCN layer.
 
@@ -35,7 +37,7 @@ class GatedGCNConv(nn.Module):
         residual: bool = False,
         dropout: Union[float, None] = None,
     ):
-        super(GatedGCNConv, self).__init__()
+        super().__init__()
         self.graph_norm = graph_norm
         self.batch_norm = batch_norm
         self.activation = activation
@@ -48,14 +50,15 @@ class GatedGCNConv(nn.Module):
         acts = [activation] * (num_fc_layers - 1) + [nn.Identity()]
         use_bias = [True] * num_fc_layers
 
-        # A, B, ... I are phi_1, phi_2, ..., phi_9 in the BonDNet paper
-        self.A = LinearN(input_dim, out_sizes, acts, use_bias)
+        # A, B, ... I are equivalent of phi1, etc in bondnet
+        # but we only do d_bond and global hidden state evolution
+        # self.A = LinearN(input_dim, out_sizes, acts, use_bias)
         self.B = LinearN(input_dim, out_sizes, acts, use_bias)
         self.C = LinearN(input_dim, out_sizes, acts, use_bias)
-        self.D = LinearN(input_dim, out_sizes, acts, use_bias)
-        self.E = LinearN(input_dim, out_sizes, acts, use_bias)
+        # self.D = LinearN(input_dim, out_sizes, acts, use_bias)
+        # self.E = LinearN(input_dim, out_sizes, acts, use_bias)
         self.F = LinearN(input_dim, out_sizes, acts, use_bias)
-        self.G = LinearN(output_dim, out_sizes, acts, use_bias)
+        # self.G = LinearN(output_dim, out_sizes, acts, use_bias)
         self.H = LinearN(output_dim, out_sizes, acts, use_bias)
         self.I = LinearN(input_dim, out_sizes, acts, use_bias)
 
@@ -70,43 +73,43 @@ class GatedGCNConv(nn.Module):
         else:
             self.dropout = nn.Dropout(dropout)
 
-    @staticmethod
-    def reduce_fn_a2b(nodes):
-        """
-        Reduce `Eh_j` from atom nodes to bond nodes.
+    # @staticmethod
+    # def reduce_fn_a2b(nodes):
+    #     """
+    #     Reduce `Eh_j` from atom nodes to bond nodes.
 
-        Expand dim 1 such that every bond has two atoms connecting to it.
-        This is to deal with the special case of single atom graph (e.g. H+).
-        For such graph, an artificial bond is created and connected to the atom in
-        `grapher`. Here, we expand it to let each bond connecting to two atoms.
-        This is necessary because, otherwise, the reduce_fn wil not work since
-        dimension mismatch.
-        """
-        x = nodes.mailbox["Eh_j"]
-        if x.shape[1] == 1:
-            x = x.repeat_interleave(2, dim=1)
+    #     Expand dim 1 such that every bond has two atoms connecting to it.
+    #     This is to deal with the special case of single atom graph (e.g. H+).
+    #     For such graph, an artificial bond is created and connected to the atom in
+    #     `grapher`. Here, we expand it to let each bond connecting to two atoms.
+    #     This is necessary because, otherwise, the reduce_fn wil not work since
+    #     dimension mismatch.
+    #     """
+    #     x = nodes.mailbox["Eh_j"]
+    #     if x.shape[1] == 1:
+    #         x = x.repeat_interleave(2, dim=1)
 
-        return {"Eh_j": x}
+    #     return {"Eh_j": x}
 
-    @staticmethod
-    def message_fn(edges):
-        return {"Eh_j": edges.src["Eh_j"], "e": edges.src["e"]}
+    # @staticmethod
+    # def message_fn(edges):
+    #     return {"Eh_j": edges.src["Eh_j"], "e": edges.src["e"]}
 
-    @staticmethod
-    def reduce_fn(nodes):
-        Eh_i = nodes.data["Eh"]
-        e = nodes.mailbox["e"]
-        Eh_j = nodes.mailbox["Eh_j"]
+    # @staticmethod
+    # def reduce_fn(nodes):
+    #     Eh_i = nodes.data["Eh"]
+    #     e = nodes.mailbox["e"]
+    #     Eh_j = nodes.mailbox["Eh_j"]
 
-        # TODO select_not_equal is time consuming; it might be improved by passing node
-        #  index along with Eh_j and compare the node index to select the different one
-        Eh_j = select_not_equal(Eh_j, Eh_i)
-        sigma_ij = torch.sigmoid(e)  # sigma_ij = sigmoid(e_ij)
+    #     # TODO select_not_equal is time consuming; it might be improved by passing node
+    #     #  index along with Eh_j and compare the node index to select the different one
+    #     Eh_j = select_not_equal(Eh_j, Eh_i)
+    #     sigma_ij = torch.sigmoid(e)  # sigma_ij = sigmoid(e_ij)
 
-        # (sum_j eta_ij * Ehj)/(sum_j' eta_ij') <= dense attention
-        h = torch.sum(sigma_ij * Eh_j, dim=1) / (torch.sum(sigma_ij, dim=1) + 1e-6)
+    #     # (sum_j eta_ij * Ehj)/(sum_j' eta_ij') <= dense attention
+    #     h = torch.sum(sigma_ij * Eh_j, dim=1) / (torch.sum(sigma_ij, dim=1) + 1e-6)
 
-        return {"h": h}
+    #     return {"h": h}
 
     def forward(
         self,
