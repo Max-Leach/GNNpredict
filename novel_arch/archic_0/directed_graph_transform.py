@@ -1,11 +1,11 @@
 import dgl
+import torch
 
 ## convert into graph for D-MPNN style message passing (as in Grambow)
 # from HeteroMoleculeGraph shape.
 # useful for neural net implementing that kind of message passing but using bondnet
 # type of graph input
-
-# note: no feature transform!
+# -note that this function doesn't do a feature transform
 
 # note: consider need for self loops!
 def to_directed_mpnn_g(g):
@@ -33,6 +33,11 @@ def to_directed_mpnn_g(g):
         ('global', 'g2db', 'd_bond') : tuple(reversed(db2g_pairs)),
     }
     dg = dgl.heterograph(shape)
+
+    ## referencing old graph here
+    dg.nodes['d_bond'].data['src_atom'] = torch.tensor([1] * db_count)
+    dg.nodes['d_bond'].data['old_bond'] = torch.tensor([2] * db_count)
+
     return dg
 
 # given bondnet type graph, get map of new directed bonds to other new directed bonds
@@ -47,9 +52,6 @@ def new_d_bond_map(g):
         from_u = to_u + 1
 
         atoms = g.predecessors(b, etype='a2b')
-        # print("atoms connected!", len(atoms))
-        # if len(atoms) == 1:
-        #     print("attached boond:", g.predecessors(u, etype='b2a'))
         assert len(atoms) <= 2 # bond should have two member atoms
         assert len(atoms) > 0 # non-sensical bonds case
         u = atoms[0].item()
@@ -60,7 +62,6 @@ def new_d_bond_map(g):
             }
             continue
         v = atoms[1].item()
-        # print("atoms:", u, v)
         db_to_a_b += [(u, b), (v, b)]
         b_src_to_db[b] = {
             # remember if d_bond is to_u, its src atom is v

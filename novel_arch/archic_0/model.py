@@ -10,8 +10,57 @@ import dgl
 import torch
 from novel_arch.archic_0.model_core import GatedGCNMolCustomConv
 from novel_arch.archic_0.directed_graph_transform import to_directed_mpnn_g
+from novel_arch.archic_0.feature_transform import GrambowFeaturizer
 
 class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
+    def __init__(
+        self,
+        in_feats,
+        embedding_size=32,
+        gated_num_layers=2,
+        gated_hidden_size=[64, 64, 32],
+        gated_num_fc_layers=1,
+        gated_graph_norm=False,
+        gated_batch_norm=True,
+        gated_activation="ReLU",
+        gated_residual=True,
+        gated_dropout=0.0,
+        num_lstm_iters=6,
+        num_lstm_layers=3,
+        set2set_ntypes_direct=["global"],
+        fc_num_layers=2,
+        fc_hidden_size=[32, 16],
+        fc_batch_norm=False,
+        fc_activation="ReLU",
+        fc_dropout=0.0,
+        outdim=1,
+        conv_op = None,
+    ):
+        super().__init__(
+            in_feats,
+            embedding_size=32,
+            gated_num_layers=2,
+            gated_hidden_size=[64, 64, 32],
+            gated_num_fc_layers=1,
+            gated_graph_norm=False,
+            gated_batch_norm=True,
+            gated_activation="ReLU",
+            gated_residual=True,
+            gated_dropout=0.0,
+            num_lstm_iters=6,
+            num_lstm_layers=3,
+            set2set_ntypes_direct=["global"],
+            fc_num_layers=2,
+            fc_hidden_size=[32, 16],
+            fc_batch_norm=False,
+            fc_activation="ReLU",
+            fc_dropout=0.0,
+            outdim=1,
+            conv_op=conv_op,
+        )
+
+        self.graph_featurizer = GrambowFeaturizer()
+
     def forward(self, graph, feats, reactions, norm_atom=None, norm_bond=None):
         """
         Args:
@@ -27,8 +76,9 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
             2D tensor: of shape(N, M), where `M = outdim`.
         """
 
-        # dmpnn style connections transform
+        # dmpnn style transform
         graph = to_directed_mpnn_g(graph)
+        feats = self.graph_featurizer(feats)
 
         # embedding
         feats = self.embedding(feats)
