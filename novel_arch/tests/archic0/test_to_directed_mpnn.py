@@ -107,28 +107,20 @@ def test_to_directed_mpnn_g_original_refed():
 
     result = to_directed_mpnn_g(ORIG)
 
-    # signature of old references and degrees should match
+    # signature of old references and degrees of all d_bonds should match
     db_edge = 'db2db'
-    assert TARGET.num_nodes('d_bond') > 0
-    for db in range(TARGET.num_nodes('d_bond')):
-        target_deg = set((TARGET.in_degrees(v=db, etype=db_edge), TARGET.out_degrees(u=db, etype=db_edge)))
-        target_src_a = TARGET.nodes['d_bond'].data['src_atom'][db].tolist()
-        target_old_bond = TARGET.nodes['d_bond'].data['old_bond'][db].tolist()
+    target_sig = set(zip(
+        TARGET.in_degrees(etype=db_edge).tolist(), 
+        TARGET.out_degrees(etype=db_edge).tolist(), 
+        TARGET.nodes['d_bond'].data['src_atom'].tolist(), 
+        TARGET.nodes['d_bond'].data['old_bond'].tolist()
+    ))
 
-        result_deg = set((result.in_degrees(v=db, etype=db_edge), result.out_degrees(u=db, etype=db_edge)))
-        result_src_a = result.nodes['d_bond'].data['src_atom'][db].tolist()
-        result_old_bond = result.nodes['d_bond'].data['old_bond'][db].tolist()
+    result_sig = set(zip(
+        result.in_degrees(etype=db_edge).tolist(), 
+        result.out_degrees(etype=db_edge).tolist(), 
+        result.nodes['d_bond'].data['src_atom'].tolist(), 
+        result.nodes['d_bond'].data['old_bond'].tolist()
+    ))
 
-        assert result_deg == target_deg
-        assert result_src_a == target_src_a
-        assert result_old_bond == target_old_bond
-
-    # edge_check = ['db2db', 'db2g', 'g2db']
-    # for e in edge_check:
-    #     assert result.num_edges(e) == TARGET.num_edges(e)
-    #     result_DegandRefs = set(zip(result.nodes, result.in_degrees(etype=e).tolist(), result.out_degrees(etype=e).tolist()))
-    #     target_DegandRefs = set(zip(TARGET.in_degrees(etype=e).tolist(), TARGET.out_degrees(etype=e).tolist()))
-
-
-    #     assert False # check to ensure we know we're done
-        # assert resultDegPairs == targetDegPairs
+    assert target_sig == result_sig

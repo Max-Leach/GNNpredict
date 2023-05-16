@@ -9,12 +9,12 @@ import torch
 
 # note: consider need for self loops!
 def to_directed_mpnn_g(g):
-    # isolated atom case
+    # isolated atom case <-- !!!
     # if g.num_nodes('atom') == 1:
     #     return isolated_atom_case(g)
     # print("num atoms:", g.num_nodes('atom'))
 
-    to_dbs_list = new_d_bond_map(g)
+    to_dbs_list, b_src_to_db = new_d_bond_map(g)
     db_count = len(to_dbs_list)
 
     db2db_pairs = ([],[])
@@ -35,8 +35,17 @@ def to_directed_mpnn_g(g):
     dg = dgl.heterograph(shape)
 
     ## referencing old graph here
-    dg.nodes['d_bond'].data['src_atom'] = torch.tensor([1] * db_count)
-    dg.nodes['d_bond'].data['old_bond'] = torch.tensor([2] * db_count)
+    src_atoms_for_db = torch.zeros([db_count], dtype=torch.int)
+    old_bonds_for_db = torch.zeros([db_count], dtype=torch.int)
+    for b in b_src_to_db:
+        bond_db = b_src_to_db[b]
+        for src_atom in bond_db:
+            db = bond_db[src_atom]
+            src_atoms_for_db[db] = src_atom
+            old_bonds_for_db[db] = b
+
+    dg.nodes['d_bond'].data['src_atom'] = src_atoms_for_db
+    dg.nodes['d_bond'].data['old_bond'] = old_bonds_for_db
 
     return dg
 
@@ -80,12 +89,12 @@ def new_d_bond_map(g):
         out_bs = filter(lambda ab: ab != b, out_bs) # omit self loop, may remove
         to_dbs = map(lambda b: b_src_to_db[b][dest_a], out_bs)
         db_to_dbs.append(tuple(to_dbs))
-    return db_to_dbs
+    return db_to_dbs, b_src_to_db
 
 # return dmpnn graph if g is only an atom
 def isolated_atom_case(g):
     db2db_pairs = ([], [])
-    db2g_pairs = ([0, 1], [0,0])
+    db2g_pairs = ([0,1], [0,0])
     shape = {
         ('d_bond', 'db2db', 'd_bond') : db2db_pairs,
         ## one of the following may be unneeded
@@ -94,4 +103,8 @@ def isolated_atom_case(g):
         ('global', 'g2db', 'd_bond') : tuple(reversed(db2g_pairs)),
     }
     dg = dgl.heterograph(shape)
+    ## referencing old graph here
+    dg.nodes['d_bond'].data['src_atom'] = torch.tensor([0,0])
+    dg.nodes['d_bond'].data['old_bond'] = torch.tensor([0,0])
+
     return dg
