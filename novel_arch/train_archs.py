@@ -2,12 +2,25 @@ from novel_arch import train
 
 # following are fns to train different architectures with the same setup
 
-def novel(): # this is where i am playing around right now
-    pass
+from novel_arch.archic_0.model import GatedGCNReactionNetworkDMPNN
+from novel_arch.archic_0.directed_conv import GatedGCNConvDMPNN
+def archic_0(): # this is where i am playing around right now
+    model = GatedGCNReactionNetworkDMPNN(
+        in_feats=train.dataset.feature_size,
+        embedding_size=24,
+        gated_num_layers=3,
+        gated_hidden_size=[64, 64, 64],
+        gated_activation="ReLU",
+        fc_num_layers=2,
+        fc_hidden_size=[128, 64],
+        fc_activation='ReLU',
+        conv_op=GatedGCNConvDMPNN
+    )
+
+    train.train_for_epochs_w_Test_MAE(model, 'archic-0_chkpoint.pkl')
 
 from bondnet.model.gated_reaction_network import GatedGCNReactionNetwork
 def bondnet_original():
-    
     model = GatedGCNReactionNetwork(
         in_feats=train.dataset.feature_size,
         embedding_size=24,

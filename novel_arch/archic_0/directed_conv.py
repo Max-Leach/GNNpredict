@@ -2,6 +2,8 @@
 
 from bondnet.layer.utils import LinearN
 from torch import nn
+import torch
+import dgl
 from typing import Callable, Union, Dict
 
 class GatedGCNConvDMPNN(nn.Module):
@@ -132,7 +134,7 @@ class GatedGCNConvDMPNN(nn.Module):
         g = g.local_var()
 
         # h = feats["atom"]
-        e = feats["dir_bond"]
+        e = feats["d_bond"]
         u = feats["global"]
 
         # for residual connection
@@ -141,7 +143,7 @@ class GatedGCNConvDMPNN(nn.Module):
         u_in = u
 
         # g.nodes["atom"].data.update({"Ah": self.A(h), "Dh": self.D(h), "Eh": self.E(h)})
-        g.nodes["dir_bond"].data.update({"Be": self.B(e)})
+        g.nodes["d_bond"].data.update({"Be": self.B(e)})
         g.nodes["global"].data.update({"Cu": self.C(u), "Fu": self.F(u)})
 
         # update bond feature e
@@ -155,7 +157,7 @@ class GatedGCNConvDMPNN(nn.Module):
             "sum",
         )
 
-        e = g.nodes["dir_bond"].data["e"]
+        e = g.nodes["d_bond"].data["e"]
         if self.graph_norm:
             e = e * norm_bond
         if self.batch_norm:
@@ -163,7 +165,7 @@ class GatedGCNConvDMPNN(nn.Module):
         e = self.activation(e)
         if self.residual:
             e = e_in + e
-        g.nodes["dir_bond"].data["e"] = e
+        g.nodes["d_bond"].data["e"] = e
 
         # update atom feature h
 
@@ -193,7 +195,7 @@ class GatedGCNConvDMPNN(nn.Module):
 
         # update global feature u
         # g.nodes["atom"].data.update({"Gh": self.G(h)})
-        g.nodes["dir_bond"].data.update({"He": self.H(e)})
+        g.nodes["d_bond"].data.update({"He": self.H(e)})
         g.nodes["global"].data.update({"Iu": self.I(u)})
         g.multi_update_all(
             {
@@ -217,6 +219,6 @@ class GatedGCNConvDMPNN(nn.Module):
         u = self.dropout(u)
 
         # feats = {"atom": h, "bond": e, "global": u}
-        feats = {"dir_bond": e, "global": u}
+        feats = {"d_bond": e, "global": u}
 
         return feats

@@ -57,7 +57,7 @@ class GatedGCNMolCustomConv(nn.Module):
         outdim=1,
         conv_op = None,
     ):
-        super(GatedGCNMol, self).__init__()
+        super().__init__()
 
         if isinstance(gated_activation, str):
             gated_activation = getattr(nn, gated_activation)()
