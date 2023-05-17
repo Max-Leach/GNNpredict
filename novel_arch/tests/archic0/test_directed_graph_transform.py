@@ -63,7 +63,7 @@ def test_to_directed_mpnn_g_global_matching():
     # 0 is the connected atom
     # bond n is connected to atom 0 and n + 1
     a2b = ([0,0,0, 1,2,3], [0,1,2, 0,1,2])
-    g2b = ([0,2,1], [0,1,2])
+    g2b = ([0,2,1], [0,1,2]) # multiple globals
     g2a = ([0,0,0,0], [0,1,2,3])
 
     ORIG = dgl.heterograph({
@@ -87,7 +87,7 @@ def test_to_directed_mpnn_g_global_matching():
     # n-3 where (3 <= n <= 5) will be corresponding to n but reversed
     # (ie all bonds pointing in)
     db2db = ([3,3, 4,4, 5,5], [1,2, 0,2, 0,1])
-    db2g = ([0,1,2,3,4,5], [0,2,1, 0,2,1])
+    db2g = ([0,1,2, 3,4,5], [0,2,1, 0,2,1]) # multiple globals
     TARGET = dgl.heterograph({
         ('d_bond', 'db2db', 'd_bond') : db2db,
         ## one of the following may be unneeded
