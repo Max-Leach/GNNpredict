@@ -9,22 +9,15 @@ import torch
 
 # note: consider need for self loops!
 def to_directed_mpnn_g(g):
-    # isolated atom case <-- !!!
+    # isolated atom case
     # if g.num_nodes('atom') == 1:
     #     return isolated_atom_case(g)
     # print("num atoms:", g.num_nodes('atom'))
 
-    to_dbs_list, b_src_to_db = new_d_bond_map(g)
-    db_count = len(to_dbs_list)
+    to_dbs_list, b_src_to_db, db_to_g = new_d_bond_map(g)
+    db2db_pairs = expand_map_to_edge_pairs(to_dbs_list)
+    db2g_pairs = expand_map_to_edge_pairs(db_to_g)
 
-    db2db_pairs = ([],[])
-    for from_db in range(db_count):
-        to_dbs = to_dbs_list[from_db]
-        for to_db in to_dbs:
-            db2db_pairs[0].append(from_db)
-            db2db_pairs[1].append(to_db)
-
-    db2g_pairs = (tuple(range(db_count)), [0] * db_count)
     shape = {
         ('d_bond', 'db2db', 'd_bond') : db2db_pairs,
         ## one of the following may be unneeded
@@ -35,8 +28,8 @@ def to_directed_mpnn_g(g):
     dg = dgl.heterograph(shape)
 
     ## referencing old graph here
-    src_atoms_for_db = torch.zeros([db_count], dtype=torch.int)
-    old_bonds_for_db = torch.zeros([db_count], dtype=torch.int)
+    src_atoms_for_db = torch.zeros([len(to_dbs_list)], dtype=torch.int)
+    old_bonds_for_db = torch.zeros([len(to_dbs_list)], dtype=torch.int)
     for b in b_src_to_db:
         bond_db = b_src_to_db[b]
         for src_atom in bond_db:
@@ -49,11 +42,23 @@ def to_directed_mpnn_g(g):
 
     return dg
 
+# expand a list from below mapping function into pairs that are accepted into heterograph construction
+def expand_map_to_edge_pairs(mapping):
+    srcs, dests = [], []
+    for src in range(len(mapping)):
+        targets = mapping[src]
+        for dest in targets:
+            srcs.append(src)
+            dests.append(dest)
+    return srcs, dests
+
+
 # given bondnet type graph, get map of new directed bonds to other new directed bonds
 # and any artifact nodes that need to be created
 def new_d_bond_map(g):
     db_to_a_b = [] # directed bond it -> successor atom, old bond id associated
     b_src_to_db = {} # old bond id -> src atom -> new directed bond id
+    db_to_g = [] # directed bond -> global(s) attached to (same indexing as db_to_a_b)
     # artifact_dbs = []
     for b in range(g.num_nodes('bond')):
         # new directed bond ids that will have dest atom as u or v
@@ -64,12 +69,17 @@ def new_d_bond_map(g):
         assert len(atoms) <= 2 # bond should have two member atoms
         assert len(atoms) > 0 # non-sensical bonds case
         u = atoms[0].item()
+        globs = g.predecessors(b, etype='g2b')
+
         if len(atoms) == 1:
             db_to_a_b += [(u, b), (None, b)]
             b_src_to_db[b] = {
                 u: from_u,
             }
+            db_to_g += [globs]
+            
             continue
+    
         v = atoms[1].item()
         db_to_a_b += [(u, b), (v, b)]
         b_src_to_db[b] = {
@@ -77,6 +87,8 @@ def new_d_bond_map(g):
             u: from_u,
             v: to_u,
         }
+        db_to_g += [globs, globs]
+
     
     db_to_dbs = []
     for db in range(len(db_to_a_b)):
@@ -89,10 +101,11 @@ def new_d_bond_map(g):
         out_bs = filter(lambda ab: ab != b, out_bs) # omit self loop, may remove
         to_dbs = map(lambda b: b_src_to_db[b][dest_a], out_bs)
         db_to_dbs.append(tuple(to_dbs))
-    return db_to_dbs, b_src_to_db
+    return db_to_dbs, b_src_to_db, db_to_g
 
-# return dmpnn graph if g is only an atom
+# return dmpnn graph for if g is only an atom
 def isolated_atom_case(g):
+    assert False # function may not be complete, globals improperly attached?
     db2db_pairs = ([], [])
     db2g_pairs = ([0,1], [0,0])
     shape = {
