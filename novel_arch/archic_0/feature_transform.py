@@ -6,19 +6,16 @@ import torch
 # but now global features are simply maintained
 # -for d_bond feat row, does relu(W*(hv||evw))
 class GrambowFeaturizer(nn.Module):
-    def __init__(self, atom_feat_size, bond_feat_size):
+    def __init__(self, atom_feat_size, bond_feat_size, out_feat_size):
         super().__init__()
 
         self.relu = nn.ReLU()
         combined_size = atom_feat_size + bond_feat_size
-        self.map = nn.Linear(combined_size, combined_size)
+        self.map = nn.Linear(combined_size, out_feat_size)
 
-    def forward(self, feats):
-        dbond_precurs = gen_directed_bond_precurs(feats)
+    def forward(self, feats, dmpnn_g):
+        dbond_precurs = gen_directed_bond_precurs(feats, dmpnn_g)
         d_bond_feats = self.relu(self.map(dbond_precurs))
-
-        # atom_bond = torch.cat([feats['atom'], feats['bond']], dim=-1)
-        # dbond = self.relu(self.map(atom_bond))
 
         feats = {
             'global': feats['global'],
@@ -27,8 +24,17 @@ class GrambowFeaturizer(nn.Module):
         return feats
 
 # construct directed bond precursor matrix - each row is for each d bond associated atom and old bond features from bondnet style graph
-def gen_directed_bond_mat(feats):
-    # we not only need the graph to do this, we need to know which
-    # atom and bond is associated to each directed edge!
+def gen_directed_bond_precurs(feats, dmpnn_g):
+    assert len(feats['atom']) > 0 and len(feats['bond']) > 0
+    atom_feat_size = len(feats['atom'][0])
+    bond_feat_size = len(feats['bond'][0])
+    # in place insertion
+    dbond_precurs = torch.empty([dmpnn_g.num_nodes('d_bond'), atom_feat_size + bond_feat_size])
 
-    assert False # finish this loser
+    for db in range(len(dbond_precurs)):
+        # print("src atom", dmpnn_g.ndata['src_atom'])
+        src_atom = dmpnn_g.nodes['d_bond'].data['src_atom'][db]
+        old_bond = dmpnn_g.nodes['d_bond'].data['old_bond'][db]
+        dbond_precurs[db] = torch.cat([feats['atom'][src_atom], feats['bond'][old_bond]])
+
+    return dbond_precurs
