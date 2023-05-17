@@ -5,6 +5,9 @@
 # -g2p will transform the directed bond features into atom features for the readout, so 
 # it will operate on atom and global features
 
+# we may keep g2g module as same parameters for this model, so it will be applying
+# one d-mpnn update many times
+
 import itertools
 import dgl
 import torch
@@ -16,6 +19,8 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
     def __init__(
         self,
         in_feats,
+        dbond_feat_size, # size from atom, bond -> directed edges
+
         embedding_size=32,
         gated_num_layers=2,
         gated_hidden_size=[64, 64, 32],
@@ -36,8 +41,11 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
         outdim=1,
         conv_op = None,
     ):
+        # feature size so embedding (from d_bond raw to hidden) can properly process
+        dmpnn_feats = {'d_bond': dbond_feat_size, 'global': in_feats['global']}
+    
         super().__init__(
-            in_feats,
+            dmpnn_feats,
             embedding_size=32,
             gated_num_layers=2,
             gated_hidden_size=[64, 64, 32],
@@ -59,7 +67,7 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
             conv_op=conv_op,
         )
 
-        self.graph_featurizer = GrambowFeaturizer()
+        self.graph_featurizer = GrambowFeaturizer(in_feats['atom'], in_feats['bond'], dbond_feat_size)
 
     def forward(self, graph, feats, reactions, norm_atom=None, norm_bond=None):
         """
@@ -78,7 +86,7 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
 
         # dmpnn style transform
         graph = to_directed_mpnn_g(graph)
-        feats = self.graph_featurizer(feats)
+        feats = self.graph_featurizer(feats, graph)
 
         # embedding
         feats = self.embedding(feats)

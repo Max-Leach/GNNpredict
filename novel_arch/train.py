@@ -59,6 +59,7 @@ def train(optimizer, model, nodes, data_loader, loss_fn, metric_fn):
 
     for it, (batched_graph, label) in enumerate(data_loader):
         feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
+        # print(feats['atom'].shape, feats['bond'].shape, feats['global'].shape) # here!
         target = label["value"]
         stdev = label["scaler_stdev"]
 

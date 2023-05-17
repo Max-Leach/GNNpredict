@@ -32,7 +32,6 @@ def gen_directed_bond_precurs(feats, dmpnn_g):
     dbond_precurs = torch.empty([dmpnn_g.num_nodes('d_bond'), atom_feat_size + bond_feat_size])
 
     for db in range(len(dbond_precurs)):
-        # print("src atom", dmpnn_g.ndata['src_atom'])
         src_atom = dmpnn_g.nodes['d_bond'].data['src_atom'][db]
         old_bond = dmpnn_g.nodes['d_bond'].data['old_bond'][db]
         dbond_precurs[db] = torch.cat([feats['atom'][src_atom], feats['bond'][old_bond]])

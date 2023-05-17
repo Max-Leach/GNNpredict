@@ -3,6 +3,7 @@
 from bondnet.layer.utils import LinearN
 from torch import nn
 import torch
+from dgl import function as fn
 import dgl
 from typing import Callable, Union, Dict
 
@@ -151,8 +152,8 @@ class GatedGCNConvDMPNN(nn.Module):
             {
                 # "a2b": (fn.copy_u("Ah", "m"), fn.sum("m", "e")),  # A * (h_i + h_j)
                 #"db2db" : (blah) # we will likely need to add a propagation to other bonds here
-                "b2b": (fn.copy_u("Be", "m"), fn.sum("m", "e")),  # B * e_ij # self bond update
-                "g2b": (fn.copy_u("Cu", "m"), fn.sum("m", "e")),  # C * u
+                "db2db": (fn.copy_u("Be", "m"), fn.sum("m", "e")),  # B * e_ij # self bond update
+                "g2db": (fn.copy_u("Cu", "m"), fn.sum("m", "e")),  # C * u
             },
             "sum",
         )
