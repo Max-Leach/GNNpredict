@@ -24,8 +24,12 @@ def to_directed_mpnn_g(g):
         # if we prevent propagation one way or another
         ('d_bond', 'db2g', 'global') : db2g_pairs,
         ('global', 'g2db', 'd_bond') : tuple(reversed(db2g_pairs)),
+        ('global', 'g2g', 'global') : ([], []) # for adding self loop later
     }
     dg = dgl.heterograph(shape)
+    glob_count = dg.num_nodes('global')
+    # dg = dgl.add_edges(dg, range(glob_count), range(glob_count), etype=('global', 'g2g', 'global'))
+    dg = dgl.add_self_loop(dg, etype=('global', 'g2g', 'global'))
 
     ## referencing old graph here
     src_atoms_for_db = torch.zeros([len(to_dbs_list)], dtype=torch.int)
@@ -51,7 +55,6 @@ def expand_map_to_edge_pairs(mapping):
             srcs.append(src)
             dests.append(dest)
     return srcs, dests
-
 
 # given bondnet type graph, get map of new directed bonds to other new directed bonds
 # and any artifact nodes that need to be created
@@ -98,7 +101,7 @@ def new_d_bond_map(g):
             continue
         out_bs = g.successors(dest_a, etype='a2b')
         out_bs = map(lambda b: b.item(), out_bs)
-        out_bs = filter(lambda ab: ab != b, out_bs) # omit self loop, may remove
+        # out_bs = filter(lambda ab: ab != b, out_bs) # omit self loop, may remove - turns out it makes complete sense to remove!
         to_dbs = map(lambda b: b_src_to_db[b][dest_a], out_bs)
         db_to_dbs.append(tuple(to_dbs))
     return db_to_dbs, b_src_to_db, db_to_g
