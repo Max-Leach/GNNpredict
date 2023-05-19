@@ -33,7 +33,8 @@ def test_to_directed_mpnn_g_degree_pairing():
     # 0 1 2 d_bonds will point away from center
     # n-3 where (3 <= n <= 5) will be corresponding to n but reversed
     # (ie all bonds pointing in)
-    db2db = ([3,3, 4,4, 5,5,  0,1,2,3,4,5], [1,2, 0,2, 0,1,  0,1,2,3,4,5])
+    # db2db = ([3,3, 4,4, 5,5,  0,1,2,3,4,5], [1,2, 0,2, 0,1,  0,1,2,3,4,5])
+    db2db = ([3,3, 4,4, 5,5], [1,2, 0,2, 0,1]) # no self loops
     db2g = ([0,1,2,3,4,5], [0,0,0,0,0,0])
     TARGET = dgl.heterograph({
         ('d_bond', 'db2db', 'd_bond') : db2db,
@@ -42,7 +43,7 @@ def test_to_directed_mpnn_g_degree_pairing():
         ('d_bond', 'db2g', 'global') : db2g,
         ('global', 'g2db', 'd_bond') : tuple(reversed(db2g)),
         # self loop global
-        ('global', 'g2g', 'global') : ([0], [0])
+        # ('global', 'g2g', 'global') : ([0], [0])
     })
 
     result = to_directed_mpnn_g(ORIG)
@@ -51,7 +52,7 @@ def test_to_directed_mpnn_g_degree_pairing():
     node_check = ['d_bond', 'global']
     for n in node_check:
         assert result.num_nodes(n) == TARGET.num_nodes(n)
-    edge_check = ['db2db', 'db2g', 'g2db', 'g2g']
+    edge_check = ['db2db', 'db2g', 'g2db'] #, 'g2g']
     for e in edge_check:
         assert result.num_edges(e) == TARGET.num_edges(e)
         resultDegPairs = set(zip(result.in_degrees(etype=e).tolist(), result.out_degrees(etype=e).tolist()))
@@ -88,7 +89,8 @@ def test_to_directed_mpnn_g_global_matching():
     # 0 1 2 d_bonds will point away from center
     # n-3 where (3 <= n <= 5) will be corresponding to n but reversed
     # (ie all bonds pointing in)
-    db2db = ([3,3, 4,4, 5,5,  0,1,2,3,4,5], [1,2, 0,2, 0,1,  0,1,2,3,4,5]) # last bit are self loop
+    # db2db = ([3,3, 4,4, 5,5,  0,1,2,3,4,5], [1,2, 0,2, 0,1,  0,1,2,3,4,5]) # last bit are self loop
+    db2db = ([3,3, 4,4, 5,5], [1,2, 0,2, 0,1]) # no self loops
     db2g = ([0,1,2, 3,4,5], [0,2,1, 0,2,1]) # multiple globals
     TARGET = dgl.heterograph({
         ('d_bond', 'db2db', 'd_bond') : db2db,
@@ -97,7 +99,7 @@ def test_to_directed_mpnn_g_global_matching():
         ('d_bond', 'db2g', 'global') : db2g,
         ('global', 'g2db', 'd_bond') : tuple(reversed(db2g)),
         # self loop global
-        ('global', 'g2g', 'global') : ([0,1,2], [0,1,2])
+        # ('global', 'g2g', 'global') : ([0,1,2], [0,1,2])
     })
 
     result = to_directed_mpnn_g(ORIG)
@@ -106,7 +108,7 @@ def test_to_directed_mpnn_g_global_matching():
     node_check = ['d_bond', 'global']
     for n in node_check:
         assert result.num_nodes(n) == TARGET.num_nodes(n)
-    edge_check = ['db2db', 'db2g', 'g2db', 'g2g']
+    edge_check = ['db2db', 'db2g', 'g2db']#, 'g2g']
     accum_assertions = True
     for e in edge_check:
         assert result.num_edges(e) == TARGET.num_edges(e)
@@ -142,7 +144,8 @@ def test_to_directed_mpnn_g_original_refed():
     # 0 1 2 d_bonds will point away from center
     # 3 4 5 point to center, n-3 will be original atoms pointing from, or reversed of previous three d_bond
     # (ie all bonds pointing in)
-    db2db = ([3,3, 4,4, 5,5,  0,1,2,3,4,5], [1,2, 0,2, 0,1,  0,1,2,3,4,5])
+    # db2db = ([3,3, 4,4, 5,5,  0,1,2,3,4,5], [1,2, 0,2, 0,1,  0,1,2,3,4,5])
+    db2db = ([3,3, 4,4, 5,5], [1,2, 0,2, 0,1]) # no self loops
     db2g = ([0,1,2,3,4,5], [0,0,0,0,0,0])
     TARGET = dgl.heterograph({
         ('d_bond', 'db2db', 'd_bond') : db2db,
@@ -151,7 +154,7 @@ def test_to_directed_mpnn_g_original_refed():
         ('d_bond', 'db2g', 'global') : db2g,
         ('global', 'g2db', 'd_bond') : tuple(reversed(db2g)),
         # self loop global
-        ('global', 'g2g', 'global') : ([0], [0])
+        # ('global', 'g2g', 'global') : ([0], [0])
     })
     ## previous graph referencing
     TARGET.nodes['d_bond'].data['src_atom'] = torch.tensor(

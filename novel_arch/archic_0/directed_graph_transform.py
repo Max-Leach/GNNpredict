@@ -29,7 +29,7 @@ def to_directed_mpnn_g(g):
     dg = dgl.heterograph(shape)
     glob_count = dg.num_nodes('global')
     # dg = dgl.add_edges(dg, range(glob_count), range(glob_count), etype=('global', 'g2g', 'global'))
-    dg = dgl.add_self_loop(dg, etype=('global', 'g2g', 'global'))
+    # dg = dgl.add_self_loop(dg, etype=('global', 'g2g', 'global'))
 
     ## referencing old graph here
     src_atoms_for_db = torch.zeros([len(to_dbs_list)], dtype=torch.int)
@@ -70,7 +70,7 @@ def new_d_bond_map(g):
 
         atoms = g.predecessors(b, etype='a2b')
         assert len(atoms) <= 2 # bond should have two member atoms
-        assert len(atoms) > 0 # non-sensical bonds case
+        assert len(atoms) > 0 # non-sensical bonds case if false
         u = atoms[0].item()
         globs = g.predecessors(b, etype='g2b')
 
@@ -101,7 +101,7 @@ def new_d_bond_map(g):
             continue
         out_bs = g.successors(dest_a, etype='a2b')
         out_bs = map(lambda b: b.item(), out_bs)
-        # out_bs = filter(lambda ab: ab != b, out_bs) # omit self loop, may remove - turns out it makes complete sense to remove!
+        out_bs = filter(lambda ab: ab != b, out_bs) # omit self loop, may remove
         to_dbs = map(lambda b: b_src_to_db[b][dest_a], out_bs)
         db_to_dbs.append(tuple(to_dbs))
     return db_to_dbs, b_src_to_db, db_to_g
