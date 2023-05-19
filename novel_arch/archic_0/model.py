@@ -85,7 +85,13 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
         """
 
         # dmpnn style transform
-        graph = to_directed_mpnn_g(graph)
+        # NOTE: likely should move this outside of forward: does transform
+        # on all molecules every single time!
+        graphs = dgl.unbatch(graph)
+        graphs_transformed = tuple(map(to_directed_mpnn_g, graphs))
+        graph = dgl.batch(graphs_transformed)
+
+        # print("orig features:", feats['atom'].shape)
         feats = self.graph_featurizer(feats, graph)
 
         # embedding
@@ -94,6 +100,11 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
         # gated layer
         for layer in self.gated_layers:
             feats = layer(graph, feats, norm_atom, norm_bond)
+
+        # HERE: < ------------------------- !!
+        
+        # reverse dmpnn to atom + global features
+        # NOTE: add bond refeaturization later?
 
         # convert mol graphs to reaction graphs by subtracting reactant feats from
         # products feats
@@ -222,6 +233,7 @@ def mol_graph_to_rxn_graph(graph, feats, reactions):
             "products": [True if len(mp) > 0 else False for mp in rxn.bond_mapping],
         }
         mappings = {"atom": rxn.atom_mapping_as_list, "bond": rxn.bond_mapping_as_list}
+        # print("mappa", mappings)
 
         g, fts = create_rxn_graph(
             reactants, products, mappings, has_bonds, tuple(feats.keys())

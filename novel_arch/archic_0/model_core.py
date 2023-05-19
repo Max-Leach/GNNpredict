@@ -89,7 +89,7 @@ class GatedGCNMolCustomConv(nn.Module):
             )
             in_size = gated_hidden_size[i]
 
-        # set2set readout layer
+        # set2set readout layer, will likely change to use re-generated atom features
         ntypes = ["d_bond"]#["atom", "bond"]
         in_size = [gated_hidden_size[-1]] * len(ntypes)
 

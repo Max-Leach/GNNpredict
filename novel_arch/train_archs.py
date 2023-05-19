@@ -7,7 +7,7 @@ from novel_arch.archic_0.directed_conv import GatedGCNConvDMPNN
 def archic_0(): # this is where i am playing around right now
     model = GatedGCNReactionNetworkDMPNN(
         in_feats=train.dataset.feature_size,
-        dbond_feat_size=8, # atom, bond -> dbond features
+        dbond_feat_size=16, # atom, bond -> dbond features
 
         embedding_size=24,
         gated_num_layers=3,
