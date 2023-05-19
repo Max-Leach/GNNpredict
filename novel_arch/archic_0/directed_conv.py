@@ -52,18 +52,22 @@ class GatedGCNConvDMPNN(nn.Module):
         out_sizes = [output_dim] * num_fc_layers
         acts = [activation] * (num_fc_layers - 1) + [nn.Identity()]
         use_bias = [True] * num_fc_layers
+        self.tol = 1e-6 # epsilon for attention mechanism stability
 
         # A, B, ... I are equivalent of phi1, etc in bondnet
         # but we only do d_bond and global hidden state evolution
+        # name X_nt_nt1 does (message passing)/(state evolution) for node of type nt from node of type nt1
         # self.A = LinearN(input_dim, out_sizes, acts, use_bias)
-        self.B = LinearN(input_dim, out_sizes, acts, use_bias)
-        self.C = LinearN(input_dim, out_sizes, acts, use_bias)
+        self.B_db_db = LinearN(input_dim, out_sizes, acts, use_bias)
+        self.C_db_glob = LinearN(input_dim, out_sizes, acts, use_bias)
+        self.db_att_indiv = LinearN(input_dim, out_sizes, acts, use_bias) # transform of dbond features before being fed into att mechanism
+        self.db_aggreg = LinearN(input_dim, out_sizes, acts, use_bias)  # transform of aggregated dbond features
         # self.D = LinearN(input_dim, out_sizes, acts, use_bias)
         # self.E = LinearN(input_dim, out_sizes, acts, use_bias)
-        self.F = LinearN(input_dim, out_sizes, acts, use_bias)
+        # self.F = LinearN(input_dim, out_sizes, acts, use_bias)
         # self.G = LinearN(output_dim, out_sizes, acts, use_bias)
-        self.H = LinearN(output_dim, out_sizes, acts, use_bias)
-        self.I = LinearN(input_dim, out_sizes, acts, use_bias)
+        self.H_glob_db = LinearN(output_dim, out_sizes, acts, use_bias)
+        self.I_glob_glob = LinearN(input_dim, out_sizes, acts, use_bias)
 
         if self.batch_norm:
             self.bn_node_h = nn.BatchNorm1d(output_dim)
@@ -144,8 +148,8 @@ class GatedGCNConvDMPNN(nn.Module):
         u_in = u
 
         # g.nodes["atom"].data.update({"Ah": self.A(h), "Dh": self.D(h), "Eh": self.E(h)})
-        g.nodes["d_bond"].data.update({"Be": self.B(e)})
-        g.nodes["global"].data.update({"Cu": self.C(u), "Fu": self.F(u)})
+        g.nodes["d_bond"].data.update({"Be": self.B_db_db(e)})
+        g.nodes["global"].data.update({"Cu": self.C_db_glob(u)}) #, "Fu": self.F_glob_db(u)})
 
         # update bond feature e
         g.multi_update_all(
@@ -177,7 +181,7 @@ class GatedGCNConvDMPNN(nn.Module):
 
         # g.multi_update_all(
         #     {
-        #         "a2a": (fn.copy_u("Dh", "m"), fn.sum("m", "h")),  # D * h_i
+        #         "a2a": (fn.copy_u("Dh", "m"), fn.sum("m", "h")),  # Dsigmoid * h_i
         #         "b2a": (self.message_fn, self.reduce_fn),  # e_ij [Had] (E * hj)
         #         "g2a": (fn.copy_u("Fu", "m"), fn.sum("m", "h")),  # F * u
         #     },
@@ -196,8 +200,8 @@ class GatedGCNConvDMPNN(nn.Module):
 
         # update global feature u
         # g.nodes["atom"].data.update({"Gh": self.G(h)})
-        g.nodes["d_bond"].data.update({"He": self.H(e)})
-        g.nodes["global"].data.update({"Iu": self.I(u)})
+        g.nodes["d_bond"].data.update({"He": self.H_glob_db(e)})
+        g.nodes["global"].data.update({"Iu": self.I_glob_glob(u)})
         g.multi_update_all(
             {
                 # "a2g": (fn.copy_u("Gh", "m"), fn.mean("m", "u")),  # G * (mean_i h_i)
