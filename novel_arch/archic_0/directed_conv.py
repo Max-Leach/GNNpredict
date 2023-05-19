@@ -6,6 +6,7 @@ import torch
 from dgl import function as fn
 import dgl
 from typing import Callable, Union, Dict
+from bondnet.layer.gatedconv import select_not_equal
 
 class GatedGCNConvDMPNN(nn.Module):
     """
@@ -52,7 +53,7 @@ class GatedGCNConvDMPNN(nn.Module):
         out_sizes = [output_dim] * num_fc_layers
         acts = [activation] * (num_fc_layers - 1) + [nn.Identity()]
         use_bias = [True] * num_fc_layers
-        self.tol = 1e-6 # epsilon for attention mechanism stability
+        # self.tol = 1e-6 # epsilon for attention mechanism stability
 
         # A, B, ... I are equivalent of phi1, etc in bondnet
         # but we only do d_bond and global hidden state evolution
@@ -61,7 +62,7 @@ class GatedGCNConvDMPNN(nn.Module):
         self.B_db_db = LinearN(input_dim, out_sizes, acts, use_bias)
         self.C_db_glob = LinearN(input_dim, out_sizes, acts, use_bias)
         self.db_att_indiv = LinearN(input_dim, out_sizes, acts, use_bias) # transform of dbond features before being fed into att mechanism
-        self.db_aggreg = LinearN(input_dim, out_sizes, acts, use_bias)  # transform of aggregated dbond features
+        self.db_aggreg_indiv = LinearN(input_dim, out_sizes, acts, use_bias)  # transform of dbond features before att mechanism
         # self.D = LinearN(input_dim, out_sizes, acts, use_bias)
         # self.E = LinearN(input_dim, out_sizes, acts, use_bias)
         # self.F = LinearN(input_dim, out_sizes, acts, use_bias)
@@ -118,6 +119,44 @@ class GatedGCNConvDMPNN(nn.Module):
 
     #     return {"h": h}
 
+    @staticmethod
+    def message_fn_db(edges):
+        return {"indiv_e": edges.src["indiv_e"], "att_e": edges.src["att_e"]}
+
+    @staticmethod
+    def reduce_fn_db(nodes):
+        # Eh_i = nodes.data["Eh"]
+        # e = nodes.mailbox["e"]
+        # Eh_j = nodes.mailbox["Eh_j"]
+
+        # # TODO select_not_equal is time consuming; it might be improved by passing node
+        # #  index along with Eh_j and compare the node index to select the different one
+        # Eh_j = select_not_equal(Eh_j, Eh_i)
+        # sigma_ij = torch.sigmoid(e)  # sigma_ij = sigmoid(e_ij)
+
+        # # (sum_j eta_ij * Ehj)/(sum_j' eta_ij') <= dense attention
+        # h = torch.sum(sigma_ij * Eh_j, dim=1) / (torch.sum(sigma_ij, dim=1) + 1e-6)
+
+        # return {"h": h}
+
+        indiv_e_dat = nodes.data["indiv_e"]
+        indiv_e = nodes.mailbox["indiv_e"]
+        att_e = nodes.mailbox["att_e"]
+
+        # print('indiv selection:', indiv_e.shape, indiv_e_dat.shape)
+        # print('atten', att_e.shape)
+
+        # indiv_e = select_not_equal(indiv_e, indiv_e_dat)
+        sigs = torch.sigmoid(att_e)
+        sig_chan_sum = torch.sum(sigs, dim=1)
+        att_weights = sigs / (sig_chan_sum.unsqueeze(1) + 1e-6) # NOTE: dimensions may be screwed up, att mechanism is along each channel, not one scalar per node msg
+
+        weighted_msgs = att_weights * indiv_e
+        # weighted_msgs = indiv_e
+        e = torch.sum(weighted_msgs, dim=1)
+
+        return {'e': e}
+
     def forward(
         self,
         g: dgl.DGLGraph,
@@ -148,7 +187,8 @@ class GatedGCNConvDMPNN(nn.Module):
         u_in = u
 
         # g.nodes["atom"].data.update({"Ah": self.A(h), "Dh": self.D(h), "Eh": self.E(h)})
-        g.nodes["d_bond"].data.update({"Be": self.B_db_db(e)})
+        # g.nodes["d_bond"].data.update({"self": self.B_db_db(e)})
+        g.nodes["d_bond"].data.update({"att_e": self.db_att_indiv(e), "indiv_e": self.db_aggreg_indiv(e)})
         g.nodes["global"].data.update({"Cu": self.C_db_glob(u)}) #, "Fu": self.F_glob_db(u)})
 
         # update bond feature e
@@ -156,13 +196,14 @@ class GatedGCNConvDMPNN(nn.Module):
             {
                 # "a2b": (fn.copy_u("Ah", "m"), fn.sum("m", "e")),  # A * (h_i + h_j)
                 #"db2db" : (blah) # we will likely need to add a propagation to other bonds here
-                "db2db": (fn.copy_u("Be", "m"), fn.sum("m", "e")),  # B * e_ij # self bond update
+                # "db2db": (fn.copy_u("Be", "m"), fn.sum("m", "e")),  # B * e_ij # self bond update - now done below
+                "db2db": (self.message_fn_db, self.reduce_fn_db),
                 "g2db": (fn.copy_u("Cu", "m"), fn.sum("m", "e")),  # C * u
             },
             "sum",
         )
 
-        e = g.nodes["d_bond"].data["e"]
+        e = g.nodes["d_bond"].data["e"] + self.B_db_db(e) # self input into evolver
         if self.graph_norm:
             e = e * norm_bond
         if self.batch_norm:
@@ -206,11 +247,11 @@ class GatedGCNConvDMPNN(nn.Module):
             {
                 # "a2g": (fn.copy_u("Gh", "m"), fn.mean("m", "u")),  # G * (mean_i h_i)
                 "db2g": (fn.copy_u("He", "m"), fn.mean("m", "u")),  # H * (mean_ij e_ij)
-                "g2g": (fn.copy_u("Iu", "m"), fn.sum("m", "u")),  # I * u
+                # "g2g": (fn.copy_u("Iu", "m"), fn.sum("m", "u")),  # I * u
             },
             "sum",
         )
-        u = g.nodes["global"].data["u"]
+        u = g.nodes["global"].data["u"] + self.I_glob_glob(u) # self loop for global
         # do not apply batch norm if it there is only one graph
         if self.batch_norm and u.shape[0] > 1:
             u = self.bn_node_u(u)
