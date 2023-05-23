@@ -74,11 +74,24 @@ def test_dbond_to_atom_featurize():
         'global': torch.randn([3, 3]),
         'd_bond': dbond_feat,
     }
+
+    # aggregate incoming dbond features for atom
+    def dbond_aggreg(atom):
+        a_2_db = [ #index is the atom
+            [3, 4, 5],
+            [0],
+            [1],
+            [2],
+        ]
+        agreg = torch.zeros(dbond_feat_size)
+        for db in a_2_db[atom]:
+            agreg += dbond_feat[db]
+        return agreg
     
     # precursor to get expected atom features
     atom_precurs = torch.stack(tuple(
         map(
-            lambda a: torch.cat([ORIG_FEATS['atom'][a], dbond_feat[dmpnn_g.nodes['d_bond'].data['dest_atom'][a]]], dim=0)
+            lambda a: torch.cat([ORIG_FEATS['atom'][a], dbond_aggreg(a)], dim=0)
         , range(orig_g.num_nodes('atom')))
     ))
     
