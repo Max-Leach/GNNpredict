@@ -20,6 +20,7 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
         self,
         in_feats,
         dbond_feat_size, # size from atom, bond -> directed edges
+        node_types, # types of nodes to use for processing from original graph
 
         embedding_size=32,
         gated_num_layers=2,
@@ -43,27 +44,28 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
     ):
         # feature size so embedding (from d_bond raw to hidden) can properly process
         dmpnn_feats = {'d_bond': dbond_feat_size, 'global': in_feats['global']}
+        self.node_types = node_types
     
         super().__init__(
             dmpnn_feats,
-            embedding_size=32,
-            gated_num_layers=2,
-            gated_hidden_size=[64, 64, 32],
-            gated_num_fc_layers=1,
-            gated_graph_norm=False,
-            gated_batch_norm=True,
-            gated_activation="ReLU",
-            gated_residual=True,
-            gated_dropout=0.0,
-            num_lstm_iters=6,
-            num_lstm_layers=3,
-            set2set_ntypes_direct=["global"],
-            fc_num_layers=2,
-            fc_hidden_size=[32, 16],
-            fc_batch_norm=False,
-            fc_activation="ReLU",
-            fc_dropout=0.0,
-            outdim=1,
+            embedding_size,
+            gated_num_layers,
+            gated_hidden_size,
+            gated_num_fc_layers,
+            gated_graph_norm,
+            gated_batch_norm,
+            gated_activation,
+            gated_residual,
+            gated_dropout,
+            num_lstm_iters,
+            num_lstm_layers,
+            set2set_ntypes_direct,
+            fc_num_layers,
+            fc_hidden_size,
+            fc_batch_norm,
+            fc_activation,
+            fc_dropout,
+            outdim,
             conv_op=conv_op,
         )
 
@@ -84,22 +86,38 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
             2D tensor: of shape(N, M), where `M = outdim`.
         """
 
+        # handle typical graph + single atom case, marker for skipping message propagation
+        def to_dmpnn_or_single_marker(g):
+            if g.num_nodes('atom') == 1:
+                return None
+            else:
+                return to_directed_mpnn_g(g)
+
         # dmpnn style transform
         # NOTE: likely should move this outside of forward: does transform
         # on all molecules every single time!
         graphs = dgl.unbatch(graph)
-        graphs_transformed = tuple(map(to_directed_mpnn_g, graphs))
-        graph = dgl.batch(graphs_transformed)
+        graphs_or_single = map(to_dmpnn_or_single_marker, graphs)
+        graphs_or_single_w_original = tuple(zip(graphs_or_single, graphs))
+        graphs_transformed = tuple(filter(lambda m: m[0] is not None, graphs_or_single_w_original))
+        graph = dgl.batch(tuple(map(lambda t_o: t_o[0], graphs_transformed)))
 
-        # print("orig features:", feats['atom'].shape)
+        # print("orig features:", feats['atom'].shape, feats['bond'].shape, feats['global'].shape)
+        # original feats entered into function are ignored, use only features of graphs that aren't single atoms
+        original_no_single_atoms = dgl.batch(tuple(map(lambda t_o: t_o[1], graphs_transformed)))
+        feats = {nt: original_no_single_atoms.nodes[nt].data["feat"] for nt in self.node_types}
         feats = self.graph_featurizer(feats, graph)
 
         # embedding
         feats = self.embedding(feats)
 
         # gated layer
+        print('grahp transformsed', len(graphs_transformed))
         for layer in self.gated_layers:
+            print('layer run')
             feats = layer(graph, feats, norm_atom, norm_bond)
+
+        print("fak")
 
         # HERE: < ------------------------- !!
         

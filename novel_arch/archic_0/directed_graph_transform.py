@@ -8,6 +8,7 @@ import torch
 # -note that this function doesn't do a feature transform
 
 # note: consider need for self loops!
+# as of now, single atom graph is not expected, as they do not technically need any dmpnn processing
 def to_directed_mpnn_g(g):
     # isolated atom case
     # if g.num_nodes('atom') == 1:
