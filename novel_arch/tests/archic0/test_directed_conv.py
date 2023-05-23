@@ -7,7 +7,7 @@ from bondnet.utils import seed_torch
 from novel_arch.archic_0.directed_conv import GatedGCNConvDMPNN
 
 def test_directed_conv_features_residue_no_norm():
-    seed_torch() # same result every time!
+    # seed_torch() # same result every time!
 
     # graph is that atoms are omitted, bonds are now directionally
     # attached to other bonds as per d-mpnn requirements
@@ -66,7 +66,7 @@ def test_directed_conv_features_residue_no_norm():
         range(g.num_nodes('d_bond')))))) + db_feat
     glob_expected = F.relu(
         torch.mean(
-            torch.stack(tuple(map(lambda db: gated_conv.H_glob_db(db_feat[db]), range(g.num_nodes('d_bond')))))
+            torch.stack(tuple(map(lambda db: gated_conv.H_glob_db(db_expected[db]), range(g.num_nodes('d_bond')))))
             , dim=0) 
     + gated_conv.I_glob_glob(glob_feat)) + glob_feat
     EXPECTED = {

@@ -242,7 +242,7 @@ class GatedGCNConvDMPNN(nn.Module):
         # update global feature u
         # g.nodes["atom"].data.update({"Gh": self.G(h)})
         g.nodes["d_bond"].data.update({"He": self.H_glob_db(e)})
-        g.nodes["global"].data.update({"Iu": self.I_glob_glob(u)})
+        # g.nodes["global"].data.update({"Iu": self.I_glob_glob(u)})
         g.multi_update_all(
             {
                 # "a2g": (fn.copy_u("Gh", "m"), fn.mean("m", "u")),  # G * (mean_i h_i)

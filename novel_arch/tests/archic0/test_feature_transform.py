@@ -7,7 +7,7 @@ import dgl
 
 # check that dbond, global features match expected
 def test_grambow_featurizer():
-    seed_torch() # same result every time!
+    # seed_torch() # same result every time!
 
     # graph is that atoms are omitted, bonds are now directionally
     # attached to other bonds as per d-mpnn requirements
