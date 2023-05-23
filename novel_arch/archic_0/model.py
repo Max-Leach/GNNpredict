@@ -112,12 +112,8 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
         feats = self.embedding(feats)
 
         # gated layer
-        print('grahp transformsed', len(graphs_transformed))
         for layer in self.gated_layers:
-            print('layer run')
             feats = layer(graph, feats, norm_atom, norm_bond)
-
-        print("fak")
 
         # HERE: < ------------------------- !!
         
@@ -251,7 +247,6 @@ def mol_graph_to_rxn_graph(graph, feats, reactions):
             "products": [True if len(mp) > 0 else False for mp in rxn.bond_mapping],
         }
         mappings = {"atom": rxn.atom_mapping_as_list, "bond": rxn.bond_mapping_as_list}
-        # print("mappa", mappings)
 
         g, fts = create_rxn_graph(
             reactants, products, mappings, has_bonds, tuple(feats.keys())
