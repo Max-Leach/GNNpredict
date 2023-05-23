@@ -116,7 +116,7 @@ def test_to_directed_mpnn_g_global_matching():
         targetDegPairs = set(zip(TARGET.in_degrees(etype=e).tolist(), TARGET.out_degrees(etype=e).tolist()))
         assert resultDegPairs == targetDegPairs
 
-# if new graph has proper references to src atom, old bond in original graph
+# if new graph has proper references to src atom, old bond, dest atom in original graph
 def test_to_directed_mpnn_g_original_refed():
     # original graph case is one atom with 3 others connected to it
     # 0 is the connected atom
@@ -145,8 +145,8 @@ def test_to_directed_mpnn_g_original_refed():
     # 3 4 5 point to center, n-3 will be original atoms pointing from, or reversed of previous three d_bond
     # (ie all bonds pointing in)
     # db2db = ([3,3, 4,4, 5,5,  0,1,2,3,4,5], [1,2, 0,2, 0,1,  0,1,2,3,4,5])
-    db2db = ([3,3, 4,4, 5,5], [1,2, 0,2, 0,1]) # no self loops
-    db2g = ([0,1,2,3,4,5], [0,0,0,0,0,0])
+    db2db = (torch.tensor([3,3, 4,4, 5,5], dtype=torch.int), torch.tensor([1,2, 0,2, 0,1], dtype=torch.int)) # no self loops
+    db2g = (torch.tensor([0,1,2,3,4,5], dtype=torch.int), torch.tensor([0,0,0,0,0,0], dtype=torch.int))
     TARGET = dgl.heterograph({
         ('d_bond', 'db2db', 'd_bond') : db2db,
         ## one of the following may be unneeded
@@ -164,6 +164,13 @@ def test_to_directed_mpnn_g_original_refed():
     TARGET.nodes['d_bond'].data['old_bond'] = torch.tensor(
             [0,1,2, 0,1,2] # in and out triplets correspond to old bonds in same order
         , dtype=torch.int)
+    dest_atom_feat = torch.zeros(6, dtype=torch.int)
+    for db in range(len(dest_atom_feat)):
+        old_bond = TARGET.nodes['d_bond'].data['old_bond'][db]
+        src_atom = TARGET.nodes['d_bond'].data['src_atom'][db]
+        dest_a = tuple(filter(lambda a: a != src_atom.item(), ORIG.predecessors(old_bond.item(), etype='a2b').tolist()))[0]
+        dest_atom_feat[db] = dest_a
+    TARGET.nodes['d_bond'].data['dest_atom'] = dest_atom_feat
 
     result = to_directed_mpnn_g(ORIG)
 
@@ -173,14 +180,16 @@ def test_to_directed_mpnn_g_original_refed():
         TARGET.in_degrees(etype=db_edge).tolist(), 
         TARGET.out_degrees(etype=db_edge).tolist(), 
         TARGET.nodes['d_bond'].data['src_atom'].tolist(), 
-        TARGET.nodes['d_bond'].data['old_bond'].tolist()
+        TARGET.nodes['d_bond'].data['old_bond'].tolist(),
+        TARGET.nodes['d_bond'].data['dest_atom'].tolist(),
     ))
 
     result_sig = set(zip(
         result.in_degrees(etype=db_edge).tolist(), 
         result.out_degrees(etype=db_edge).tolist(), 
         result.nodes['d_bond'].data['src_atom'].tolist(), 
-        result.nodes['d_bond'].data['old_bond'].tolist()
+        result.nodes['d_bond'].data['old_bond'].tolist(),
+        result.nodes['d_bond'].data['dest_atom'].tolist(),
     ))
 
     assert target_sig == result_sig

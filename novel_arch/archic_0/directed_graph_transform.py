@@ -35,15 +35,19 @@ def to_directed_mpnn_g(g):
     ## referencing old graph here
     src_atoms_for_db = torch.zeros([len(to_dbs_list)], dtype=torch.int)
     old_bonds_for_db = torch.zeros([len(to_dbs_list)], dtype=torch.int)
+    dest_atoms_for_db = torch.zeros([len(to_dbs_list)], dtype=torch.int)
     for b in b_src_to_db:
         bond_db = b_src_to_db[b]
         for src_atom in bond_db:
             db = bond_db[src_atom]
             src_atoms_for_db[db] = src_atom
             old_bonds_for_db[db] = b
+            dest_atom = tuple(filter(lambda a: a != src_atom, g.successors(b, etype='b2a').tolist()))[0]
+            dest_atoms_for_db[db] = dest_atom
 
     dg.nodes['d_bond'].data['src_atom'] = src_atoms_for_db
     dg.nodes['d_bond'].data['old_bond'] = old_bonds_for_db
+    dg.nodes['d_bond'].data['dest_atom'] = dest_atoms_for_db
 
     return dg
 
@@ -108,20 +112,20 @@ def new_d_bond_map(g):
     return db_to_dbs, b_src_to_db, db_to_g
 
 # return dmpnn graph for if g is only an atom
-def isolated_atom_case(g):
-    assert False # function may not be complete, globals improperly attached?
-    db2db_pairs = ([], [])
-    db2g_pairs = ([0,1], [0,0])
-    shape = {
-        ('d_bond', 'db2db', 'd_bond') : db2db_pairs,
-        ## one of the following may be unneeded
-        # if we prevent propagation one way or another
-        ('d_bond', 'db2g', 'global') : db2g_pairs,
-        ('global', 'g2db', 'd_bond') : tuple(reversed(db2g_pairs)),
-    }
-    dg = dgl.heterograph(shape)
-    ## referencing old graph here
-    dg.nodes['d_bond'].data['src_atom'] = torch.tensor([0,0])
-    dg.nodes['d_bond'].data['old_bond'] = torch.tensor([0,0])
+# def isolated_atom_case(g):
+#     assert False # function may not be complete, globals improperly attached?
+#     db2db_pairs = ([], [])
+#     db2g_pairs = ([0,1], [0,0])
+#     shape = {
+#         ('d_bond', 'db2db', 'd_bond') : db2db_pairs,
+#         ## one of the following may be unneeded
+#         # if we prevent propagation one way or another
+#         ('d_bond', 'db2g', 'global') : db2g_pairs,
+#         ('global', 'g2db', 'd_bond') : tuple(reversed(db2g_pairs)),
+#     }
+#     dg = dgl.heterograph(shape)
+#     ## referencing old graph here
+#     dg.nodes['d_bond'].data['src_atom'] = torch.tensor([0,0])
+#     dg.nodes['d_bond'].data['old_bond'] = torch.tensor([0,0])
 
-    return dg
+#     return dg
