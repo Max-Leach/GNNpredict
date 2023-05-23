@@ -13,7 +13,7 @@ import dgl
 import torch
 from novel_arch.archic_0.model_core import GatedGCNMolCustomConv
 from novel_arch.archic_0.directed_graph_transform import to_directed_mpnn_g
-from novel_arch.archic_0.feature_transform import GrambowFeaturizer
+from novel_arch.archic_0.to_dmpnn_features import GrambowFeaturizer
 
 class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
     def __init__(
