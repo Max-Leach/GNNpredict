@@ -44,7 +44,7 @@ def test_directed_conv_features_residue_no_norm():
         'global': glob_feat,
     }
 
-    out_size = 3
+    out_size = feat_size
     gated_conv = GatedGCNConvDMPNN(feat_size, out_size, residual=True, batch_norm=False)
 
     def att_mech(db, pred, preds):
@@ -78,4 +78,33 @@ def test_directed_conv_features_residue_no_norm():
 
     assert len(EXPECTED) == 2
     assert torch.all(torch.isclose(actual['d_bond'], EXPECTED['d_bond'])).item()
+    assert torch.all(torch.isclose(actual['global'], EXPECTED['global'])).item()
+
+# ensure a lone global in a graph undergoes expected transformation
+# which is relevant to single atom molecule case, where dmpnn graph will have one global
+def test_directed_conv_lone_global():
+    g = dgl.heterograph({
+        # self loop global
+        ('global', 'g2g', 'global') : ([0], [0]) # just to create global node
+    })
+    dgl.remove_edges(g, [0], etype='g2g') # make it represent actual case
+
+    feat_size = 3 # unified for global and d_bond once graph is sent into model, so conv op sees unified feature size
+    # db_feat = torch.randn([6, feat_size])
+    glob_feat = torch.randn([1, feat_size])
+    feats = {
+        # 'd_bond': db_feat,
+        'global': glob_feat,
+    }
+
+    out_size = feat_size
+    gated_conv = GatedGCNConvDMPNN(feat_size, out_size, residual=True, batch_norm=False)
+
+    glob_expected = F.relu(gated_conv.I_glob_glob(glob_feat)) + glob_feat
+    EXPECTED = {
+        'global': glob_expected,
+    }
+
+    actual = gated_conv(g, feats)
+
     assert torch.all(torch.isclose(actual['global'], EXPECTED['global'])).item()

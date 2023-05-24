@@ -81,6 +81,8 @@ class GatedGCNConvDMPNN(nn.Module):
         else:
             self.dropout = nn.Dropout(dropout)
 
+        self.output_dim = output_dim
+
     # @staticmethod
     # def reduce_fn_a2b(nodes):
     #     """
@@ -125,28 +127,10 @@ class GatedGCNConvDMPNN(nn.Module):
 
     @staticmethod
     def reduce_fn_db(nodes):
-        # Eh_i = nodes.data["Eh"]
-        # e = nodes.mailbox["e"]
-        # Eh_j = nodes.mailbox["Eh_j"]
-
-        # # TODO select_not_equal is time consuming; it might be improved by passing node
-        # #  index along with Eh_j and compare the node index to select the different one
-        # Eh_j = select_not_equal(Eh_j, Eh_i)
-        # sigma_ij = torch.sigmoid(e)  # sigma_ij = sigmoid(e_ij)
-
-        # # (sum_j eta_ij * Ehj)/(sum_j' eta_ij') <= dense attention
-        # h = torch.sum(sigma_ij * Eh_j, dim=1) / (torch.sum(sigma_ij, dim=1) + 1e-6)
-
-        # return {"h": h}
-
         indiv_e_dat = nodes.data["indiv_e"]
         indiv_e = nodes.mailbox["indiv_e"]
         att_e = nodes.mailbox["att_e"]
 
-        # print('indiv selection:', indiv_e.shape, indiv_e_dat.shape)
-        # print('atten', att_e.shape)
-
-        # indiv_e = select_not_equal(indiv_e, indiv_e_dat)
         sigs = torch.sigmoid(att_e)
         sig_chan_sum = torch.sum(sigs, dim=1)
         att_weights = sigs / (sig_chan_sum.unsqueeze(1) + 1e-6) # NOTE: dimensions may be screwed up, att mechanism is along each channel, not one scalar per node msg
@@ -178,40 +162,44 @@ class GatedGCNConvDMPNN(nn.Module):
         g = g.local_var()
 
         # h = feats["atom"]
-        e = feats["d_bond"]
+        d_bond_present = 'd_bond' in feats # for lone global case
+        if d_bond_present:
+            e = feats["d_bond"]
         u = feats["global"]
 
         # for residual connection
         # h_in = h
-        e_in = e
+        if d_bond_present:
+            e_in = e
         u_in = u
 
         # g.nodes["atom"].data.update({"Ah": self.A(h), "Dh": self.D(h), "Eh": self.E(h)})
         # g.nodes["d_bond"].data.update({"self": self.B_db_db(e)})
-        g.nodes["d_bond"].data.update({"att_e": self.db_att_indiv(e), "indiv_e": self.db_aggreg_indiv(e)})
-        g.nodes["global"].data.update({"Cu": self.C_db_glob(u)}) #, "Fu": self.F_glob_db(u)})
+        if d_bond_present:
+            g.nodes["d_bond"].data.update({"att_e": self.db_att_indiv(e), "indiv_e": self.db_aggreg_indiv(e)})
+            g.nodes["global"].data.update({"Cu": self.C_db_glob(u)}) #, "Fu": self.F_glob_db(u)})
 
-        # update bond feature e
-        g.multi_update_all(
-            {
-                # "a2b": (fn.copy_u("Ah", "m"), fn.sum("m", "e")),  # A * (h_i + h_j)
-                #"db2db" : (blah) # we will likely need to add a propagation to other bonds here
-                # "db2db": (fn.copy_u("Be", "m"), fn.sum("m", "e")),  # B * e_ij # self bond update - now done below
-                "db2db": (self.message_fn_db, self.reduce_fn_db),
-                "g2db": (fn.copy_u("Cu", "m"), fn.sum("m", "e")),  # C * u
-            },
-            "sum",
-        )
+            # update bond feature e
+            g.multi_update_all(
+                {
+                    # "a2b": (fn.copy_u("Ah", "m"), fn.sum("m", "e")),  # A * (h_i + h_j)
+                    #"db2db" : (blah) # we will likely need to add a propagation to other bonds here
+                    # "db2db": (fn.copy_u("Be", "m"), fn.sum("m", "e")),  # B * e_ij # self bond update - now done below
+                    "db2db": (self.message_fn_db, self.reduce_fn_db),
+                    "g2db": (fn.copy_u("Cu", "m"), fn.sum("m", "e")),  # C * u
+                },
+                "sum",
+            )
 
-        e = g.nodes["d_bond"].data["e"] + self.B_db_db(e) # self input into evolver
-        if self.graph_norm:
-            e = e * norm_bond
-        if self.batch_norm:
-            e = self.bn_node_e(e)
-        e = self.activation(e)
-        if self.residual:
-            e = e_in + e
-        g.nodes["d_bond"].data["e"] = e
+            e = g.nodes["d_bond"].data["e"] + self.B_db_db(e) # self input into evolver
+            if self.graph_norm:
+                e = e * norm_bond
+            if self.batch_norm:
+                e = self.bn_node_e(e)
+            e = self.activation(e)
+            if self.residual:
+                e = e_in + e
+            g.nodes["d_bond"].data["e"] = e
 
         # update atom feature h
 
@@ -241,16 +229,18 @@ class GatedGCNConvDMPNN(nn.Module):
 
         # update global feature u
         # g.nodes["atom"].data.update({"Gh": self.G(h)})
-        g.nodes["d_bond"].data.update({"He": self.H_glob_db(e)})
-        # g.nodes["global"].data.update({"Iu": self.I_glob_glob(u)})
-        g.multi_update_all(
-            {
-                # "a2g": (fn.copy_u("Gh", "m"), fn.mean("m", "u")),  # G * (mean_i h_i)
-                "db2g": (fn.copy_u("He", "m"), fn.mean("m", "u")),  # H * (mean_ij e_ij)
-                # "g2g": (fn.copy_u("Iu", "m"), fn.sum("m", "u")),  # I * u
-            },
-            "sum",
-        )
+        g.nodes["global"].data.update({"u": torch.zeros([g.num_nodes('global'), self.output_dim])})
+        if d_bond_present:
+            g.nodes["d_bond"].data.update({"He": self.H_glob_db(e)})
+            # g.nodes["global"].data.update({"Iu": self.I_glob_glob(u)})
+            g.multi_update_all(
+                {
+                    # "a2g": (fn.copy_u("Gh", "m"), fn.mean("m", "u")),  # G * (mean_i h_i)
+                    "db2g": (fn.copy_u("He", "m"), fn.mean("m", "u")),  # H * (mean_ij e_ij)
+                    # "g2g": (fn.copy_u("Iu", "m"), fn.sum("m", "u")),  # I * u
+                },
+                "sum",
+            )
         u = g.nodes["global"].data["u"] + self.I_glob_glob(u) # self loop for global
         # do not apply batch norm if it there is only one graph
         if self.batch_norm and u.shape[0] > 1:
@@ -261,10 +251,13 @@ class GatedGCNConvDMPNN(nn.Module):
 
         # dropout
         # h = self.dropout(h)
-        e = self.dropout(e)
+        if d_bond_present:
+            e = self.dropout(e)
         u = self.dropout(u)
 
         # feats = {"atom": h, "bond": e, "global": u}
+        if not d_bond_present:
+            e = torch.tensor(())
         feats = {"d_bond": e, "global": u}
 
         return feats
