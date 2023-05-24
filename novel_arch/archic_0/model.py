@@ -14,6 +14,7 @@ import torch
 from novel_arch.archic_0.model_core import GatedGCNMolCustomConv
 from novel_arch.archic_0.directed_graph_transform import to_directed_mpnn_g
 from novel_arch.archic_0.to_dmpnn_features import GrambowFeaturizer
+from novel_arch.archic_0.readout_feature_transform import DBondtoAtomFeaturize
 
 class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
     def __init__(
@@ -44,7 +45,6 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
     ):
         # feature size so embedding (from d_bond raw to hidden) can properly process
         dmpnn_feats = {'d_bond': dbond_feat_size, 'global': in_feats['global']}
-        self.node_types = node_types
     
         super().__init__(
             dmpnn_feats,
@@ -70,6 +70,9 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
         )
 
         self.graph_featurizer = GrambowFeaturizer(in_feats['atom'], in_feats['bond'], dbond_feat_size)
+        self.node_types = node_types
+        self.prereadout_featurizer = DBondtoAtomFeaturize(in_feats['atom'], gated_hidden_size[-1], gated_hidden_size[-1])
+        self.in_feats = in_feats
 
     def forward(self, graph, feats, reactions, norm_atom=None, norm_bond=None):
         """
@@ -86,26 +89,24 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
             2D tensor: of shape(N, M), where `M = outdim`.
         """
 
-        # handle typical graph + single atom case, marker for skipping message propagation
-        def to_dmpnn_or_single_marker(g):
+        # handle single atom case: bond gets removed
+        def single_atom_case(g):
             if g.num_nodes('atom') == 1:
-                return None
+                bonds = range(g.num_nodes('bond'))
+                return dgl.remove_nodes(g, bonds, ntype='bond')
             else:
-                return to_directed_mpnn_g(g)
+                return g
 
         # dmpnn style transform
         # NOTE: likely should move this outside of forward: does transform
-        # on all molecules every single time!
+        # # on all molecules every single time!
+        original_feats = {nt: graph.nodes[nt].data["feat"] for nt in self.node_types}
         graphs = dgl.unbatch(graph)
-        graphs_or_single = map(to_dmpnn_or_single_marker, graphs)
-        graphs_or_single_w_original = tuple(zip(graphs_or_single, graphs))
-        graphs_transformed = tuple(filter(lambda m: m[0] is not None, graphs_or_single_w_original))
-        graph = dgl.batch(tuple(map(lambda t_o: t_o[0], graphs_transformed)))
+        graphs = tuple(map(single_atom_case, graphs))
+        graph = dgl.batch(graphs)
+        graph = to_directed_mpnn_g(graph)
 
-        # print("orig features:", feats['atom'].shape, feats['bond'].shape, feats['global'].shape)
-        # original feats entered into function are ignored, use only features of graphs that aren't single atoms
-        original_no_single_atoms = dgl.batch(tuple(map(lambda t_o: t_o[1], graphs_transformed)))
-        feats = {nt: original_no_single_atoms.nodes[nt].data["feat"] for nt in self.node_types}
+        # original features to dmpnn features
         feats = self.graph_featurizer(feats, graph)
 
         # embedding
@@ -115,11 +116,10 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
         for layer in self.gated_layers:
             feats = layer(graph, feats, norm_atom, norm_bond)
 
-        # HERE: < ------------------------- !!
-        
         # reverse dmpnn to atom + global features
-        # NOTE: add bond refeaturization later?
+        feats = self.prereadout_featurizer(feats, graph, original_feats)
 
+        # HERE: < ------------------------- !!
         # convert mol graphs to reaction graphs by subtracting reactant feats from
         # products feats
         graph, feats = mol_graph_to_rxn_graph(graph, feats, reactions)

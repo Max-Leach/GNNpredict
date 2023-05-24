@@ -25,8 +25,11 @@ class DBondtoAtomFeaturize(nn.Module):
 
 # aggregate features of bonds going into atom
 def dbond_aggregate(atom, feats, atom_2_db):
-    incoming_db_feat = map(lambda db: feats['d_bond'][db], atom_2_db[atom])
-    return sum(incoming_db_feat)
+    if atom not in atom_2_db:
+        return torch.zeros_like(feats['d_bond'][0]) # no edges, nothing to sum up
+    else:
+        incoming_db_feat = map(lambda db: feats['d_bond'][db], atom_2_db[atom])
+        return sum(incoming_db_feat)
 
 # return dict that has index as atom, entry as all dbond pointing to that atom
 def dbond_to_atom_map(dmpnn_g):
