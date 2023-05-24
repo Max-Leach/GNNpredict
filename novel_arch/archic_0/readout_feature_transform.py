@@ -4,11 +4,11 @@ import torch
 # convert form directed bond features and initial atom features
 # to a new atom feature for readout phase
 class DBondtoAtomFeaturize(nn.Module):
-    def __init__(self, atom_feat_size, bond_feat_size, out_atom_feat_size):
+    def __init__(self, atom_feat_size, dbond_feat_size, out_atom_feat_size):
         super().__init__()
 
         self.relu = nn.ReLU()
-        combined_size = atom_feat_size + bond_feat_size
+        combined_size = atom_feat_size + dbond_feat_size
         self.map = nn.Linear(combined_size, out_atom_feat_size)
 
     def forward(self, feats, dmpnn_g, original_feats):
