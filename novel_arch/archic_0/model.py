@@ -101,6 +101,7 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
         # NOTE: likely should move this outside of forward: does transform
         # # on all molecules every single time!
         original_feats = {nt: graph.nodes[nt].data["feat"] for nt in self.node_types}
+        original_graph = graph
         graphs = dgl.unbatch(graph)
         graphs = tuple(map(single_atom_case, graphs))
         graph = dgl.batch(graphs)
@@ -119,10 +120,9 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
         # reverse dmpnn to atom + global features
         feats = self.prereadout_featurizer(feats, graph, original_feats)
 
-        # HERE: < ------------------------- !!
         # convert mol graphs to reaction graphs by subtracting reactant feats from
         # products feats
-        graph, feats = mol_graph_to_rxn_graph(graph, feats, reactions)
+        graph, feats = mol_graph_to_rxn_graph(original_graph, feats, reactions)
 
         # readout layer
         feats = self.readout_layer(graph, feats)
@@ -188,17 +188,17 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
         return all_feats
 
 
-def _split_batched_output(graph, value):
-    """
-    Split a tensor into `num_graphs` chunks, the size of each chunk equals the
-    number of bonds in the graph.
+# def _split_batched_output(graph, value):
+#     """
+#     Split a tensor into `num_graphs` chunks, the size of each chunk equals the
+#     number of bonds in the graph.
 
-    Returns:
-        list of tensor.
+#     Returns:
+#         list of tensor.
 
-    """
-    nbonds = graph.batch_num_nodes("bond")
-    return torch.split(value, nbonds)
+#     """
+#     nbonds = graph.batch_num_nodes("bond")
+#     return torch.split(value, nbonds)
 
 
 def mol_graph_to_rxn_graph(graph, feats, reactions):
@@ -246,7 +246,7 @@ def mol_graph_to_rxn_graph(graph, feats, reactions):
             "reactants": [True for _ in reactants],
             "products": [True if len(mp) > 0 else False for mp in rxn.bond_mapping],
         }
-        mappings = {"atom": rxn.atom_mapping_as_list, "bond": rxn.bond_mapping_as_list}
+        mappings = {"atom": rxn.atom_mapping_as_list}#, "bond": rxn.bond_mapping_as_list}
 
         g, fts = create_rxn_graph(
             reactants, products, mappings, has_bonds, tuple(feats.keys())

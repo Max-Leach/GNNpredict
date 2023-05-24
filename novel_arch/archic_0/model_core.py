@@ -90,7 +90,7 @@ class GatedGCNMolCustomConv(nn.Module):
             in_size = gated_hidden_size[i]
 
         # set2set readout layer, will likely change to use re-generated atom features
-        ntypes = ["d_bond"]#["atom", "bond"]
+        ntypes = ["atom"]#, "bond"]
         in_size = [gated_hidden_size[-1]] * len(ntypes)
 
         self.readout_layer = Set2SetThenCat(
@@ -103,7 +103,7 @@ class GatedGCNMolCustomConv(nn.Module):
 
         # for atom and bond feat (# *2 because Set2Set used in Set2SetThenCat has out
         # feature twice the the size  of in feature)
-        readout_out_size = gated_hidden_size[-1] * 2 + gated_hidden_size[-1] * 2
+        readout_out_size = gated_hidden_size[-1] * 2 * len(ntypes)
         # for global feat
         if set2set_ntypes_direct is not None:
             readout_out_size += gated_hidden_size[-1] * len(set2set_ntypes_direct)
