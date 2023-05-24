@@ -96,7 +96,7 @@ def test_dbond_to_atom_featurize():
     ))
     
     out_atom_feat_size = 7
-    featurizer = DBondtoAtomFeaturize(atom_feat_size=3, bond_feat_size=dbond_feat_size, out_atom_feat_size=out_atom_feat_size)
+    featurizer = DBondtoAtomFeaturize(atom_feat_size=3, dbond_feat_size=dbond_feat_size, out_atom_feat_size=out_atom_feat_size)
     
     EXPECTED = {
         'atom': F.relu(featurizer.map(atom_precurs)),
