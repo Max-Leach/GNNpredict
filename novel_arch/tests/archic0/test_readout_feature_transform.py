@@ -108,3 +108,35 @@ def test_dbond_to_atom_featurize():
     assert len(EXPECTED.keys()) > 0
     for ntype in EXPECTED:
         assert torch.all(torch.isclose(actual[ntype], EXPECTED[ntype])).item() 
+
+# lone atom case, no bonds to featurize from
+def test_dbond_to_atom_featurize_lone_atom():
+    dmpnn_g = dgl.heterograph({
+        # self loop global
+        ('global', 'g2g', 'global') : ([0], [0]) # just to create global node
+    })
+    dgl.remove_edges(dmpnn_g, [0], etype='g2g') # make it represent actual case
+    dbond_feat_size = 11
+    # dbond_feat = torch.rand([6, dbond_feat_size]) + 1 # prevent 0 case
+    feats = {
+        'global': torch.randn(dbond_feat_size),
+    }
+    ORIG_FEATS = {
+        'atom': torch.tensor([(0.1, -0.5, 5.0)]),
+        'global': torch.randn((1,4)),
+    }
+
+    out_atom_feat_size = 7
+    featurizer = DBondtoAtomFeaturize(atom_feat_size=3, dbond_feat_size=dbond_feat_size, out_atom_feat_size=out_atom_feat_size)
+    atom_precurs = torch.cat([ORIG_FEATS['atom'][0], torch.zeros([1,dbond_feat_size])[0]])
+    
+    EXPECTED = {
+        'atom': F.relu(featurizer.map(atom_precurs)),
+        'global': feats['global']
+    }
+
+    actual = featurizer(feats, dmpnn_g, ORIG_FEATS)
+
+    assert len(EXPECTED.keys()) > 0
+    for ntype in EXPECTED:
+        assert torch.all(torch.isclose(actual[ntype], EXPECTED[ntype])).item() 
