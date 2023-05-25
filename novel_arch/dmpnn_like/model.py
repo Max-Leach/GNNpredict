@@ -11,19 +11,19 @@
 import itertools
 import dgl
 import torch
-from novel_arch.archic_0.model_core import GatedGCNMolCustomConv
-from novel_arch.archic_0.directed_graph_transform import to_directed_mpnn_g
-from novel_arch.archic_0.to_dmpnn_features import GrambowFeaturizer
-from novel_arch.archic_0.readout_feature_transform import DBondtoAtomFeaturize
+from novel_arch.dmpnn_like.model_core import GatedGCNMolCustomConv
+from novel_arch.dmpnn_like.directed_graph_transform import to_directed_mpnn_g
+from novel_arch.dmpnn_like.to_dmpnn_features import GrambowFeaturizer
+from novel_arch.dmpnn_like.readout_feature_transform import DBondtoAtomFeaturize
 
-class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
+class DMPNNLike(GatedGCNMolCustomConv):
     def __init__(
         self,
         in_feats,
         dbond_feat_size, # size from atom, bond -> directed edges
         node_types, # types of nodes to use for processing from original graph
 
-        embedding_size=32,
+        embedding_size=64,
         gated_num_layers=2,
         gated_hidden_size=[64, 64, 32],
         gated_num_fc_layers=1,
@@ -44,7 +44,7 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
         conv_op = None,
     ):
         # feature size so embedding (from d_bond raw to hidden) can properly process
-        dmpnn_feats = {'d_bond': dbond_feat_size, 'global': in_feats['global']}
+        dmpnn_feats = {'d_bond': dbond_feat_size}#, 'global': in_feats['global']}
     
         super().__init__(
             dmpnn_feats,
@@ -66,7 +66,7 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
             fc_activation,
             fc_dropout,
             outdim,
-            conv_op=conv_op,
+            conv_op,
         )
 
         self.graph_featurizer = GrambowFeaturizer(in_feats['atom'], in_feats['bond'], dbond_feat_size)
@@ -108,17 +108,28 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
         graph = to_directed_mpnn_g(graph)
 
         # original features to dmpnn features
+        del feats['global']
         feats = self.graph_featurizer(feats, graph)
 
+        # print('init', feats)
+
         # embedding
-        feats = self.embedding(feats)
+        # initial_feats = self.embedding(feats)
+        # feats = initial_feats
+        initial_feats = feats
+
+        # print('feats embed', feats)
 
         # gated layer
         for layer in self.gated_layers:
-            feats = layer(graph, feats, norm_atom, norm_bond)
+            feats = layer(graph, feats, initial_feats, norm_atom, norm_bond)
+
+        # print('after graph', feats)
 
         # reverse dmpnn to atom + global features
         feats = self.prereadout_featurizer(feats, graph, original_feats)
+
+        # print('featturze', feats)
 
         # convert mol graphs to reaction graphs by subtracting reactant feats from
         # products feats
@@ -126,6 +137,8 @@ class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
 
         # readout layer
         feats = self.readout_layer(graph, feats)
+
+        # print('readout', feats)
 
         # fc
         for layer in self.fc_layers:
@@ -268,7 +281,7 @@ def create_rxn_graph(
     products,
     mappings,
     has_bonds,
-    ntypes=("atom", "bond", "global"),
+    ntypes=("atom", "bond"), #, "global"),
     ft_name="ft",
 ):
     """

@@ -8,11 +8,11 @@ import dgl
 from typing import Callable, Union, Dict
 from bondnet.layer.gatedconv import select_not_equal
 
-class GatedGCNConvDMPNN(nn.Module):
+class DMPNNPropag(nn.Module):
     """
     Gated GCN layer.
 
-    Update directed bond edges (2 per bond), then update global state
+    Update directed bond edges only
 
     Args:
         input_dim: input feature dimension
@@ -59,6 +59,8 @@ class GatedGCNConvDMPNN(nn.Module):
         # but we only do d_bond and global hidden state evolution
         # name X_nt_nt1 does (message passing)/(state evolution) for node of type nt from node of type nt1
         # self.A = LinearN(input_dim, out_sizes, acts, use_bias)
+        self.message_prop = LinearN(input_dim, out_sizes, acts, use_bias)
+
         self.B_db_db = LinearN(input_dim, out_sizes, acts, use_bias)
         self.C_db_glob = LinearN(input_dim, out_sizes, acts, use_bias)
         self.db_att_indiv = LinearN(input_dim, out_sizes, acts, use_bias) # transform of dbond features before being fed into att mechanism
@@ -123,21 +125,23 @@ class GatedGCNConvDMPNN(nn.Module):
 
     @staticmethod
     def message_fn_db(edges):
-        return {"indiv_e": edges.src["indiv_e"], "att_e": edges.src["att_e"]}
+        # return {"indiv_e": edges.src["indiv_e"], "att_e": edges.src["att_e"]}
+        return {'old_e' : edges.src['old_e']}
 
     @staticmethod
     def reduce_fn_db(nodes):
-        indiv_e_dat = nodes.data["indiv_e"]
-        indiv_e = nodes.mailbox["indiv_e"]
-        att_e = nodes.mailbox["att_e"]
+        # indiv_e_dat = nodes.data["indiv_e"]
+        # indiv_e = nodes.mailbox["indiv_e"]
+        # att_e = nodes.mailbox["att_e"]
 
-        sigs = torch.sigmoid(att_e)
-        sig_chan_sum = torch.sum(sigs, dim=1)
-        att_weights = sigs / (sig_chan_sum.unsqueeze(1) + 1e-6) # NOTE: dimensions may be screwed up, att mechanism is along each channel, not one scalar per node msg
+        # sigs = torch.sigmoid(att_e)
+        # sig_chan_sum = torch.sum(sigs, dim=1)
+        # att_weights = sigs / (sig_chan_sum.unsqueeze(1) + 1e-6) # NOTE: dimensions may be screwed up, att mechanism is along each channel, not one scalar per node msg
 
-        weighted_msgs = att_weights * indiv_e
+        # weighted_msgs = att_weights * indiv_e
         # weighted_msgs = indiv_e
-        e = torch.sum(weighted_msgs, dim=1)
+        incoming_e = nodes.mailbox["old_e"]
+        e = torch.sum(incoming_e, dim=1)
 
         return {'e': e}
 
@@ -145,6 +149,7 @@ class GatedGCNConvDMPNN(nn.Module):
         self,
         g: dgl.DGLGraph,
         feats: Dict[str, torch.Tensor],
+        initial_feats, # initial features for dmpnn
         norm_atom: torch.Tensor = None,
         norm_bond: torch.Tensor = None,
     ) -> Dict[str, torch.Tensor]:
@@ -165,19 +170,20 @@ class GatedGCNConvDMPNN(nn.Module):
         d_bond_present = 'd_bond' in feats # for lone global case
         if d_bond_present:
             e = feats["d_bond"]
-        u = feats["global"]
+        # u = feats["global"]
 
         # for residual connection
         # h_in = h
         if d_bond_present:
             e_in = e
-        u_in = u
+        # u_in = u
 
         # g.nodes["atom"].data.update({"Ah": self.A(h), "Dh": self.D(h), "Eh": self.E(h)})
         # g.nodes["d_bond"].data.update({"self": self.B_db_db(e)})
         if d_bond_present:
-            g.nodes["d_bond"].data.update({"att_e": self.db_att_indiv(e), "indiv_e": self.db_aggreg_indiv(e)})
-            g.nodes["global"].data.update({"Cu": self.C_db_glob(u)}) #, "Fu": self.F_glob_db(u)})
+            # g.nodes["d_bond"].data.update({"att_e": self.db_att_indiv(e), "indiv_e": self.db_aggreg_indiv(e)})
+            g.nodes["d_bond"].data.update({'old_e': e})
+            # g.nodes["global"].data.update({"Cu": self.C_db_glob(u)}) #, "Fu": self.F_glob_db(u)})
 
             # update bond feature e
             g.multi_update_all(
@@ -186,12 +192,13 @@ class GatedGCNConvDMPNN(nn.Module):
                     #"db2db" : (blah) # we will likely need to add a propagation to other bonds here
                     # "db2db": (fn.copy_u("Be", "m"), fn.sum("m", "e")),  # B * e_ij # self bond update - now done below
                     "db2db": (self.message_fn_db, self.reduce_fn_db),
-                    "g2db": (fn.copy_u("Cu", "m"), fn.sum("m", "e")),  # C * u
+                    # "g2db": (fn.copy_u("Cu", "m"), fn.sum("m", "e")),  # C * u
                 },
                 "sum",
             )
 
-            e = g.nodes["d_bond"].data["e"] + self.B_db_db(e) # self input into evolver
+            # e = g.nodes["d_bond"].data["e"] + self.B_db_db(e) # self input into evolver
+            e = self.message_prop(g.nodes["d_bond"].data["e"]) + initial_feats['d_bond']
             if self.graph_norm:
                 e = e * norm_bond
             if self.batch_norm:
@@ -229,35 +236,35 @@ class GatedGCNConvDMPNN(nn.Module):
 
         # update global feature u
         # g.nodes["atom"].data.update({"Gh": self.G(h)})
-        g.nodes["global"].data.update({"u": torch.zeros([g.num_nodes('global'), self.output_dim])})
-        if d_bond_present:
-            g.nodes["d_bond"].data.update({"He": self.H_glob_db(e)})
-            # g.nodes["global"].data.update({"Iu": self.I_glob_glob(u)})
-            g.multi_update_all(
-                {
-                    # "a2g": (fn.copy_u("Gh", "m"), fn.mean("m", "u")),  # G * (mean_i h_i)
-                    "db2g": (fn.copy_u("He", "m"), fn.mean("m", "u")),  # H * (mean_ij e_ij)
-                    # "g2g": (fn.copy_u("Iu", "m"), fn.sum("m", "u")),  # I * u
-                },
-                "sum",
-            )
-        u = g.nodes["global"].data["u"] + self.I_glob_glob(u) # self loop for global
-        # do not apply batch norm if it there is only one graph
-        if self.batch_norm and u.shape[0] > 1:
-            u = self.bn_node_u(u)
-        u = self.activation(u)
-        if self.residual:
-            u = u_in + u
+        # g.nodes["global"].data.update({"u": torch.zeros([g.num_nodes('global'), self.output_dim])})
+        # if d_bond_present:
+        #     g.nodes["d_bond"].data.update({"He": self.H_glob_db(e)})
+        #     # g.nodes["global"].data.update({"Iu": self.I_glob_glob(u)})
+        #     g.multi_update_all(
+        #         {
+        #             # "a2g": (fn.copy_u("Gh", "m"), fn.mean("m", "u")),  # G * (mean_i h_i)
+        #             "db2g": (fn.copy_u("He", "m"), fn.mean("m", "u")),  # H * (mean_ij e_ij)
+        #             # "g2g": (fn.copy_u("Iu", "m"), fn.sum("m", "u")),  # I * u
+        #         },
+        #         "sum",
+        #     )
+        # u = g.nodes["global"].data["u"] + self.I_glob_glob(u) # self loop for global
+        # # do not apply batch norm if it there is only one graph
+        # if self.batch_norm and u.shape[0] > 1:
+        #     u = self.bn_node_u(u)
+        # u = self.activation(u)
+        # if self.residual:
+        #     u = u_in + u
 
-        # dropout
-        # h = self.dropout(h)
-        if d_bond_present:
-            e = self.dropout(e)
-        u = self.dropout(u)
+        # # dropout
+        # # h = self.dropout(h)
+        # if d_bond_present:
+        #     e = self.dropout(e)
+        # u = self.dropout(u)
 
         # feats = {"atom": h, "bond": e, "global": u}
         if not d_bond_present:
             e = torch.tensor(())
-        feats = {"d_bond": e, "global": u}
+        feats = {"d_bond": e} #, "global": u}
 
         return feats

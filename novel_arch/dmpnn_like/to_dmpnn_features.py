@@ -18,7 +18,7 @@ class GrambowFeaturizer(nn.Module):
         d_bond_feats = self.relu(self.map(dbond_precurs))
 
         feats = {
-            'global': feats['global'],
+            # 'global': feats['global'],
             'd_bond': d_bond_feats,
         }
         return feats

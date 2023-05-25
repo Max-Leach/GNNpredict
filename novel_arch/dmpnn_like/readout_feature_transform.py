@@ -20,7 +20,7 @@ class DBondtoAtomFeaturize(nn.Module):
         atom_feats = self.relu(self.map(atom_precurs))
 
         feats = {
-            'global': feats['global'],
+            # 'global': feats['global'],
             'atom': atom_feats,
         }
         return feats

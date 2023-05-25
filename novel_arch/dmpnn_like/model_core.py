@@ -48,7 +48,7 @@ class GatedGCNMolCustomConv(nn.Module):
         gated_dropout=0.0,
         num_lstm_iters=6,
         num_lstm_layers=3,
-        set2set_ntypes_direct=["global"],
+        set2set_ntypes_direct=None,
         fc_num_layers=2,
         fc_hidden_size=[32, 16],
         fc_batch_norm=False,
