@@ -61,21 +61,21 @@ class DMPNNPropag(nn.Module):
         # self.A = LinearN(input_dim, out_sizes, acts, use_bias)
         self.message_prop = LinearN(input_dim, out_sizes, acts, use_bias)
 
-        self.B_db_db = LinearN(input_dim, out_sizes, acts, use_bias)
-        self.C_db_glob = LinearN(input_dim, out_sizes, acts, use_bias)
-        self.db_att_indiv = LinearN(input_dim, out_sizes, acts, use_bias) # transform of dbond features before being fed into att mechanism
-        self.db_aggreg_indiv = LinearN(input_dim, out_sizes, acts, use_bias)  # transform of dbond features before att mechanism
+        # self.B_db_db = LinearN(input_dim, out_sizes, acts, use_bias)
+        # self.C_db_glob = LinearN(input_dim, out_sizes, acts, use_bias)
+        # self.db_att_indiv = LinearN(input_dim, out_sizes, acts, use_bias) # transform of dbond features before being fed into att mechanism
+        # self.db_aggreg_indiv = LinearN(input_dim, out_sizes, acts, use_bias)  # transform of dbond features before att mechanism
         # self.D = LinearN(input_dim, out_sizes, acts, use_bias)
         # self.E = LinearN(input_dim, out_sizes, acts, use_bias)
         # self.F = LinearN(input_dim, out_sizes, acts, use_bias)
         # self.G = LinearN(output_dim, out_sizes, acts, use_bias)
-        self.H_glob_db = LinearN(output_dim, out_sizes, acts, use_bias)
-        self.I_glob_glob = LinearN(input_dim, out_sizes, acts, use_bias)
+        # self.H_glob_db = LinearN(output_dim, out_sizes, acts, use_bias)
+        # self.I_glob_glob = LinearN(input_dim, out_sizes, acts, use_bias)
 
         if self.batch_norm:
-            self.bn_node_h = nn.BatchNorm1d(output_dim)
+            # self.bn_node_h = nn.BatchNorm1d(output_dim)
             self.bn_node_e = nn.BatchNorm1d(output_dim)
-            self.bn_node_u = nn.BatchNorm1d(output_dim)
+            # self.bn_node_u = nn.BatchNorm1d(output_dim)
 
         delta = 1e-3
         if dropout is None or dropout < delta:

@@ -23,21 +23,22 @@ def dmpnn_like():
         conv_op=DMPNNPropag
     )
 
-    train.train_for_epochs_w_Test_MAE(model, 'dmpnn_like_chkpoint.pkl')
+    train.train_for_epochs_w_Test_MAE(model, 'dmpnn_like_chkpoint.pkl', lr=0.0015)
 
 from novel_arch.archic_0.model import GatedGCNReactionNetworkDMPNN
 from novel_arch.archic_0.directed_conv import GatedGCNConvDMPNN
 
 def archic_0():
+    gated_hidden_size = [64, 64, 64,]
     model = GatedGCNReactionNetworkDMPNN(
         in_feats=train.dataset.feature_size,
         dbond_feat_size=64, # atom, bond -> dbond features
         node_types=["atom", "bond", "global"],
-        gated_residual=False, # this appears to improve model training performance
+        gated_residual=True, # this appears to improve model training performance
 
         embedding_size=24,
-        gated_num_layers=3,
-        gated_hidden_size=[64, 64, 64],
+        gated_num_layers=len(gated_hidden_size),
+        gated_hidden_size=gated_hidden_size,
         gated_activation="ReLU",
         fc_num_layers=2,
         fc_hidden_size=[128, 64],
@@ -45,7 +46,7 @@ def archic_0():
         conv_op=GatedGCNConvDMPNN
     )
 
-    train.train_for_epochs_w_Test_MAE(model, 'archic-0_chkpoint.pkl')
+    train.train_for_epochs_w_Test_MAE(model, 'archic-0_chkpoint.pkl', lr=0.0015, num_epochs=30)
 
 from bondnet.model.gated_reaction_network import GatedGCNReactionNetwork
 def bondnet_original():

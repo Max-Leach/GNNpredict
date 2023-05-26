@@ -74,7 +74,7 @@ class GatedGCNMolCustomConv(nn.Module):
 
         in_size = embedding_size
         self.gated_layers = nn.ModuleList()
-        for i in range(gated_num_layers):
+        for i in range(len(gated_hidden_size)):
             self.gated_layers.append(
                 conv_fn(
                     input_dim=in_size,

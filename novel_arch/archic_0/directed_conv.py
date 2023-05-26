@@ -71,7 +71,7 @@ class GatedGCNConvDMPNN(nn.Module):
         self.I_glob_glob = LinearN(input_dim, out_sizes, acts, use_bias)
 
         if self.batch_norm:
-            self.bn_node_h = nn.BatchNorm1d(output_dim)
+            # self.bn_node_h = nn.BatchNorm1d(output_dim)
             self.bn_node_e = nn.BatchNorm1d(output_dim)
             self.bn_node_u = nn.BatchNorm1d(output_dim)
 
@@ -186,7 +186,7 @@ class GatedGCNConvDMPNN(nn.Module):
                     #"db2db" : (blah) # we will likely need to add a propagation to other bonds here
                     # "db2db": (fn.copy_u("Be", "m"), fn.sum("m", "e")),  # B * e_ij # self bond update - now done below
                     "db2db": (self.message_fn_db, self.reduce_fn_db),
-                    "g2db": (fn.copy_u("Cu", "m"), fn.sum("m", "e")),  # C * u
+                    # "g2db": (fn.copy_u("Cu", "m"), fn.sum("m", "e")),  # C * u
                 },
                 "sum",
             )
