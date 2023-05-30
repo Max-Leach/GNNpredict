@@ -3,7 +3,7 @@ import torch
 from itertools import chain, pairwise
 
 ''' given out, in, and inner sizes of layers, produce activated fc layers'''
-def mlp_from_sizes(in_size, out_size, inner_layer_sizes=[]):
+def mlp_from_sizes(in_size, out_size, inner_layer_sizes=[], bias=True):
     layer_sizes = [in_size] + inner_layer_sizes + [out_size]
     fc_nested = [(nn.Linear(fc_lens[0], fc_lens[1], bias=bias), nn.ReLU()) for fc_lens in pairwise(layer_sizes)]
     return nn.Sequential(*tuple(chain(*fc_nested)))

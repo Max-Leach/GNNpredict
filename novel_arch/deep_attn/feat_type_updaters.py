@@ -3,16 +3,18 @@ import torch
 from dgl import function as fn
 import dgl
 from itertools import pairwise, chain
+from novel_arch.deep_attn.state_mlp import mlp_from_sizes
 
 class EdgeNeighborUpdate(nn.Module):
     ''' 
         MLP update of bond, atom, global features
     '''
-    def __init__(self, in_mlp_size, out_mlp_size, inner_layer_sizes=[], residual=False, bias=False):
+    def __init__(self, in_feat_sizes, inner_layer_sizes=[], residual=False, bias=False):
         super().__init__()
 
         self.residual = residual
-        layer_sizes = [in_mlp_size] + inner_layer_sizes + [out_mlp_size]
+        in_mlp_size = sum(in_feat_sizes.values())
+        layer_sizes = [in_mlp_size] + inner_layer_sizes + [in_feat_sizes['bond']]
         fc_nested = [(nn.Linear(fc_lens[0], fc_lens[1], bias=bias), nn.ReLU()) for fc_lens in pairwise(layer_sizes)]
         self.fc = nn.Sequential(*tuple(chain(*fc_nested)))
 
@@ -45,8 +47,12 @@ class AtomAggregUpdate(nn.Module):
     '''
         custom aggregation of node features (especially bonds)
     '''
-    def __init__(self):
+    def __init__(self, in_feat_sizes, residual=False, bias=False):
         super().__init__()
+
+        self.residual = residual
+        in_mlp_size = sum(in_feat_sizes.values())
+        self.fc = mlp_from_sizes(in_mlp_size, in_feat_sizes['atom'], inner_layer_sizes, bias=bias)
 
     def forward(self, feats, graph):
         g = graph.local_var()
@@ -61,18 +67,24 @@ class AtomAggregUpdate(nn.Module):
 
         g.multi_update_all(
             {
-                'b2a' : (copy_multiple_u(['ft_a', 'i_a', 'ft']), sum_atom_edge_feat), # this is where we'd be changing the aggregation for atoms
+                'b2a' : (copy_multiple_u(['ft_a', 'i_a', 'ft']), concat_sum_atom_edge_feat), # this is where we'd be changing the aggregation for atoms
                 'g2a' : (fn.copy_u('ft', 'm'), fn.sum('m', 'g')),
             },
             'sum'
         )
 
         # finish graph processing via concatenation and mlp
+        a_b_aggreg = g.nodes['atom'].data['a_b_aggreg']
+        fc_in = torch.cat([feats['atom'], a_b_aggreg, g.nodes['atom'].data['g']], dim=-1)
+        a = self.fc(fc_in)
+        if self.residual:
+            a += feats['atom']
+        feats['atom'] = a
 
-        return g
+        return feats
 
-def sum_atom_edge_feat(nodes):
-    return aggreg_atom_edge_feat(nodes, lambda t: torch.sum(t, dim=1))
+def concat_sum_atom_edge_feat(nodes):
+    return aggreg_atom_edge_feat(nodes, lambda a,b: torch.sum(torch.cat([a, b], dim=-1), dim=1))
 
 # aggregate incoming atom feat concat with bond feat that connects them
 def aggreg_atom_edge_feat(nodes, aggreg):
@@ -106,8 +118,8 @@ def aggreg_atom_edge_feat(nodes, aggreg):
         non_self_ft_a.append(torch.stack(at_fts))
     non_self_ft_a = torch.stack(non_self_ft_a)
 
-    concat_a_b = torch.cat([non_self_ft_a, bond_ft], dim=-1)
-    aggregated = aggreg(concat_a_b)
+    # concat_a_b = torch.cat([non_self_ft_a, bond_ft], dim=-1)
+    aggregated = aggreg(non_self_ft_a, bond_ft)
 
     # print('nodes', nodes.nodes())
     # print('idx of atoms', i_a.shape)

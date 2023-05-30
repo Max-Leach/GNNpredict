@@ -25,5 +25,5 @@ g.nodes['global'].data.update({
     'ft' : feats['global']
 })
 
-thing = AtomAggregUpdate()
-print(thing(feats, g).ndata)
+thing = AtomAggregUpdate({'bond': 3, 'atom': 2, 'global':2}, inner_layer_sizes=[4,3], bias=False)
+print(thing(feats, g))
