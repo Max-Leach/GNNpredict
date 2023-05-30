@@ -2,6 +2,12 @@ from torch import nn
 import torch
 from itertools import chain, pairwise
 
+''' given out, in, and inner sizes of layers, produce activated fc layers'''
+def mlp_from_sizes(in_size, out_size, inner_layer_sizes=[]):
+    layer_sizes = [in_size] + inner_layer_sizes + [out_size]
+    fc_nested = [(nn.Linear(fc_lens[0], fc_lens[1], bias=bias), nn.ReLU()) for fc_lens in pairwise(layer_sizes)]
+    return nn.Sequential(*tuple(chain(*fc_nested)))
+
 class ConcatStateMLP(nn.Module):
     ''' concat dict of features in same order for passes through an instance of this,
         pass thru MLP '''
@@ -13,9 +19,7 @@ class ConcatStateMLP(nn.Module):
 
         self.feat_order = feat_sizes.keys()
         first_size = sum(feat_sizes.values())
-        layer_sizes = [first_size] + inner_layer_sizes + [out_size]
-        fc_nested = [(nn.Linear(fc_lens[0], fc_lens[1], bias=bias), nn.ReLU()) for fc_lens in pairwise(layer_sizes)]
-        self.fc_layers = nn.Sequential(*tuple(chain(*fc_nested)))
+        self.fc_layers = mlp_from_sizes(first_size, out_size, inner_layer_sizes)
 
     def forward(self, feats):
         x = torch.cat([feats[nt] for nt in self.feat_order], dim=-1)
