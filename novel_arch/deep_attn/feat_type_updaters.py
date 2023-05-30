@@ -47,17 +47,16 @@ class AtomAggregUpdate(nn.Module):
     '''
         custom aggregation of node features (especially bonds)
     '''
-    def __init__(self, in_feat_sizes, residual=False, bias=False):
+    def __init__(self, atom_edge_feat_aggreg, in_feat_sizes, inner_layer_sizes=[], residual=False, bias=False):
         super().__init__()
 
+        self.atom_edge_feat_aggreg = atom_edge_feat_aggreg
         self.residual = residual
-        in_mlp_size = sum(in_feat_sizes.values())
+        in_mlp_size = 2*in_feat_sizes['atom']+in_feat_sizes['global']+in_feat_sizes['bond']
         self.fc = mlp_from_sizes(in_mlp_size, in_feat_sizes['atom'], inner_layer_sizes, bias=bias)
 
     def forward(self, feats, graph):
         g = graph.local_var()
-
-        # g.nodes['atom'].update({'idx': torch.})
 
         # store atom indices
         g.nodes['atom'].data.update({'i' : torch.arange(g.num_nodes('atom')).float()})
@@ -65,13 +64,16 @@ class AtomAggregUpdate(nn.Module):
         g.update_all(fn.copy_u("ft", "ft_a"), copy_mailbox_feat('ft_a'), etype="a2b")
         g.update_all(fn.copy_u("i", "i_a"), copy_mailbox_feat('i_a'), etype="a2b")
 
-        g.multi_update_all(
-            {
-                'b2a' : (copy_multiple_u(['ft_a', 'i_a', 'ft']), concat_sum_atom_edge_feat), # this is where we'd be changing the aggregation for atoms
-                'g2a' : (fn.copy_u('ft', 'm'), fn.sum('m', 'g')),
-            },
-            'sum'
-        )
+        # g.multi_update_all(
+        #     {
+        #         'b2a' : (copy_multiple_u(['ft_a', 'i_a', 'ft']), concat_sum_atom_edge_feat), # this is where we'd be changing the aggregation for atoms
+        #         'g2a' : (fn.copy_u('ft', 'm'), fn.sum('m', 'g')),
+        #     },
+        #     'sum'
+        # )
+
+        g.update_all(copy_multiple_u(['ft_a', 'i_a', 'ft']), self.atom_edge_feat_aggreg, etype='b2a') # this is where we'd be changing the aggregation for atoms
+        g.update_all(fn.copy_u('ft', 'm'), fn.sum('m', 'g'), etype='g2a')
 
         # finish graph processing via concatenation and mlp
         a_b_aggreg = g.nodes['atom'].data['a_b_aggreg']
@@ -131,6 +133,40 @@ def aggreg_atom_edge_feat(nodes, aggreg):
     # print('omitted attempt i of atom', torch.tensor(omitted_self_i_a).shape)
 
     return {'a_b_aggreg' : aggregated}
+
+class GlobalAggregUpdate(nn.Module):
+    def __init__(self, edge_aggreg, atom_aggreg, in_feat_sizes, inner_layer_sizes=[], residual=False, bias=False):
+        super().__init__()
+
+        self.atom_aggreg = atom_aggreg
+        self.edge_aggreg = edge_aggreg
+        self.residual = residual
+        in_mlp_size = sum(in_feat_sizes.values())
+        self.fc = mlp_from_sizes(in_mlp_size, in_feat_sizes['global'], inner_layer_sizes, bias=bias)
+
+    def forward(self, feats, graph):
+        g = graph.local_var()
+
+        # fn.mean('m', 'a')
+        # fn.mean('m', 'b')
+        g.update_all(fn.copy_u('ft', 'm'), self.atom_aggreg, etype='a2g')
+        g.update_all(fn.copy_u('ft', 'm'), self.edge_aggreg, etype='b2g')
+
+        a = g.nodes['global'].data['a']
+        b = g.nodes['global'].data['b']
+        fc_in = torch.cat([feats['global'], b, a], dim=-1)
+        glob = self.fc(fc_in)
+        if self.residual:
+            glob += feats['global']
+        feats['global'] = glob
+
+        return feats
+
+# aggregators for global feat update
+def atom_mean():
+    return fn.mean('m', 'a')
+def bond_mean():
+    return fn.mean('m', 'b')
 
 # return reducer fn to just plant full copy of mailbox as feat
 def copy_mailbox_feat(feat_name):

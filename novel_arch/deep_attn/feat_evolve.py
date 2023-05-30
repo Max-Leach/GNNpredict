@@ -11,9 +11,9 @@ class OrderedGraphFeatUpdate(nn.Module):
         super().__init__()
 
         self.update_order = feat_update_order
-        self.updaters = feat_update_order
+        self.updaters = feat_updaters
     
-    def forward(self, feats):
+    def forward(self, feats, graph):
         for fname in self.update_order:
-            feats[fname] = self.updaters[fname](feats)
+            feats = self.updaters[fname](feats, graph)
         return feats

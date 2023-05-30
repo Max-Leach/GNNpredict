@@ -1,13 +1,13 @@
-from novel_arch.deep_attn.feat_type_updaters import AtomAggregUpdate, concat_sum_atom_edge_feat
+from novel_arch.deep_attn.feat_type_updaters import GlobalAggregUpdate
 import dgl
+from dgl import function as fn
 import torch
 
-a2b = ([2,0,1,1, 3,1], [1,0,0,1, 2,2])
-g2a = ([0,0,0,0], [0,1,2,3])
+a2g = ([0, 1, 2, 3], [0, 0, 0, 0])
+b2g = ([0, 1, 2], [0, 0, 0])
 g = dgl.heterograph({
-    ('atom', 'a2b', 'bond') : a2b,
-    ('bond', 'b2a', 'atom') : tuple(reversed(a2b)),
-    ('global', 'g2a', 'atom') : g2a,
+    ('atom', 'a2g', 'global') : a2g,
+    ('bond', 'b2g', 'global') : b2g,
 })
 
 feats = {
@@ -25,5 +25,5 @@ g.nodes['global'].data.update({
     'ft' : feats['global']
 })
 
-thing = AtomAggregUpdate(concat_sum_atom_edge_feat, {'bond': 3, 'atom': 2, 'global':2}, inner_layer_sizes=[4,3], bias=False)
+thing = GlobalAggregUpdate(fn.mean('m', 'b'), fn.mean('m', 'a'), {'bond': 3, 'atom': 2, 'global':2})
 print(thing(feats, g))
