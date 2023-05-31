@@ -9,12 +9,12 @@ class EdgeNeighborUpdate(nn.Module):
     ''' 
         MLP update of bond, atom, global features
     '''
-    def __init__(self, in_feat_sizes, inner_layer_sizes=[], residual=False, bias=False):
+    def __init__(self, in_feat_sizes, out_size, inner_layer_sizes=[], residual=False, bias=False):
         super().__init__()
 
         self.residual = residual
         in_mlp_size = sum(in_feat_sizes.values())
-        layer_sizes = [in_mlp_size] + inner_layer_sizes + [in_feat_sizes['bond']]
+        layer_sizes = [in_mlp_size] + inner_layer_sizes + [out_size]
         fc_nested = [(nn.Linear(fc_lens[0], fc_lens[1], bias=bias), nn.ReLU()) for fc_lens in pairwise(layer_sizes)]
         self.fc = nn.Sequential(*tuple(chain(*fc_nested)))
 
@@ -47,13 +47,13 @@ class AtomAggregUpdate(nn.Module):
     '''
         custom aggregation of node features (especially bonds)
     '''
-    def __init__(self, atom_edge_feat_aggreg, in_feat_sizes, inner_layer_sizes=[], residual=False, bias=False):
+    def __init__(self, atom_edge_feat_aggreg, in_feat_sizes, out_size, inner_layer_sizes=[], residual=False, bias=False):
         super().__init__()
 
         self.atom_edge_feat_aggreg = atom_edge_feat_aggreg
         self.residual = residual
         in_mlp_size = 2*in_feat_sizes['atom']+in_feat_sizes['global']+in_feat_sizes['bond']
-        self.fc = mlp_from_sizes(in_mlp_size, in_feat_sizes['atom'], inner_layer_sizes, bias=bias)
+        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias)
 
     def forward(self, feats, graph):
         g = graph.local_var()
@@ -135,14 +135,14 @@ def aggreg_atom_edge_feat(nodes, aggreg):
     return {'a_b_aggreg' : aggregated}
 
 class GlobalAggregUpdate(nn.Module):
-    def __init__(self, edge_aggreg, atom_aggreg, in_feat_sizes, inner_layer_sizes=[], residual=False, bias=False):
+    def __init__(self, edge_aggreg, atom_aggreg, in_feat_sizes, out_size, inner_layer_sizes=[], residual=False, bias=False):
         super().__init__()
 
         self.atom_aggreg = atom_aggreg
         self.edge_aggreg = edge_aggreg
         self.residual = residual
         in_mlp_size = sum(in_feat_sizes.values())
-        self.fc = mlp_from_sizes(in_mlp_size, in_feat_sizes['global'], inner_layer_sizes, bias=bias)
+        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias)
 
     def forward(self, feats, graph):
         g = graph.local_var()

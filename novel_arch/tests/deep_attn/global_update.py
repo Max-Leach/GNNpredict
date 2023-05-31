@@ -25,5 +25,5 @@ g.nodes['global'].data.update({
     'ft' : feats['global']
 })
 
-thing = GlobalAggregUpdate(fn.mean('m', 'b'), fn.mean('m', 'a'), {'bond': 3, 'atom': 2, 'global':2})
+thing = GlobalAggregUpdate(fn.mean('m', 'b'), fn.mean('m', 'a'), {'bond': 3, 'atom': 2, 'global':2}, 10)
 print(thing(feats, g))
