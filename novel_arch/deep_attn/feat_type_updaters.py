@@ -61,8 +61,8 @@ class AtomAggregUpdate(nn.Module):
         # store atom indices
         g.nodes['atom'].data.update({'i' : torch.arange(g.num_nodes('atom')).float()})
         # atom features to bond transfer for edge + atom agggregation
-        g.update_all(fn.copy_u("ft", "ft_a"), copy_mailbox_feat('ft_a'), etype="a2b")
-        g.update_all(fn.copy_u("i", "i_a"), copy_mailbox_feat('i_a'), etype="a2b")
+        g.update_all(fn.copy_u("ft", "ft_a"), copy_mailbox_feat_repeat_if_single('ft_a'), etype="a2b")
+        g.update_all(fn.copy_u("i", "i_a"), copy_mailbox_feat_repeat_if_single('i_a'), etype="a2b")
 
         # g.multi_update_all(
         #     {
@@ -171,6 +171,16 @@ def bond_mean():
 # return reducer fn to just plant full copy of mailbox as feat
 def copy_mailbox_feat(feat_name):
     return lambda nodes: {feat_name : nodes.mailbox[feat_name]}
+
+# for single atom case, phantom bond exists
+def copy_mailbox_feat_repeat_if_single(feat_name):
+    return lambda nodes: copy_mailbox_feat_fn_repeat(nodes, feat_name)
+    
+def copy_mailbox_feat_fn_repeat(nodes, feat_name):
+    m = nodes.mailbox[feat_name]
+    if m.shape[1] == 1:
+        m = m.repeat_interleave(2, dim=1)
+    return {feat_name : m}
 
 # propagate multiple feats b/w nodes
 def copy_multiple_u(feat_names):
