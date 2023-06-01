@@ -8,6 +8,7 @@ from novel_arch.deep_attn.feat_type_updaters import EdgeNeighborUpdate, AtomAggr
 from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, atom_mean, bond_mean
 
 from bondnet.model.gated_reaction_network import mol_graph_to_rxn_graph
+from bondnet.layer.readout import Set2SetThenCat
 
 class DeepAtomSum(nn.Module): ### NOTE: we may use a custom aggregator for this class for atom update
     ''' deeper state evolution, just add nearby atoms + edges for atom feat update '''
@@ -38,7 +39,21 @@ class DeepAtomSum(nn.Module): ### NOTE: we may use a custom aggregator for this 
             graph_net.append(graff_layer)
         self.graph_net = graph_net
 
-    def forward(self, feats, graph, reactions):
+        ntypes = ["atom", "bond"]
+        self.readout = Set2SetThenCat( # from bondnet!!
+            n_iters=6, n_layer=3, ntypes=ntypes, in_feats=[graph_hidden_size] * len(ntypes), ntypes_direct_cat=["global"]
+        )
+
+        self.fc_to_scalar = nn.ModuleList()
+        in_size = graph_hidden_size * 2 + graph_hidden_size * 2 + graph_hidden_size
+        for s in [128, 64]:
+            out_size = s
+            self.fc_to_scalar.append(nn.Linear(in_size, out_size))
+            self.fc_to_scalar.append(nn.ReLU()) #batchnorm + droptout before or afer this point pls
+            in_size = out_size
+        self.fc_to_scalar.append(nn.Linear(in_size, 1))
+
+    def forward(self, graph, feats, reactions):
         g = graph.local_var()
         ## graph processing network
         #load feats to graph
@@ -53,8 +68,13 @@ class DeepAtomSum(nn.Module): ### NOTE: we may use a custom aggregator for this 
         ## reaction graph construction via difference of component graphs
         ## difference of reactant and product features to get reaction graph features
         graph, feats = mol_graph_to_rxn_graph(graph, feats, reactions) # from bondnet!!
-        return feats
 
         ## set2set to get 1 feature vector for each node type
-
+        # we'll separate these later
         ## concat -> MLP to scalar
+        feats = self.readout(graph, feats)
+
+        for fc in self.fc_to_scalar:
+            feats = fc(feats)
+
+        return feats
