@@ -98,7 +98,7 @@ if __name__ == "__main__":
     SDFdirectory = 'molecules'
     count = 0
     list_file = sys.argv[1] 
-    err_file = sys.argv[1] 
+    err_file = sys.argv[2] 
     if not os.path.exists(SDFdirectory): os.makedirs(SDFdirectory) #Create directory iff doesn't exist
     start = time.time()
     print("Starting FF optimizations")
