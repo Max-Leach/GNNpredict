@@ -8,6 +8,7 @@ count = 0
 df = df.drop_duplicates(subset=['Parent'], keep='first')
 arr = df['Parent'].to_numpy()
 
+#Iff molecule exists within acp_dataset, do not include
 with open('Processed_CID-SMILES', 'r') as fl1, open('Unique_SMILES', 'w') as fl2: 
     for line in iter(lambda: fl1.readline(), ''):
         curr_line = line.split(' ')[1]

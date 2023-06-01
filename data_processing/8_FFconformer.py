@@ -98,18 +98,25 @@ if __name__ == "__main__":
     SDFdirectory = 'molecules'
     count = 0
     list_file = sys.argv[1] 
+    err_file = sys.argv[1] 
     if not os.path.exists(SDFdirectory): os.makedirs(SDFdirectory) #Create directory iff doesn't exist
     start = time.time()
     print("Starting FF optimizations")
 
-    with open(list_file, 'r') as listfile:
+    with open(list_file, 'r') as listfile, open(err_file, 'w'):
         script_path = os.path.abspath(__file__)
         script_dir = os.path.split(script_path)[0] #find the absolute filepath to current directory
 
         for line in iter(lambda: listfile.readline(), ''): 
             Id = line.split(' ') #split into [Index, molecule]
             count += 1
-            mol, arg = optimize_molecule_UFF(Id[1])
+
+            try:
+                mol, arg = optimize_molecule_UFF(Id[1])
+            except:
+                err_file.writelines(line)
+                continue
+            
             if arg != None: RDKITwritetoXYZ(Id,arg,script_dir,SDFdirectory )
             else:
                 Chem.MolToMolFile(mol, Id[0] + '.sdf')

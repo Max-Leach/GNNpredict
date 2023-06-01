@@ -4,6 +4,14 @@ import re
 
 pt = Chem.GetPeriodicTable()
 
+'''
+Criteria includes:
+ * <=15 Heavy atoms
+ * Non-Isotopic
+ * No formal charges
+ * Limited to [C,H,N,O,P,S,Si,Cl,B,F] 
+'''
+
 heavy_max = 15
 input_filename = 'minus-U_CID-SMILES'
 output_filename = 'Processed_CID-SMILES'
@@ -18,6 +26,7 @@ def PARSE(file1, file2):
         cond = SMILEProcess(fline)
         if cond[0]: file2.write(str(CID) + ' ' + cond[1] + ' ' + str(cond[2]) +'\n') #write to other file
 
+#Only keep SMILES which satisfies our criteria
 def SMILEProcess(line):
     h_count = 0
     line = re.sub('^\d+', '', line).strip() #ignore CID

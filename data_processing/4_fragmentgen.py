@@ -3,6 +3,7 @@ from fragment import *
 import pandas as pd
 import re
 
+#Stores fragments
 def fragmentall(file1, file2):
     csvcount, parentcount = 0, 0
     for line in iter(lambda: file1.readline(), ''): 
