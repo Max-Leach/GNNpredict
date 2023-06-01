@@ -22,5 +22,5 @@ g.nodes['global'].data.update({
     'ft' : feats['global']
 })
 
-thing = EdgeNeighborUpdate({'bond': 3, 'atom': 2, 'global':2})
+thing = EdgeNeighborUpdate({'bond': 2, 'atom': 2, 'global':2}, 32)
 print(thing(feats, g))

@@ -25,5 +25,5 @@ g.nodes['global'].data.update({
     'ft' : feats['global']
 })
 
-thing = AtomAggregUpdate(concat_sum_atom_edge_feat, {'bond': 3, 'atom': 2, 'global':2}, inner_layer_sizes=[4,3], bias=False)
+thing = AtomAggregUpdate(concat_sum_atom_edge_feat, {'bond': 3, 'atom': 2, 'global':2}, 69, inner_layer_sizes=[4,3], bias=False)
 print(thing(feats, g))

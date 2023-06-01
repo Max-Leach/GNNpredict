@@ -9,12 +9,12 @@ class EdgeNeighborUpdate(nn.Module):
     ''' 
         MLP update of bond, atom, global features
     '''
-    def __init__(self, in_feat_sizes, inner_layer_sizes=[], residual=False, bias=False):
+    def __init__(self, in_feat_sizes, out_size, inner_layer_sizes=[], residual=False, bias=False):
         super().__init__()
 
         self.residual = residual
         in_mlp_size = sum(in_feat_sizes.values())
-        layer_sizes = [in_mlp_size] + inner_layer_sizes + [in_feat_sizes['bond']]
+        layer_sizes = [in_mlp_size] + inner_layer_sizes + [out_size]
         fc_nested = [(nn.Linear(fc_lens[0], fc_lens[1], bias=bias), nn.ReLU()) for fc_lens in pairwise(layer_sizes)]
         self.fc = nn.Sequential(*tuple(chain(*fc_nested)))
 
@@ -47,13 +47,13 @@ class AtomAggregUpdate(nn.Module):
     '''
         custom aggregation of node features (especially bonds)
     '''
-    def __init__(self, atom_edge_feat_aggreg, in_feat_sizes, inner_layer_sizes=[], residual=False, bias=False):
+    def __init__(self, atom_edge_feat_aggreg, in_feat_sizes, out_size, inner_layer_sizes=[], residual=False, bias=False):
         super().__init__()
 
         self.atom_edge_feat_aggreg = atom_edge_feat_aggreg
         self.residual = residual
         in_mlp_size = 2*in_feat_sizes['atom']+in_feat_sizes['global']+in_feat_sizes['bond']
-        self.fc = mlp_from_sizes(in_mlp_size, in_feat_sizes['atom'], inner_layer_sizes, bias=bias)
+        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias)
 
     def forward(self, feats, graph):
         g = graph.local_var()
@@ -61,8 +61,8 @@ class AtomAggregUpdate(nn.Module):
         # store atom indices
         g.nodes['atom'].data.update({'i' : torch.arange(g.num_nodes('atom')).float()})
         # atom features to bond transfer for edge + atom agggregation
-        g.update_all(fn.copy_u("ft", "ft_a"), copy_mailbox_feat('ft_a'), etype="a2b")
-        g.update_all(fn.copy_u("i", "i_a"), copy_mailbox_feat('i_a'), etype="a2b")
+        g.update_all(fn.copy_u("ft", "ft_a"), copy_mailbox_feat_repeat_if_single('ft_a'), etype="a2b")
+        g.update_all(fn.copy_u("i", "i_a"), copy_mailbox_feat_repeat_if_single('i_a'), etype="a2b")
 
         # g.multi_update_all(
         #     {
@@ -135,14 +135,14 @@ def aggreg_atom_edge_feat(nodes, aggreg):
     return {'a_b_aggreg' : aggregated}
 
 class GlobalAggregUpdate(nn.Module):
-    def __init__(self, edge_aggreg, atom_aggreg, in_feat_sizes, inner_layer_sizes=[], residual=False, bias=False):
+    def __init__(self, edge_aggreg, atom_aggreg, in_feat_sizes, out_size, inner_layer_sizes=[], residual=False, bias=False):
         super().__init__()
 
         self.atom_aggreg = atom_aggreg
         self.edge_aggreg = edge_aggreg
         self.residual = residual
         in_mlp_size = sum(in_feat_sizes.values())
-        self.fc = mlp_from_sizes(in_mlp_size, in_feat_sizes['global'], inner_layer_sizes, bias=bias)
+        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias)
 
     def forward(self, feats, graph):
         g = graph.local_var()
@@ -171,6 +171,16 @@ def bond_mean():
 # return reducer fn to just plant full copy of mailbox as feat
 def copy_mailbox_feat(feat_name):
     return lambda nodes: {feat_name : nodes.mailbox[feat_name]}
+
+# for single atom case, phantom bond exists
+def copy_mailbox_feat_repeat_if_single(feat_name):
+    return lambda nodes: copy_mailbox_feat_fn_repeat(nodes, feat_name)
+    
+def copy_mailbox_feat_fn_repeat(nodes, feat_name):
+    m = nodes.mailbox[feat_name]
+    if m.shape[1] == 1:
+        m = m.repeat_interleave(2, dim=1)
+    return {feat_name : m}
 
 # propagate multiple feats b/w nodes
 def copy_multiple_u(feat_names):

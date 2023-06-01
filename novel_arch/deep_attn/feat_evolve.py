@@ -15,5 +15,8 @@ class OrderedGraphFeatUpdate(nn.Module):
     
     def forward(self, feats, graph):
         for fname in self.update_order:
-            feats = self.updaters[fname](feats, graph)
+            g = graph.local_var()
+            for fn in feats:
+                g.nodes[fn].data.update({'ft': feats[fn]})
+            feats = self.updaters[fname](feats, g)
         return feats

@@ -25,5 +25,6 @@ feats = {
     'global': torch.tensor([3,23.42], dtype=torch.float).view(1, -1),
 }
 
-thing = DeepAtomSum({'bond': 3, 'atom': 2, 'global': 2})
-print(thing(feats, g))
+thing = DeepAtomSum({'bond': 3, 'atom': 2, 'global': 2}, 32, 32, 4)
+out = thing(feats, g)
+print(out)
