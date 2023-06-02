@@ -15,15 +15,15 @@ class EdgeNeighborUpdate(nn.Module):
         self.residual = residual
         in_mlp_size = sum(in_feat_sizes.values())
         layer_sizes = [in_mlp_size] + inner_layer_sizes + [out_size]
-        fc_nested = [(nn.Linear(fc_lens[0], fc_lens[1], bias=bias), nn.ReLU()) for fc_lens in pairwise(layer_sizes)]
+        fc_nested = [(
+            nn.Linear(fc_lens[0], fc_lens[1], bias=bias),
+            nn.BatchNorm1d(fc_lens[1]),
+            nn.ReLU(),) 
+            for fc_lens in pairwise(layer_sizes)]
         self.fc = nn.Sequential(*tuple(chain(*fc_nested)))
 
     def forward(self, feats, graph): # features are assumed to be loaded in before this fn
         g = graph.local_var()
-
-        # g.nodes['bond'].update({'b': feats['bond']})
-        # g.nodes['atom'].update({'a': feats['atom']})
-        # g.nodes['global'].update({'g': feats['global']})
 
         g.multi_update_all(
             {
@@ -53,7 +53,7 @@ class AtomAggregUpdate(nn.Module):
         self.atom_edge_feat_aggreg = atom_edge_feat_aggreg
         self.residual = residual
         in_mlp_size = 2*in_feat_sizes['atom']+in_feat_sizes['global']+in_feat_sizes['bond']
-        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias)
+        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias, batch_norm=True)
 
     def forward(self, feats, graph):
         g = graph.local_var()
@@ -63,14 +63,6 @@ class AtomAggregUpdate(nn.Module):
         # atom features to bond transfer for edge + atom agggregation
         g.update_all(fn.copy_u("ft", "ft_a"), copy_mailbox_feat_repeat_if_single('ft_a'), etype="a2b")
         g.update_all(fn.copy_u("i", "i_a"), copy_mailbox_feat_repeat_if_single('i_a'), etype="a2b")
-
-        # g.multi_update_all(
-        #     {
-        #         'b2a' : (copy_multiple_u(['ft_a', 'i_a', 'ft']), concat_sum_atom_edge_feat), # this is where we'd be changing the aggregation for atoms
-        #         'g2a' : (fn.copy_u('ft', 'm'), fn.sum('m', 'g')),
-        #     },
-        #     'sum'
-        # )
 
         g.update_all(copy_multiple_u(['ft_a', 'i_a', 'ft']), self.atom_edge_feat_aggreg, etype='b2a') # this is where we'd be changing the aggregation for atoms
         g.update_all(fn.copy_u('ft', 'm'), fn.sum('m', 'g'), etype='g2a')
@@ -142,7 +134,7 @@ class GlobalAggregUpdate(nn.Module):
         self.edge_aggreg = edge_aggreg
         self.residual = residual
         in_mlp_size = sum(in_feat_sizes.values())
-        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias)
+        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias, batch_norm=True)
 
     def forward(self, feats, graph):
         g = graph.local_var()

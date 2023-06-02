@@ -49,7 +49,9 @@ class DeepAtomSum(nn.Module): ### NOTE: we may use a custom aggregator for this 
         for s in [128, 64]:
             out_size = s
             self.fc_to_scalar.append(nn.Linear(in_size, out_size))
+            self.fc_to_scalar.append(nn.BatchNorm1d(out_size))
             self.fc_to_scalar.append(nn.ReLU()) #batchnorm + droptout before or afer this point pls
+
             in_size = out_size
         self.fc_to_scalar.append(nn.Linear(in_size, 1))
 

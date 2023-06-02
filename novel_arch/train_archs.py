@@ -13,7 +13,7 @@ def deepatomsum():
         residual=True
     )
 
-    train.train_for_epochs_w_Test_MAE(model, 'deepatomsum.pkl', lr=0.002)
+    train.train_for_epochs_w_Test_MAE(model, 'deepatomsum.pkl', lr=0.001)
 
 from novel_arch.dmpnn_like.model import DMPNNLike
 from novel_arch.dmpnn_like.directed_conv import DMPNNPropag
