@@ -39,7 +39,7 @@ class EdgeNeighborUpdate(nn.Module):
 
         b = self.fc(fc_in)
         if self.residual:
-            b += feats['bond']
+            b = b + feats['bond']
         feats['bond'] = b
         return feats
 
@@ -80,7 +80,7 @@ class AtomAggregUpdate(nn.Module):
         fc_in = torch.cat([feats['atom'], a_b_aggreg, g.nodes['atom'].data['g']], dim=-1)
         a = self.fc(fc_in)
         if self.residual:
-            a += feats['atom']
+            a = a + feats['atom']
         feats['atom'] = a
 
         return feats
@@ -157,7 +157,7 @@ class GlobalAggregUpdate(nn.Module):
         fc_in = torch.cat([feats['global'], b, a], dim=-1)
         glob = self.fc(fc_in)
         if self.residual:
-            glob += feats['global']
+            glob = glob + feats['global']
         feats['global'] = glob
 
         return feats

@@ -2,6 +2,19 @@ from novel_arch import train
 
 # following are fns to train different architectures with the same setup
 
+from novel_arch.deep_attn.model import DeepAtomSum
+
+def deepatomsum():
+    model = DeepAtomSum(
+        in_feat_sizes=train.dataset.feature_size, 
+        embedding_size=32,
+        graph_hidden_size=32,
+        graph_layers=3,
+        residual=True
+    )
+
+    train.train_for_epochs_w_Test_MAE(model, 'deepatomsum.pkl', lr=0.002)
+
 from novel_arch.dmpnn_like.model import DMPNNLike
 from novel_arch.dmpnn_like.directed_conv import DMPNNPropag
 

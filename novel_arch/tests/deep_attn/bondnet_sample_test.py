@@ -26,4 +26,4 @@ from novel_arch.deep_attn.model import DeepAtomSum
 in_feat_sizes = {k : feats[k].size(-1) for k in feats}
 
 mod = DeepAtomSum(in_feat_sizes, 32, 32, 3)
-print(mod(feats, batched_graff, label))
+print(mod(batched_graff, feats, label).shape)
