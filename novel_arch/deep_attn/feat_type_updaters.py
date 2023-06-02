@@ -72,51 +72,22 @@ class AtomAggregUpdate(nn.Module):
         return feats
 
 def concat_sum_atom_edge_feat(nodes):
-    return aggreg_atom_edge_feat(nodes, lambda a,b: torch.sum(torch.cat([a, b], dim=-1), dim=1))
+    return aggreg_atom_edge_no_repeat(nodes, lambda a,b: torch.sum(torch.cat([a, b], dim=-1), dim=1))
 
 # aggregate incoming atom feat concat with bond feat that connects them
-def aggreg_atom_edge_feat(nodes, aggreg):
+# assumes connected atom features, atom indices, bond features already in bond mailbox
+def aggreg_atom_edge_no_repeat(nodes, aggreg):
     ft_a = nodes.mailbox['ft_a']
     i_a = nodes.mailbox['i_a'] # order of idx of atoms should correspond with atom feats of ft_a
     bond_ft = nodes.mailbox['ft']
 
-    # these operations below are done manually because i couldn't seem to find any torch methods that
-    # did quite what I needed wihout some weird tensor manipulations
+    # index selection
+    indices = torch.where(i_a[:, :, 0] != nodes.nodes().unsqueeze(-1), 0, 1)
+    non_self_ft_a = ft_a.gather(2, indices.unsqueeze(-1).unsqueeze(-1).repeat_interleave(ft_a.size(3), dim=3))
+    non_self_ft_a = non_self_ft_a.squeeze(2)
 
-    # indices into feat that aren't eh self of atom
-    omitted_self_i_a = []
-    for self_i, bonds_idxs in zip(nodes.nodes(), i_a):
-        omitted_self_i_a.append([])
-        for bond_idxs in bonds_idxs:
-            if bond_idxs[0].item() != self_i:
-                # omitted_self_i_a[-1].append(bond_idxs[0].item())
-                omitted_self_i_a[-1].append(0)
-            else:
-                # omitted_self_i_a[-1].append(bond_idxs[1].item())
-                omitted_self_i_a[-1].append(1)
-
-
-    # non_self_ft_a = ft_a[torch.tensor(omitted_self_i_a)]
-    # select features
-    non_self_ft_a = []
-    for at_i, ft_idxs in enumerate(omitted_self_i_a):
-        at_fts = []
-        for incoming_idx, ft_idx in enumerate(ft_idxs):
-            at_fts.append(ft_a[at_i][incoming_idx][ft_idx])
-        non_self_ft_a.append(torch.stack(at_fts))
-    non_self_ft_a = torch.stack(non_self_ft_a)
-
-    # concat_a_b = torch.cat([non_self_ft_a, bond_ft], dim=-1)
+    # user inputted method of aggregating non-self included edge-atom
     aggregated = aggreg(non_self_ft_a, bond_ft)
-
-    # print('nodes', nodes.nodes())
-    # print('idx of atoms', i_a.shape)
-    # print('non self ft a', non_self_ft_a.shape)
-    # print('bond feat', bond_ft.shape)
-    # print('combined feat', concat_a_b.shape)
-    # print('aggerg', aggregated.shape)
-    # print('feats of atoms', ft_a.shape)
-    # print('omitted attempt i of atom', torch.tensor(omitted_self_i_a).shape)
 
     return {'a_b_aggreg' : aggregated}
 
