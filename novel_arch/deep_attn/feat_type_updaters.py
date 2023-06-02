@@ -14,14 +14,7 @@ class EdgeNeighborUpdate(nn.Module):
 
         self.residual = residual
         in_mlp_size = sum(in_feat_sizes.values())
-        layer_sizes = [in_mlp_size] + inner_layer_sizes + [out_size]
-        fc_nested = [(
-            nn.Linear(fc_lens[0], fc_lens[1], bias=bias),
-            nn.BatchNorm1d(fc_lens[1]),
-            nn.ReLU(),) 
-            for fc_lens in pairwise(layer_sizes)]
-        self.fc = nn.Sequential(*tuple(chain(*fc_nested)))
-
+        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias, batch_norm=True)
     def forward(self, feats, graph): # features are assumed to be loaded in before this fn
         g = graph.local_var()
 
