@@ -7,9 +7,10 @@ from novel_arch.deep_attn.model import DeepAtomSum
 def deepatomsum():
     model = DeepAtomSum(
         in_feat_sizes=train.dataset.feature_size, 
-        embedding_size=32,
-        graph_hidden_size=32,
+        embedding_size=64,
+        graph_hidden_size=64,
         graph_layers=3,
+        graph_inner_layer_sizes=[[64]] * 3,
         residual=True
     )
 

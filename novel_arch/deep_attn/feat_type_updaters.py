@@ -15,6 +15,7 @@ class EdgeNeighborUpdate(nn.Module):
         self.residual = residual
         in_mlp_size = sum(in_feat_sizes.values())
         self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias, batch_norm=True)
+
     def forward(self, feats, graph): # features are assumed to be loaded in before this fn
         g = graph.local_var()
 
