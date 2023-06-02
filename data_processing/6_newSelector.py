@@ -5,6 +5,10 @@ import os
 import random
 import time
 
+'''
+Select n fragments from the respective molecule bins and send the unselected molecules to a seperate directory
+'''
+
 #globals
 out_filename = 'selection.csv'
 totalsize = 3500000

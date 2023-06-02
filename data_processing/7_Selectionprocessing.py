@@ -1,5 +1,9 @@
 import time
 
+'''
+Produces the molecule_list required to execute FFconformer and Indexed_Selection used for Analyse
+'''
+
 def dict_check(diction, key, string, value, fragtype, bondtype):
     parent_val = diction.get(key)
     if parent_val != None:

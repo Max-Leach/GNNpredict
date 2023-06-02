@@ -3,6 +3,10 @@ from fragment import *
 import pandas as pd
 import re
 
+'''
+This program fragments the molecules by breaking single bonds
+'''
+
 #Stores fragments
 def fragmentall(file1, file2):
     csvcount, parentcount = 0, 0

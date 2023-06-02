@@ -4,6 +4,10 @@ import os
 import random
 import time
 
+'''
+This program sorts the fragments by bond-type and then by heavy atom count
+'''
+
 #globals
 int_filename = 'Non_iso_with_Heavy.csv'
 endline = 168000000 #end of file 

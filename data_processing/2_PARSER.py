@@ -10,6 +10,8 @@ Criteria includes:
  * Non-Isotopic
  * No formal charges
  * Limited to [C,H,N,O,P,S,Si,Cl,B,F] 
+
+This program, conducts the criteria search and returns the valid molecules with an associated heavy atom count
 '''
 
 heavy_max = 15
@@ -41,9 +43,10 @@ def SMILEProcess(line):
         AM = atom.GetIsotope() 
         h_count +=1
         
+        if (atom.GetNumRadicalElectrons() != 0): return default
         if (h_count > heavy_max): return default
         if (atom.GetFormalCharge() != 0): return default
-        if (AM != 0) and (AM != PeriodicTable.GetMostCommonIsotope(pt, AN)): return default
+        if (AM != 0): return default
         if ((AN == 2) | (AN == 3) | (AN == 4) | (AN == 10) | (AN == 11) | (AN == 12) | (AN == 13) | (AN >= 18)): return default
     return True, Chem.MolToSmiles(m), h_count
 

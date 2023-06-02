@@ -2,6 +2,10 @@ import pandas as pd
 import numpy as np
 import re
 
+'''
+This program outputs molecules which are not present in acp_dataset
+'''
+
 df = pd.read_csv('acp_updated_NoDupes.csv')
 count = 0
 
