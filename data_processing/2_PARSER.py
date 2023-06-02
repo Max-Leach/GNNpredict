@@ -26,13 +26,15 @@ def PARSE(file1, file2):
 
         CID = re.search(r'\d+', fline).group()
         cond = SMILEProcess(fline)
-        if cond[0]: file2.write(str(CID) + ' ' + cond[1] + ' ' + str(cond[2]) +'\n') #write to other file
+        if cond[0]: file2.write(str(CID) + ' ' + cond[1] + ' ' + str(cond[2]) + ' ' + str(cond[3]) + '\n') #write to other file
 
 #Only keep SMILES which satisfies our criteria
 def SMILEProcess(line):
     h_count = 0
     line = re.sub('^\d+', '', line).strip() #ignore CID
-    default = [False, None, 0]
+    default = [False, None, None, None]
+    atomdiv = {1,6}
+    div_num = 0
 
     m = Chem.MolFromSmiles(line) #Use rdkit to built molecule
     if m == None: return default
@@ -43,12 +45,17 @@ def SMILEProcess(line):
         AM = atom.GetIsotope() 
         h_count +=1
         
+        #Add atomic diversity info
+        if AN not in atomdiv: 
+            atomdiv.add(AN)
+            div_num += AN
+
         if (atom.GetNumRadicalElectrons() != 0): return default
         if (h_count > heavy_max): return default
         if (atom.GetFormalCharge() != 0): return default
         if (AM != 0): return default
         if ((AN == 2) | (AN == 3) | (AN == 4) | (AN == 10) | (AN == 11) | (AN == 12) | (AN == 13) | (AN >= 18)): return default
-    return True, Chem.MolToSmiles(m), h_count
+    return True, Chem.MolToSmiles(m), h_count, div_num
 
 if __name__ == '__main__':
     with open(input_filename, 'r') as fl1, open(output_filename, 'a') as fl2:

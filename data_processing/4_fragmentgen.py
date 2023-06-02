@@ -1,7 +1,7 @@
-from rdkit import Chem
-from fragment import *
 import pandas as pd
-import re
+import rdkit
+import rdkit.Chem
+import rdkit.Chem.AllChem
 
 '''
 This program fragments the molecules by breaking single bonds
@@ -15,11 +15,170 @@ def fragmentall(file1, file2):
         parentcount += 1
         for series in fragment_iterator(linearr[1]):
             if (series['fragment1'] != '') and (series['fragment2'] != ''): 
-                file2.write(str(csvcount) + ',' + str(parentcount) + ',' + linearr[1] + ',' + series['fragment1'] + ',' + series['fragment2'] + ',' + '' + ','  + series['bond_type'] + ',' + linearr[2])
+                file2.write(str(csvcount) + ',' + str(parentcount) + ',' + linearr[1] + ',' + series['fragment1'] + ',' + series['fragment2'] + ',' + '' + ','  + 
+                            series['bond_type'] + ',' + linearr[2]+ ',' + linearr[3])
                 csvcount += 1
                 if ((csvcount % 1000000) == 0): print(f"Fragmentpairs: {csvcount}, Parents: {parentcount}")
 
-with open('Unique_SMILES', 'r') as fl1, open('aa.csv', 'w') as fl2:
-    fl2.write('Serial,Parentid,Parent,Frag1,Frag2,BDE,BondType,Heavy\n') 
-    fragmentall(fl1, fl2)
+#Code block adapted from https://github.com/pstjohn/bde, 
+# St. John, P.C., Guan, Y., Kim, Y. et al. Quantum chemical calculations for over 200,000 organic radical species and 40,000 associated closed-shell molecules. 
+# Sci Data 7, 244 (2020). https://doi.org/10.1038/s41597-020-00588-x
+def fragment_iterator(smiles, skip_warnings=False, skip_rings=False):
+
+    mol_stereo = enumerate_stereocenters(smiles)
+    if (mol_stereo["atom_unassigned"] != 0) or (mol_stereo["bond_unassigned"] != 0):
+        logging.warning(f"Molecule {smiles} has undefined stereochemistry")
+        if skip_warnings:
+            return
+
+    mol = rdkit.Chem.MolFromSmiles(smiles)
+    mol = rdkit.Chem.rdmolops.AddHs(mol)
+    rdkit.Chem.Kekulize(mol, clearAromaticFlags=True)
+
+    for bond in mol.GetBonds():
+
+        if skip_rings and bond.IsInRing():
+            continue
+
+        if bond.GetBondTypeAsDouble() > 1.9999:
+            continue
+        #if bond.GetBondTypeAsTriple()
+        try:
+
+            # Use RDkit to break the given bond
+            mh = rdkit.Chem.RWMol(mol)
+            a1 = bond.GetBeginAtomIdx()
+            a2 = bond.GetEndAtomIdx()
+            mh.RemoveBond(a1, a2)
+
+            mh.GetAtomWithIdx(a1).SetNoImplicit(True)
+            mh.GetAtomWithIdx(a2).SetNoImplicit(True)
+
+            # Call SanitizeMol to update radicals
+            rdkit.Chem.SanitizeMol(mh)
+
+            # Convert the two molecules into a SMILES string
+            fragmented_smiles = rdkit.Chem.MolToSmiles(mh)
+
+            # Split fragment and canonicalize
+            split_smiles = fragmented_smiles.split(".")
+            if len(split_smiles) == 2:
+                frag1, frag2 = sorted(split_smiles)
+            elif len(split_smiles) == 1:
+                frag1, frag2 = split_smiles[0], ""
+            else:
+                raise ValueError("Too many fragments")
+
+            frag1 = canonicalize_smiles(frag1)
+            frag2 = canonicalize_smiles(frag2)
+
+            # Stoichiometry check
+            assert (
+                count_atom_types(frag1) + count_atom_types(frag2)
+            ) == count_atom_types(smiles), "Error with {}; {}; {}".format(
+                frag1, frag2, smiles
+            )
+
+            # Check introduction of new stereocenters
+            is_valid_stereo = check_stereocenters(frag1) and check_stereocenters(frag2)
+
+            yield pd.Series(
+                {
+                    "molecule": smiles,
+                    "bond_index": bond.GetIdx(),
+                    "bond_type": get_bond_type(bond),
+                    "fragment1": frag1,
+                    "fragment2": frag2,
+                    "is_valid_stereo": is_valid_stereo,
+                }
+            )
+
+        except ValueError:
+            logging.error(
+                "Fragmentation error with {}, bond {}".format(smiles, bond.GetIdx())
+            )
+            continue
+
+
+def count_atom_types(smiles):
+    """ Return a dictionary of each atom type in the given fragment or molecule
+    """
+    mol = rdkit.Chem.MolFromSmiles(smiles, sanitize=True)
+    mol = rdkit.Chem.rdmolops.AddHs(mol)
+    return Counter([atom.GetSymbol() for atom in mol.GetAtoms()])
+
+
+def canonicalize_smiles(smiles):
+    """ Return a consistent SMILES representation for the given molecule """
+    mol = rdkit.Chem.MolFromSmiles(smiles)
+    return rdkit.Chem.MolToSmiles(mol)
+
+
+def enumerate_stereocenters(smiles):
+    """ Returns a count of both assigned and unassigned stereocenters in the
+    given molecule """
+
+    mol = rdkit.Chem.MolFromSmiles(smiles)
+    rdkit.Chem.FindPotentialStereoBonds(mol)
+
+    stereocenters = rdkit.Chem.FindMolChiralCenters(mol, includeUnassigned=True)
+    stereobonds = [
+        bond
+        for bond in mol.GetBonds()
+        if bond.GetStereo() is not rdkit.Chem.rdchem.BondStereo.STEREONONE
+    ]
+
+    atom_assigned = len([center for center in stereocenters if center[1] != "?"])
+    atom_unassigned = len([center for center in stereocenters if center[1] == "?"])
+
+    bond_assigned = len(
+        [
+            bond
+            for bond in stereobonds
+            if bond.GetStereo() is not rdkit.Chem.rdchem.BondStereo.STEREOANY
+        ]
+    )
+    bond_unassigned = len(
+        [
+            bond
+            for bond in stereobonds
+            if bond.GetStereo() is rdkit.Chem.rdchem.BondStereo.STEREOANY
+        ]
+    )
+
+    return pd.Series(
+        {
+            "atom_assigned": atom_assigned,
+            "atom_unassigned": atom_unassigned,
+            "bond_assigned": bond_assigned,
+            "bond_unassigned": bond_unassigned,
+        }
+    )
+
+
+def check_stereocenters(smiles):
+    """Check the given SMILES string to determine whether accurate
+    enthalpies can be calculated with the given stereochem information
+    """
+    stereocenters = enumerate_stereocenters(smiles)
+    if stereocenters["bond_unassigned"] > 0:
+        return False
+
+    max_unassigned = 1 if stereocenters["atom_assigned"] == 0 else 1
+    if stereocenters["atom_unassigned"] <= max_unassigned:
+        return True
+    else:
+        return False
+
+
+def get_bond_type(bond):
+    return "{}-{}".format(
+        *tuple(sorted((bond.GetBeginAtom().GetSymbol(), bond.GetEndAtom().GetSymbol())))
+    )
+#End of code block
+
+if __name__ == "__main__":
+    with open('Unique_SMILES', 'r') as fl1, open('aa.csv', 'w') as fl2:
+        fl2.write('Serial,Parentid,Parent,Frag1,Frag2,BDE,BondType,Heavy,Diversity\n') 
+        fragmentall(fl1, fl2)
 

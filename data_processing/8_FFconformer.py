@@ -6,6 +6,9 @@ import os
 import time
 import sys
 
+#Code block adapted from https://github.com/pstjohn/bde, 
+# St. John, P.C., Guan, Y., Kim, Y. et al. Quantum chemical calculations for over 200,000 organic radical species and 40,000 associated closed-shell molecules. 
+# Sci Data 7, 244 (2020). https://doi.org/10.1038/s41597-020-00588-x
 def optimize_molecule_UFF(SMILES):
         """ Embed a molecule in 3D space, optimizing a number of conformers and
         selecting the most stable
@@ -82,7 +85,7 @@ def isRadical(mol, radical_index):
     radical_atom = mol.GetAtomWithIdx(radical_index)
     radical_atom.SetNumExplicitHs(int(radical_atom.GetNumExplicitHs()) - 1)
     radical_atom.SetNumRadicalElectrons(1) 
-
+#end of codeblock
 
 def RDKITwritetoXYZ(Id, arg, script_dir, SDFdirectory):
     MolToXYZFile(mol, Id[0] + '.xyz', confId=arg ) #move this to other directory
