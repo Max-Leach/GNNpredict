@@ -14,7 +14,7 @@ Select n fragments from the respective molecule bins and send the unselected mol
 
 #globals
 out_filename = 'selection.csv'
-totalsize = 1500000 
+totalsize = 1800000 
 bond_types = []
 script_path = os.path.abspath(__file__)
 script_dir = os.path.split(script_path)[0]
@@ -25,12 +25,12 @@ def ldbond_types():
         bond_types.append(re.split("sorted", i.name)[0])
     
 
-def sample_by_cluster(df,mean, std,n_clusters = 10, Target_size=20):
+def sample_by_cluster(df,mean, std,n_clusters = 50, Target_size=20):
     curr_size = 0
     cluster_size = int(Target_size/n_clusters)
+    if (cluster_size>df.shape[0]): return df
     sample = df.sample(n=cluster_size)
-    closest_mean = 0
-    closest_std = 0
+    largest_std = 0
 
     while (curr_size<(Target_size-cluster_size)):
         cluster_arr = [df.sample(n=cluster_size) for i in range(n_clusters)]
@@ -38,22 +38,19 @@ def sample_by_cluster(df,mean, std,n_clusters = 10, Target_size=20):
 
         for i in range(n_clusters):
             df_concat = pd.concat((cluster_arr[i], sample))
-            if i == 0: 
-                closest_mean = df_concat.loc[:, 'Diversity'].mean()
-                closest_std = df_concat.loc[:, 'Diversity'].std()
+            if i == 0:
+                largest_std = sample.loc[:, 'Diversity'].std() 
                 continue
 
-            temp_mean = df_concat.loc[:, 'Diversity'].mean()
             temp_std = df_concat.loc[:, 'Diversity'].std()
-            if (math.sqrt((mean - temp_mean)**2 + (std-temp_std)**2) < math.sqrt((mean - closest_mean)**2 + (std-closest_std)**2)):
-                closest_mean = temp_mean
-                closest_std = temp_std
+            if ( temp_std > largest_std):
+                largest_std = temp_std
                 index = i
 
         sample = pd.concat((cluster_arr[index], sample))
         curr_size += cluster_size
     
-    return sample.drop_duplicates()
+    return sample.drop_duplicates(subset = ['Parent', 'Frag1', 'Frag2'], keep=First)
 
 
 def random_selection(filename, arguments, rangearr, distancearr, binsize):
@@ -62,23 +59,17 @@ def random_selection(filename, arguments, rangearr, distancearr, binsize):
     for index in arguments:
         #Within here select based on diversity
         #Load n lines into array in numpy
-        #Select from normal distribution of diversities
-        '''if (binsize/(sets) > (distancearr[index])):
-            linenumbers += range(rangearr[index], rangearr[index]+distancearr[index])
-            binsize -= distancearr[index]
-        else:
-            linenumbers += random.sample(range(rangearr[index], rangearr[index] + distancearr[index]), int(binsize/sets))
-            binsize -= int(binsize/sets)'''
-        df = pd.read_csv(filename,skiprows=rangearr[index],nrows=distancearr[index])
-        df.columns = ['Serial','Parent', 'Pid', 'Frag1', 'Frag2', 'Diversity','BDE']
+        #Select from distribution of diversities
+        df = pd.read_csv(filename,skiprows=rangearr[index],nrows=distancearr[index], header=None)
+        df.columns = ['Serial','Parentid','Parent','Frag1','Frag2','BDE','BondType','Heavy','Diversity']
 
-        df2 = sample_by_cluster(df, df.loc[:, 'Diversity'].mean(), df.loc[:, 'Diversity'].std(), Target_size=binsize/sets)
-        selection = df2['Diversity'].to_numpy()
-        target = df['Diversity'].to_numpy()
+        df2 = sample_by_cluster(df, df.loc[:, 'Diversity'].mean(), df.loc[:, 'Diversity'].std(), n_clusters=15,Target_size=binsize/sets)
+        selection = df2['Serial'].to_numpy()
+        target = df['Serial'].to_numpy()
 
         for i in range(np.size(selection)):
             a = np.where(selection[i] == target)
-            linenumbers.append(np.ndarray.item(a[0]))
+            linenumbers.append(np.ndarray.item(a[0]) + rangearr[index])
         
         sets -= 1
     linenumbers.sort()
@@ -89,13 +80,15 @@ def recurs(arr):
     return np.argsort(np.array(arr))
 
 
-def select(outputfile):
-    binsize = totalsize/len(bond_types)
+def select(outputfile, totalsize):
     somecount = 0
     if not os.path.exists("Unselected"): os.makedirs("Unselected")
 
+    file_sizes = count_lines()
+
     #Use recurs instead
-    for element in recurs:
+    for element in recurs(file_sizes):
+        binsize = int(totalsize/len(bond_types))
         bonds = bond_types[element]
         prev = 0
         lineNum = 1
@@ -117,7 +110,7 @@ def select(outputfile):
         #From the ranges of the heavy atoms calculate length of ranges, sort by smallest, then randomly select lines in those ranges to closely fit equal distribution
         distancearr = [bounds[i+1] - bounds[i] for i in range(len(bounds) - 1)]
         
-        linenumbers = random_selection(recurs(distancearr), bounds, distancearr, binsize)
+        linenumbers = random_selection(script_dir + '/Sorted/' + bonds+'sorted_fragment.csv', recurs(distancearr), bounds, distancearr, binsize)
 
         #write selected lines to selection file and non-selected lines to
         with open(script_dir + '/Sorted/' + bonds+'sorted_fragment.csv', 'r') as inputfile, open('Unsel_' + bonds+'sorted_fragment.csv', 'w') as unselected:
@@ -141,14 +134,14 @@ def select(outputfile):
 
         os.rename(script_dir + '/' + 'Unsel_' + bonds + 'sorted_fragment.csv', script_dir + '/' + "Unselected/" + 'Unsel_' + bonds + 'sorted_fragment.csv')
         
-    totalsize -= binsize - somecount
+        totalsize -= len(linenumbers) - somecount
 
 
 def count_lines():
     file_size = []
-    for arg in len(bond_types()):
-        with open(script_dir + '/Sorted/' + bond_types[arg]+'sorted_fragment.csv', "rbU") as file:
-            file_size[arg] = sum(1 for line in file)
+    for arg in range(len(bond_types)):
+        with open(script_dir + '/Sorted/' + bond_types[arg]+'sorted_fragment.csv', "r") as file:
+            file_size.append(sum(1 for line in file))
     return file_size
 
 
@@ -157,7 +150,7 @@ if __name__ == "__main__":
     ldbond_types()
 
     #Selects from bins
-    with open(out_filename, 'a') as output: select(output)
+    with open(out_filename, 'a') as output: select(output, totalsize)
 
     end = time.time()
     print("complete, total elapsed time was " + str(end-start))

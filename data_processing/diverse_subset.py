@@ -1,0 +1,1 @@
+#Select as diverse a subset as possible, 10 per bond_type, Different heavy atom and diversity

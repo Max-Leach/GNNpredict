@@ -2,8 +2,6 @@ from rdkit import Chem
 from rdkit.Chem import PeriodicTable
 import re
 
-pt = Chem.GetPeriodicTable()
-
 '''
 Criteria includes:
  * <=15 Heavy atoms

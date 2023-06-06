@@ -2,6 +2,7 @@ import pandas as pd
 import rdkit
 import rdkit.Chem
 import rdkit.Chem.AllChem
+import logging
 
 '''
 This program fragments the molecules by breaking single bonds
