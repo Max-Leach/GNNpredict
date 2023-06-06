@@ -7,7 +7,7 @@ from novel_arch.deep_attn.model import DeepAtomSum
 def deepatomsum():
     model = DeepAtomSum(
         in_feat_sizes=train.dataset.feature_size, 
-        embedding_size=64,
+        # embedding_size=64,
         graph_hidden_size=64,
         graph_layers=3,
         graph_inner_layer_sizes=[[64]] * 3,
@@ -72,7 +72,8 @@ def bondnet_original():
         gated_activation="ReLU",
         fc_num_layers=2,
         fc_hidden_size=[128, 64],
-        fc_activation='ReLU'
+        fc_activation='ReLU',
+        fc_batch_norm=True,
     )
 
     train.train_for_epochs_w_Test_MAE(model, 'original_chkpoint.pkl')

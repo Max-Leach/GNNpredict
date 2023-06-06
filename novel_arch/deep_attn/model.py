@@ -12,14 +12,35 @@ from bondnet.layer.readout import Set2SetThenCat
 
 class DeepAtomSum(nn.Module): ### NOTE: we may use a custom aggregator for this class for atom update
     ''' deeper state evolution, just add nearby atoms + edges for atom feat update '''
-    def __init__(self, in_feat_sizes, embedding_size, graph_hidden_size, graph_layers, graph_inner_layer_sizes=[], residual=True):
+    ''' graph_inner_layer_sizes - how wide individual layers in gnn portion will be, is independent of graph_layers count '''
+    def __init__(self, in_feat_sizes, graph_hidden_size, graph_layers, graph_inner_layer_sizes=[], residual=True, fc_readout_sizes=[128, 64], set2set_iters=6, set2set_layers=3):
         super().__init__()
 
+        embedding_size = graph_hidden_size
         self.embedders = {k : nn.Linear(in_feat_sizes[k], embedding_size) for k in in_feat_sizes}
+        self.assemble_gnn(in_feat_sizes, embedding_size, graph_hidden_size, graph_layers, graph_inner_layer_sizes, residual)
+
+        ntypes = ["atom", "bond"]
+        self.readout = Set2SetThenCat( # from bondnet!!
+            n_iters=set2set_iters, n_layer=set2set_layers, ntypes=ntypes, in_feats=[graph_hidden_size] * len(ntypes), ntypes_direct_cat=["global"]
+        )
+
+        self.fc_to_scalar = nn.ModuleList()
+        in_size = graph_hidden_size * 2 + graph_hidden_size * 2 + graph_hidden_size
+        for s in fc_readout_sizes:
+            out_size = s
+            self.fc_to_scalar.append(nn.Linear(in_size, out_size))
+            self.fc_to_scalar.append(nn.BatchNorm1d(out_size))
+            self.fc_to_scalar.append(nn.ReLU()) #batchnorm + droptout before or afer this point pls
+
+            in_size = out_size
+        self.fc_to_scalar.append(nn.Linear(in_size, 1))
+    
+    def assemble_gnn(self, in_feat_sizes, embedding_size, graph_hidden_size, graph_layers, graph_inner_layer_sizes, residual):
         embed_feat_sizes = {'bond': embedding_size, 'atom': embedding_size, 'global': embedding_size}
         feat_sizes = [embed_feat_sizes] + graph_layers * [graph_hidden_size]
 
-        graph_net = []
+        graph_net = nn.ModuleList()
         for i, (in_s, out_s) in enumerate(pairwise(feat_sizes)): # this for loop is to deal with case that hidden sizes are different, otherwise its more complicated than needed
             in_feat_sizes = in_s
             if not isinstance(in_feat_sizes, dict):
@@ -41,23 +62,7 @@ class DeepAtomSum(nn.Module): ### NOTE: we may use a custom aggregator for this 
             graff_layer = OrderedGraphFeatUpdate(['bond', 'atom', 'global'], feat_updaters)
             graph_net.append(graff_layer)
         self.graph_net = graph_net
-
-        ntypes = ["atom", "bond"]
-        self.readout = Set2SetThenCat( # from bondnet!!
-            n_iters=6, n_layer=3, ntypes=ntypes, in_feats=[graph_hidden_size] * len(ntypes), ntypes_direct_cat=["global"]
-        )
-
-        self.fc_to_scalar = nn.ModuleList()
-        in_size = graph_hidden_size * 2 + graph_hidden_size * 2 + graph_hidden_size
-        for s in [128, 64]:
-            out_size = s
-            self.fc_to_scalar.append(nn.Linear(in_size, out_size))
-            self.fc_to_scalar.append(nn.BatchNorm1d(out_size))
-            self.fc_to_scalar.append(nn.ReLU()) #batchnorm + droptout before or afer this point pls
-
-            in_size = out_size
-        self.fc_to_scalar.append(nn.Linear(in_size, 1))
-
+    
     def forward(self, graph, feats, reactions):
         g = graph.local_var()
         ## graph processing network

@@ -82,8 +82,8 @@ def aggreg_atom_edge_no_repeat(nodes, aggreg):
     bond_ft = nodes.mailbox['ft']
 
     # index selection
-    indices = torch.where(i_a[:, :, 0] != nodes.nodes().unsqueeze(-1), 0, 1)
-    non_self_ft_a = ft_a.gather(2, indices.unsqueeze(-1).unsqueeze(-1).repeat_interleave(ft_a.size(3), dim=3))
+    indices = torch.where(i_a[:, :, 0] != nodes.nodes().unsqueeze(-1), 0, 1) # match passed indices with atom index that is different from self
+    non_self_ft_a = ft_a.gather(2, indices.unsqueeze(-1).unsqueeze(-1).repeat_interleave(ft_a.size(3), dim=3)) # use above indices to select proper features
     non_self_ft_a = non_self_ft_a.squeeze(2)
 
     # user inputted method of aggregating non-self included edge-atom
@@ -104,8 +104,6 @@ class GlobalAggregUpdate(nn.Module):
     def forward(self, feats, graph):
         g = graph.local_var()
 
-        # fn.mean('m', 'a')
-        # fn.mean('m', 'b')
         g.update_all(fn.copy_u('ft', 'm'), self.atom_aggreg, etype='a2g')
         g.update_all(fn.copy_u('ft', 'm'), self.edge_aggreg, etype='b2g')
 
