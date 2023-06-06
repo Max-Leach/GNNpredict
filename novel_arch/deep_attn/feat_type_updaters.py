@@ -72,7 +72,35 @@ class AtomAggregUpdate(nn.Module):
         return feats
 
 def concat_sum_atom_edge_feat(nodes):
-    return aggreg_atom_edge_no_repeat(nodes, lambda a,b: torch.sum(torch.cat([a, b], dim=-1), dim=1))
+    return aggreg_atom_edge_no_repeat(nodes, lambda a,b,nodes: torch.sum(torch.cat([a, b], dim=-1), dim=1))
+
+''' 
+    aggregate incoming atom and bond features for atoms via attention
+
+    atm, it uses gatv2 style attention
+'''
+class AttnAtomEdgeReducer(nn.Module):
+    def __init__(self, feat_size, internal_attn_size):
+        super().__init__()
+
+        self.activ_in_map = nn.Linear(2*feat_size + feat_size, internal_attn_size)
+        self.activ = nn.LeakyReLU()
+        self.attn_scalar_map = nn.Linear(internal_attn_size, 1)
+        self.softmax = nn.Softmax()
+
+    def forward(self, incoming_atom_fts, incoming_bond_fts, nodes):
+        self_feats_per_incoming = nodes.data['ft'].unsqueeze(1).repeat_interleave(incoming_atom_fts.size(1), dim=1)
+        
+        combined_attn_in = torch.cat([self_feats_per_incoming, incoming_atom_fts, incoming_bond_fts], dim=-1)
+        activ_ins = self.activ(self.activ_in_map(combined_attn_in))
+        pre_attn = self.attn_scalar_map(activ_ins)
+        attn_weights = self.softmax(pre_attn)
+
+        incoming = torch.cat([incoming_atom_fts, incoming_bond_fts], dim=-1)
+        weighted = torch.mul(attn_weights, incoming)
+        aggregated = torch.sum(weighted, dim=1)
+
+        return aggregated
 
 # aggregate incoming atom feat concat with bond feat that connects them
 # assumes connected atom features, atom indices, bond features already in bond mailbox
@@ -87,7 +115,7 @@ def aggreg_atom_edge_no_repeat(nodes, aggreg):
     non_self_ft_a = non_self_ft_a.squeeze(2)
 
     # user inputted method of aggregating non-self included edge-atom
-    aggregated = aggreg(non_self_ft_a, bond_ft)
+    aggregated = aggreg(non_self_ft_a, bond_ft, nodes)
 
     return {'a_b_aggreg' : aggregated}
 

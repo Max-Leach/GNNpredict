@@ -2,12 +2,26 @@ from novel_arch import train
 
 # following are fns to train different architectures with the same setup
 
-from novel_arch.deep_attn.model import DeepAtomSum
+from novel_arch.deep_attn.model import DeepAtom
+from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, aggreg_atom_edge_no_repeat, AttnAtomEdgeReducer
+
+def deepatomattn():
+    attn_aggreg = lambda nodes: aggreg_atom_edge_no_repeat(nodes, AttnAtomEdgeReducer(64, 16))
+    model = DeepAtom(
+        atom_aggregators=attn_aggreg,
+        in_feat_sizes=train.dataset.feature_size,
+        graph_hidden_size=64,
+        graph_layers=3,
+        graph_inner_layer_sizes=[[64]] * 3,
+        residual=True
+    )
+
+    train.train_for_epochs_w_Test_MAE(model, 'deepatomsum.pkl', lr=0.001)
 
 def deepatomsum():
-    model = DeepAtomSum(
-        in_feat_sizes=train.dataset.feature_size, 
-        # embedding_size=64,
+    model = DeepAtom(
+        atom_aggregators=concat_sum_atom_edge_feat,
+        in_feat_sizes=train.dataset.feature_size,
         graph_hidden_size=64,
         graph_layers=3,
         graph_inner_layer_sizes=[[64]] * 3,

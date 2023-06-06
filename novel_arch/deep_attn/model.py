@@ -5,20 +5,22 @@ from itertools import pairwise
 from novel_arch.deep_attn.feat_evolve import OrderedGraphFeatUpdate
 from novel_arch.deep_attn.state_mlp import ConcatStateMLP
 from novel_arch.deep_attn.feat_type_updaters import EdgeNeighborUpdate, AtomAggregUpdate, GlobalAggregUpdate
-from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, atom_mean, bond_mean
+from novel_arch.deep_attn.feat_type_updaters import atom_mean, bond_mean
 
 from bondnet.model.gated_reaction_network import mol_graph_to_rxn_graph
 from bondnet.layer.readout import Set2SetThenCat
 
-class DeepAtomSum(nn.Module): ### NOTE: we may use a custom aggregator for this class for atom update
+class DeepAtom(nn.Module):
     ''' deeper state evolution, just add nearby atoms + edges for atom feat update '''
     ''' graph_inner_layer_sizes - how wide individual layers in gnn portion will be, is independent of graph_layers count '''
-    def __init__(self, in_feat_sizes, graph_hidden_size, graph_layers, graph_inner_layer_sizes=[], residual=True, fc_readout_sizes=[128, 64], set2set_iters=6, set2set_layers=3):
+    def __init__(self, atom_aggregators, in_feat_sizes, graph_hidden_size, graph_layers, graph_inner_layer_sizes=[], residual=True, fc_readout_sizes=[128, 64], set2set_iters=6, set2set_layers=3):
         super().__init__()
 
         embedding_size = graph_hidden_size
         self.embedders = {k : nn.Linear(in_feat_sizes[k], embedding_size) for k in in_feat_sizes}
-        self.assemble_gnn(in_feat_sizes, embedding_size, graph_hidden_size, graph_layers, graph_inner_layer_sizes, residual)
+        self.assemble_gnn(
+            in_feat_sizes, embedding_size, graph_hidden_size, graph_layers, graph_inner_layer_sizes, residual, atom_aggregators
+            )
 
         ntypes = ["atom", "bond"]
         self.readout = Set2SetThenCat( # from bondnet!!
@@ -36,7 +38,7 @@ class DeepAtomSum(nn.Module): ### NOTE: we may use a custom aggregator for this 
             in_size = out_size
         self.fc_to_scalar.append(nn.Linear(in_size, 1))
     
-    def assemble_gnn(self, in_feat_sizes, embedding_size, graph_hidden_size, graph_layers, graph_inner_layer_sizes, residual):
+    def assemble_gnn(self, in_feat_sizes, embedding_size, graph_hidden_size, graph_layers, graph_inner_layer_sizes, residual, atom_aggregators):
         embed_feat_sizes = {'bond': embedding_size, 'atom': embedding_size, 'global': embedding_size}
         feat_sizes = [embed_feat_sizes] + graph_layers * [graph_hidden_size]
 
@@ -48,9 +50,13 @@ class DeepAtomSum(nn.Module): ### NOTE: we may use a custom aggregator for this 
             inner_layer_sizes = []
             if i < len(graph_inner_layer_sizes):
                 inner_layer_sizes = graph_inner_layer_sizes[i]
+            try:
+                atom_aggregator = atom_aggregators[i]
+            except TypeError:
+                atom_aggregator = atom_aggregators
             bond_updt = EdgeNeighborUpdate(in_feat_sizes, out_s, inner_layer_sizes=inner_layer_sizes, residual=residual)
             in_feat_sizes['bond'] = out_s
-            atom_updt = AtomAggregUpdate(concat_sum_atom_edge_feat, in_feat_sizes, out_s, inner_layer_sizes=inner_layer_sizes, residual=residual)
+            atom_updt = AtomAggregUpdate(atom_aggregator, in_feat_sizes, out_s, inner_layer_sizes=inner_layer_sizes, residual=residual)
             in_feat_sizes['atom'] = out_s
             global_updt = GlobalAggregUpdate(bond_mean(), atom_mean(), in_feat_sizes, out_s, inner_layer_sizes=inner_layer_sizes, residual=residual)
 
