@@ -75,6 +75,7 @@ def train(optimizer, model, nodes, data_loader, loss_fn, metric_fn):
         # grads = {}
         # for (n, param) in model.named_parameters():
         #     norm = param.grad.norm() if param.grad is not None else None
+        #     print('aren\'t you so grad?', n, ': ', norm)
             # if norm is not None:
             #     continue
             # print(n, ':', norm)

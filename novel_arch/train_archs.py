@@ -5,8 +5,22 @@ from novel_arch import train
 from novel_arch.deep_attn.model import DeepAtom
 from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, aggreg_atom_edge_no_repeat, AttnAtomEdgeReducer
 
+def deepatomattnnoedges():
+    attn_aggreg = lambda nodes: aggreg_atom_edge_no_repeat(nodes, AttnAtomEdgeReducer(64, 32, include_edges=False))
+    model = DeepAtom(
+        atom_aggregators=attn_aggreg,
+        in_feat_sizes=train.dataset.feature_size,
+        graph_hidden_size=64,
+        graph_layers=3,
+        graph_inner_layer_sizes=[[64]] * 3,
+        residual=True,
+        atom_include_edges=False
+    )
+
+    train.train_for_epochs_w_Test_MAE(model, 'deepatomattnnoedges.pkl', lr=0.001)
+
 def deepatomattn():
-    attn_aggreg = lambda nodes: aggreg_atom_edge_no_repeat(nodes, AttnAtomEdgeReducer(64, 16))
+    attn_aggreg = lambda nodes: aggreg_atom_edge_no_repeat(nodes, AttnAtomEdgeReducer(64, 32))
     model = DeepAtom(
         atom_aggregators=attn_aggreg,
         in_feat_sizes=train.dataset.feature_size,
@@ -16,7 +30,7 @@ def deepatomattn():
         residual=True
     )
 
-    train.train_for_epochs_w_Test_MAE(model, 'deepatomsum.pkl', lr=0.001)
+    train.train_for_epochs_w_Test_MAE(model, 'deepatomattn.pkl', lr=0.001)
 
 def deepatomsum():
     model = DeepAtom(
@@ -32,6 +46,8 @@ def deepatomsum():
 
 from novel_arch.dmpnn_like.model import DMPNNLike
 from novel_arch.dmpnn_like.directed_conv import DMPNNPropag
+
+### === dmpnn inspired section, not very performant!
 
 def dmpnn_like():
     model = DMPNNLike(
@@ -74,7 +90,9 @@ def archic_0():
         conv_op=GatedGCNConvDMPNN
     )
 
-    train.train_for_epochs_w_Test_MAE(model, 'archic-0_chkpoint.pkl', lr=0.0015, num_epochs=30)
+    train.train_for_epochs_w_Test_MAE(model, 'archic-0_chkpoint.pkl', lr=0.0015)
+
+### === end of dmpnn section
 
 from bondnet.model.gated_reaction_network import GatedGCNReactionNetwork
 def bondnet_original():

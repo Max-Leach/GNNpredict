@@ -41,13 +41,16 @@ class AtomAggregUpdate(nn.Module):
     '''
         custom aggregation of node features (especially bonds)
     '''
-    def __init__(self, atom_edge_feat_aggreg, in_feat_sizes, out_size, inner_layer_sizes=[], residual=False, bias=False):
+    def __init__(self, atom_edge_feat_aggreg, in_feat_sizes, out_size, inner_layer_sizes=[], residual=False, bias=False, include_edges=True):
         super().__init__()
 
         self.atom_edge_feat_aggreg = atom_edge_feat_aggreg
         self.residual = residual
-        in_mlp_size = 2*in_feat_sizes['atom']+in_feat_sizes['global']+in_feat_sizes['bond']
+        in_mlp_size = 2*in_feat_sizes['atom'] + in_feat_sizes['global']
+        if include_edges:
+            in_mlp_size += in_feat_sizes['bond']
         self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias, batch_norm=True)
+        self.include_edges = include_edges
 
     def forward(self, feats, graph):
         g = graph.local_var()
@@ -80,13 +83,14 @@ def concat_sum_atom_edge_feat(nodes):
     atm, it uses gatv2 style attention
 '''
 class AttnAtomEdgeReducer(nn.Module):
-    def __init__(self, feat_size, internal_attn_size):
+    def __init__(self, feat_size, internal_attn_size, include_edges=True):
         super().__init__()
 
         self.activ_in_map = nn.Linear(2*feat_size + feat_size, internal_attn_size)
         self.activ = nn.LeakyReLU()
         self.attn_scalar_map = nn.Linear(internal_attn_size, 1)
         self.softmax = nn.Softmax()
+        self.include_edges = include_edges
 
     def forward(self, incoming_atom_fts, incoming_bond_fts, nodes):
         self_feats_per_incoming = nodes.data['ft'].unsqueeze(1).repeat_interleave(incoming_atom_fts.size(1), dim=1)
@@ -96,7 +100,9 @@ class AttnAtomEdgeReducer(nn.Module):
         pre_attn = self.attn_scalar_map(activ_ins)
         attn_weights = self.softmax(pre_attn)
 
-        incoming = torch.cat([incoming_atom_fts, incoming_bond_fts], dim=-1)
+        incoming = incoming_atom_fts
+        if self.include_edges:
+            incoming = torch.cat([incoming_atom_fts, incoming_bond_fts], dim=-1)
         weighted = torch.mul(attn_weights, incoming)
         aggregated = torch.sum(weighted, dim=1)
 
