@@ -17,7 +17,7 @@ class DeepAtom(nn.Module):
         super().__init__()
 
         embedding_size = graph_hidden_size
-        self.embedders = {k : nn.Linear(in_feat_sizes[k], embedding_size) for k in in_feat_sizes}
+        self.embedders = nn.ModuleDict({k : nn.Linear(in_feat_sizes[k], embedding_size) for k in in_feat_sizes})
         self.assemble_gnn(
             in_feat_sizes, embedding_size, graph_hidden_size, graph_layers, graph_inner_layer_sizes, residual, atom_aggregators, atom_include_edges
             )
