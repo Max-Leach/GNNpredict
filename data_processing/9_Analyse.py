@@ -21,6 +21,7 @@ def Scrape(fileId):
 def insert_energies():
     df = pd.read_csv('selection.csv')
     df.insert(6,"BDH", None)
+    pointer = 0
     with open('indexed_selection', 'r') as input_file:
         for line in iter(lambda: input_file.readline(), ''): 
             values = line.split(',')
@@ -32,8 +33,9 @@ def insert_energies():
             BDH = frag1vals[1] + frag2vals[1] - parentvals[1]
 
             #get BDH from last Done
-            df.loc[values[0],'BDH'] = BDH
-            df.loc[values[0],'BDE'] = BDE
+            df.loc[pointer,'BDH'] = BDH
+            df.loc[pointer,'BDE'] = BDE
+            pointer += 1
     df.to_csv('updated_dataset.csv', index=False)
 
 if __name__ == '__main__':
