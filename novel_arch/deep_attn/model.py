@@ -6,9 +6,9 @@ from novel_arch.deep_attn.feat_evolve import OrderedGraphFeatUpdate
 from novel_arch.deep_attn.state_mlp import ConcatStateMLP
 from novel_arch.deep_attn.feat_type_updaters import EdgeNeighborUpdate, AtomAggregUpdate, GlobalAggregUpdate
 from novel_arch.deep_attn.feat_type_updaters import atom_mean, bond_mean
+from novel_arch.deep_attn.readout import Set2Set
 
 from bondnet.model.gated_reaction_network import mol_graph_to_rxn_graph
-from bondnet.layer.readout import Set2SetThenCat
 
 class DeepAtom(nn.Module):
     ''' deeper state evolution, just add nearby atoms + edges for atom feat update '''
@@ -22,10 +22,16 @@ class DeepAtom(nn.Module):
             in_feat_sizes, embedding_size, graph_hidden_size, graph_layers, graph_inner_layer_sizes, residual, atom_aggregators, atom_include_edges
             )
 
-        ntypes = ["atom", "bond"]
-        self.readout = Set2SetThenCat( # from bondnet!!
-            n_iters=set2set_iters, n_layer=set2set_layers, ntypes=ntypes, in_feats=[graph_hidden_size] * len(ntypes), ntypes_direct_cat=["global"]
-        )
+        # ntypes = ["atom", "bond"]
+        # self.readout = Set2SetThenCat( # from bondnet!!
+        #     n_iters=set2set_iters, n_layer=set2set_layers, ntypes=ntypes, in_feats=[graph_hidden_size] * len(ntypes), ntypes_direct_cat=["global"]
+        # )
+        self.set2set_extract = nn.ModuleDict({
+            'atom': Set2Set(graph_hidden_size, set2set_iters, set2set_layers, 'atom'),
+            'bond': Set2Set(graph_hidden_size, set2set_iters, set2set_layers, 'bond'),
+        })
+        self.direct_concat = ['global']
+        self.concat_order = ['bond', 'atom', 'global']
 
         self.fc_to_scalar = nn.ModuleList()
         in_size = graph_hidden_size * 2 + graph_hidden_size * 2 + graph_hidden_size
@@ -83,9 +89,15 @@ class DeepAtom(nn.Module):
         graph, feats = mol_graph_to_rxn_graph(graph, feats, reactions) # from bondnet!!
 
         ## set2set to get 1 feature vector for each node type
+        # for nt in self.set2set_extract:
+        encoded_feats = {nt : self.set2set_extract[nt](graph, feats[nt]) for nt in self.set2set_extract}
+        direct_feats = {nt : feats[nt] for nt in self.direct_concat}
+        encoded_feats.update(direct_feats)
+        feats = torch.cat([encoded_feats[nt] for nt in self.concat_order], dim=-1)
+
         # we'll separate these later
         ## concat -> MLP to scalar
-        feats = self.readout(graph, feats)
+        # feats = self.readout(graph, feats)
 
         for fc in self.fc_to_scalar:
             feats = fc(feats)
