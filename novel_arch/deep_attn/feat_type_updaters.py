@@ -77,12 +77,20 @@ class AtomAggregUpdate(nn.Module):
 def concat_sum_atom_edge_feat(nodes):
     return aggreg_atom_edge_no_repeat(nodes, lambda a,b,nodes: torch.sum(torch.cat([a, b], dim=-1), dim=1))
 
+class AtomEdgeReducer(nn.Module):
+    def __init__(self, aggregator):
+        super().__init__()
+        self.aggregator = aggregator
+
+    def forward(self, nodes):
+        return aggreg_atom_edge_no_repeat(nodes, self.aggregator)
+
 ''' 
     aggregate incoming atom and bond features for atoms via attention
 
     atm, it uses gatv2 style attention
 '''
-class AttnAtomEdgeReducer(nn.Module):
+class AttnAtomEdgeAggreg(nn.Module):
     def __init__(self, feat_size, internal_attn_size, include_edges=True):
         super().__init__()
 
