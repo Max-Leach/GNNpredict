@@ -97,7 +97,7 @@ class AttnAtomEdgeAggreg(nn.Module):
         self.activ_in_map = nn.Linear(2*feat_size + feat_size, internal_attn_size)
         self.activ = nn.LeakyReLU()
         self.attn_scalar_map = nn.Linear(internal_attn_size, 1)
-        self.softmax = nn.Softmax()
+        self.softmax = nn.Softmax(dim=-2)
         self.include_edges = include_edges
 
     def forward(self, incoming_atom_fts, incoming_bond_fts, nodes):
