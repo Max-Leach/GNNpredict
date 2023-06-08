@@ -106,7 +106,7 @@ if __name__ == "__main__":
     start = time.time()
     print("Starting FF optimizations")
 
-    with open(list_file, 'r') as listfile, open(err_file, 'w'):
+    with open(list_file, 'r') as listfile, open(err_file, 'w') as out_file:
         script_path = os.path.abspath(__file__)
         script_dir = os.path.split(script_path)[0] #find the absolute filepath to current directory
 
@@ -117,7 +117,7 @@ if __name__ == "__main__":
             try:
                 mol, arg = optimize_molecule_UFF(Id[1])
             except:
-                err_file.writelines(line)
+                out_file.writelines(line)
                 continue
             
             if arg != None: RDKITwritetoXYZ(Id,arg,script_dir,SDFdirectory )

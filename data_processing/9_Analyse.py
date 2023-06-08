@@ -9,14 +9,14 @@ def Scrape(fileId):
     Energy = 0
     Enthalpy = 0
 
-    for file in glob.glob(filename + '_*'): filename = file
+    for file in glob.glob(fileId + '_*'): filename = file
     with open(filename, 'r') as f:
         for line in f:
             if re.search('Done',line):
-                Energy = re.sub('^\D+','',line.rstrip('\n'))
+                Energy = re.sub('(^[^=]*=) | ( .*)','',line.rstrip('\n'))
             if re.search('Sum of electronic and thermal Enthalpies',line):
-                Enthalpy = re.sub('^\D+','',line.rstrip('\n'))
-    return Energy,Enthalpy
+                Enthalpy = re.sub('^[^=]*= | \s','',line.rstrip('\n'))
+    return float(Energy),float(Enthalpy)
 
 def insert_energies():
     df = pd.read_csv('selection.csv')
@@ -28,9 +28,13 @@ def insert_energies():
             frag1vals = Scrape(values[3])
             frag2vals = Scrape(values[4])
 
-            #BDE = frag1vals[0] + frag2vals[0] - parentvals[0]
-            #BDH = frag1vals[1] + frag2vals[1] - parentvals[1]
+            BDE = frag1vals[0] + frag2vals[0] - parentvals[0]
+            BDH = frag1vals[1] + frag2vals[1] - parentvals[1]
 
-            #df.loc[values[0],'BDE'] = frag1vals[0] + frag2vals[0] - parentvals[0]
-            df.loc[values[0],'BDH'] = frag1vals[1] + frag2vals[1] - parentvals[1]
-            
+            #get BDH from last Done
+            df.loc[values[0],'BDH'] = BDH
+            df.loc[values[0],'BDE'] = BDE
+    df.to_csv('updated_dataset.csv', index=False)
+
+if __name__ == '__main__':
+    insert_energies()
