@@ -1,10 +1,14 @@
 import numpy as np
 from rdkit import Chem
+from rdkit import rdBase
 from rdkit.Chem import AllChem
 from rdkit.Chem.rdmolfiles import MolToXYZFile
 import os
 import time
 import sys
+import re
+from io import StringIO
+rdBase.WrapLogs()
 
 #Code block adapted from https://github.com/pstjohn/bde, 
 # St. John, P.C., Guan, Y., Kim, Y. et al. Quantum chemical calculations for over 200,000 organic radical species and 40,000 associated closed-shell molecules. 
@@ -60,8 +64,7 @@ def optimize_molecule_UFF(SMILES):
             if is_radical:isRadical(mol, radical_index)
             return mol, None
 
-
-        return mol, int(most_stable_conformer)
+        #return mol, int(most_stable_conformer)
 
 def RDKITConformer(mol, conformers):
     Chem.SanitizeMol(mol)
@@ -102,6 +105,8 @@ if __name__ == "__main__":
     count = 0
     list_file = sys.argv[1] 
     err_file = sys.argv[2] 
+    sio = sys.stderr = StringIO()
+
     if not os.path.exists(SDFdirectory): os.makedirs(SDFdirectory) #Create directory iff doesn't exist
     start = time.time()
     print("Starting FF optimizations")
@@ -115,12 +120,16 @@ if __name__ == "__main__":
             count += 1
 
             try:
+                #Catch this
+                sio.seek(0)
+                sio.truncate(0)
                 mol, arg = optimize_molecule_UFF(Id[1])
+                if re.search('Unrecognized atom type', sio.getvalue()): arg = None
             except:
                 out_file.writelines(line)
                 continue
             
-            if arg != None: RDKITwritetoXYZ(Id,arg,script_dir,SDFdirectory )
+            if arg != None: RDKITwritetoXYZ(Id,arg,script_dir,SDFdirectory)
             else:
                 Chem.MolToMolFile(mol, Id[0] + '.sdf')
                 os.system("obabel " + Id[0] + ".sdf -O " + Id[0] + "_opt.sdf --minimize --steps 1500 --sd --ff UFF")
