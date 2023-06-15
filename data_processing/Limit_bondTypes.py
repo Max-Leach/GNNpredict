@@ -55,7 +55,7 @@ def loadparent(line):
     return line.split(',')[2]
 
 if __name__ == '__main__':
-    with open(sys.argv[1]) as f1, open(sys.argv[2]) as f2:
+    with open(sys.argv[1], 'r') as f1, open(sys.argv[2], 'w') as f2:
         for line in iter(lambda: f1.readline(), ''): 
             if (checkMol(loadparent(line))):
                 f2.write(line)
