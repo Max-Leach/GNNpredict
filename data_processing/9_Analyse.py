@@ -3,7 +3,6 @@ import glob
 import os
 import pandas as pd
 
-
 #return in the form(del_E, del_H)
 def Scrape(fileId):
     Energy = 0

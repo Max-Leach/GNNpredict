@@ -124,7 +124,7 @@ if __name__ == "__main__":
                 sio.seek(0)
                 sio.truncate(0)
                 mol, arg = optimize_molecule_UFF(Id[1])
-                if re.search('Unrecognized atom type', sio.getvalue()): arg = None
+                if re.search('UFFTYPER', sio.getvalue()): arg = None
             except:
                 out_file.writelines(line)
                 continue
