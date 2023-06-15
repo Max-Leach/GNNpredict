@@ -86,11 +86,11 @@ class AtomEdgeReducer(nn.Module):
         return aggreg_atom_edge_no_repeat(nodes, self.aggregator)
 
 ''' 
-    aggregate incoming atom and bond features for atoms via attention
+    aggregate incoming node and bond features for nodes via attention
 
     atm, it uses gatv2 style attention
 '''
-class AttnAtomEdgeAggreg(nn.Module):
+class AttnNodeEdgeAggreg(nn.Module):
     def __init__(self, feat_size, internal_attn_size, include_edges=True):
         super().__init__()
 
@@ -100,17 +100,17 @@ class AttnAtomEdgeAggreg(nn.Module):
         self.softmax = nn.Softmax(dim=-2)
         self.include_edges = include_edges
 
-    def forward(self, incoming_atom_fts, incoming_bond_fts, nodes):
-        self_feats_per_incoming = nodes.data['ft'].unsqueeze(1).repeat_interleave(incoming_atom_fts.size(1), dim=1)
+    def forward(self, incoming_node_fts, incoming_edge_fts, nodes):
+        self_feats_per_incoming = nodes.data['ft'].unsqueeze(1).repeat_interleave(incoming_node_fts.size(1), dim=1)
         
-        combined_attn_in = torch.cat([self_feats_per_incoming, incoming_atom_fts, incoming_bond_fts], dim=-1)
+        combined_attn_in = torch.cat([self_feats_per_incoming, incoming_node_fts, incoming_edge_fts], dim=-1)
         activ_ins = self.activ(self.activ_in_map(combined_attn_in))
         pre_attn = self.attn_scalar_map(activ_ins)
         attn_weights = self.softmax(pre_attn)
 
-        incoming = incoming_atom_fts
+        incoming = incoming_node_fts
         if self.include_edges:
-            incoming = torch.cat([incoming_atom_fts, incoming_bond_fts], dim=-1)
+            incoming = torch.cat([incoming_node_fts, incoming_edge_fts], dim=-1)
         weighted = torch.mul(attn_weights, incoming)
         aggregated = torch.sum(weighted, dim=1)
 

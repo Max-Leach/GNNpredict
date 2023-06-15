@@ -3,10 +3,10 @@ from novel_arch import train
 # following are fns to train different architectures with the same setup
 
 from novel_arch.deep_attn.model import DeepAtom
-from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, aggreg_atom_edge_no_repeat, AttnAtomEdgeAggreg, AtomEdgeReducer
+from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, aggreg_atom_edge_no_repeat, AttnNodeEdgeAggreg, AtomEdgeReducer
 
 def deepatomattnnoedges():
-    attn_aggreg = AtomEdgeReducer(AttnAtomEdgeAggreg(64, 32, include_edges=False))
+    attn_aggreg = AtomEdgeReducer(AttnNodeEdgeAggreg(64, 32, include_edges=False))
     model = DeepAtom(
         atom_aggregators=attn_aggreg,
         in_feat_sizes=train.dataset.feature_size,
@@ -20,7 +20,7 @@ def deepatomattnnoedges():
     train.train_for_epochs_w_Test_MAE(model, 'deepatomattnnoedges.pkl', lr=0.001)
 
 def deepatomattn():
-    attn_aggreg = AtomEdgeReducer(AttnAtomEdgeAggreg(64, 32))
+    attn_aggreg = AtomEdgeReducer(AttnNodeEdgeAggreg(64, 32))
     model = DeepAtom(
         atom_aggregators=attn_aggreg,
         in_feat_sizes=train.dataset.feature_size,
