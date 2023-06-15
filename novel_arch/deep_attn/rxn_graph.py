@@ -19,14 +19,13 @@ class RxnFeatGenerator:
 
 # bond breaking reaction
 class BondDissociate(RxnFeatGenerator):
-    def __init__(self, atom_mapping, bond_mapping, atom_map_for_prods, bond_map_for_prods, final_graph):
+    def __init__(self, atom_mapping, bond_mapping, prods_has_bond, final_graph):
         self.mappings = {
             'global': [0],
             'atom': atom_mapping,
             'bond': bond_mapping,
         }
-        self.atom_map_for_prods = atom_map_for_prods
-        self.bond_map_for_prods = bond_map_for_prods
+        self.prods_has_bond = prods_has_bond
         self._final_graph = final_graph
     
     def get_rxn_graph(self):
@@ -40,7 +39,7 @@ class BondDissociate(RxnFeatGenerator):
         for nt in ['bond', 'atom', 'global']:
             reac_feats_updated[nt] = torch.cat([ft[nt] for ft in reac_feats])
         # remove fictional bond cases - if no bond mapping there are no real bonds
-        prod_bond_feats = [prod_feats[p]['bond'] for p in filter(lambda i: len(self.bond_map_for_prods[i]) > 0, range(len(self.bond_map_for_prods)))]
+        prod_bond_feats = [prod_feats[p]['bond'] for p in filter(lambda i: self.prods_has_bond[i], range(len(self.prods_has_bond)))]
         # add bond to end to represent broken bond
         prod_bond_feats.append(torch.zeros_like(prod_bond_feats[0]))
         prd_feats_updated['bond'] = torch.cat(prod_bond_feats)
@@ -64,7 +63,7 @@ def bondnet_batch_to_own(batched_graph, batched_feats, reactions):
     graphs = dgl.unbatch(batched_graph)
     graph_feats = [{nt: g.nodes[nt].data['ft'] for nt in batched_feats} for g in graphs]
     rxn_in_feats = [{'reac' : [graph_feats[r] for r in rxn.reactants], 'prod' : [graph_feats[p] for p in rxn.products]} for rxn in reactions]
-    rxn_feat_gens = [BondDissociate(rxn.atom_mapping_as_list, rxn.bond_mapping_as_list, rxn.atom_mapping, rxn.bond_mapping, graphs[rxn.reactants[0]]) for rxn in reactions]
+    rxn_feat_gens = [BondDissociate(rxn.atom_mapping_as_list, rxn.bond_mapping_as_list, tuple(map(lambda m: len(m) > 0, rxn.bond_mapping)), graphs[rxn.reactants[0]]) for rxn in reactions]
     
     # arond this point will be where reactions processing will remain same for our set
 
