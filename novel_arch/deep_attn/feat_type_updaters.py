@@ -167,6 +167,10 @@ def atom_mean():
     return fn.mean('m', 'a')
 def bond_mean():
     return fn.mean('m', 'b')
+def atom_sum():
+    return fn.sum('m', 'a')
+def bond_sum():
+    return fn.sum('m', 'b')
 
 ''' custom aggregators for atoms, bonds to global '''
 class A2GReducer(nn.Module):

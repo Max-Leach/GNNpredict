@@ -3,7 +3,7 @@ from novel_arch import train
 # following are fns to train different architectures with the same setup
 
 from novel_arch.deep_attn.model import DeepAtom
-from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, aggreg_atom_edge_no_repeat, AttnNodeEdgeAggreg, AtomEdgeReducer, bond_mean, atom_mean, A2GReducer, B2GReducer
+from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, aggreg_atom_edge_no_repeat, AttnNodeEdgeAggreg, AtomEdgeReducer, bond_mean, atom_mean, bond_sum, atom_sum, A2GReducer, B2GReducer
 
 ''' NOTE: don't forget about no edges + global attn case for actual trials! '''
 def deepatomglobalattn():
