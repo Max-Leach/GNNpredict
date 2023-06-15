@@ -91,10 +91,13 @@ class AtomEdgeReducer(nn.Module):
     atm, it uses gatv2 style attention
 '''
 class AttnNodeEdgeAggreg(nn.Module):
-    def __init__(self, feat_size, internal_attn_size, include_edges=True):
+    def __init__(self, feat_size, internal_attn_size, include_attn_edges=True, include_edges=True):
         super().__init__()
 
-        self.activ_in_map = nn.Linear(2*feat_size + feat_size, internal_attn_size)
+        activ_in_size = 2*feat_size
+        if include_attn_edges:
+            activ_in_size += feat_size
+        self.activ_in_map = nn.Linear(activ_in_size, internal_attn_size)
         self.activ = nn.LeakyReLU()
         self.attn_scalar_map = nn.Linear(internal_attn_size, 1)
         self.softmax = nn.Softmax(dim=-2)
@@ -164,6 +167,26 @@ def atom_mean():
     return fn.mean('m', 'a')
 def bond_mean():
     return fn.mean('m', 'b')
+
+''' custom aggregators for atoms, bonds to global '''
+class A2GReducer(nn.Module):
+    def __init__(self, aggregator):
+        super().__init__()
+        self.aggregator = aggregator
+
+    def forward(self, nodes):
+        return global_aggregator(nodes, self.aggregator, 'a')
+class B2GReducer(nn.Module):
+    def __init__(self, aggregator):
+        super().__init__()
+        self.aggregator = aggregator
+
+    def forward(self, nodes):
+        return global_aggregator(nodes, self.aggregator, 'b')
+# custom aggregator wrapper fn
+def global_aggregator(nodes, aggregator, ft_name):
+    m = nodes.mailbox['m']
+    return {ft_name : aggregator(m, torch.empty([0]), nodes)}
 
 # return reducer fn to just plant full copy of mailbox as feat
 def copy_mailbox_feat(feat_name):

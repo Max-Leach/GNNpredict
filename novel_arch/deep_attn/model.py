@@ -11,13 +11,14 @@ from novel_arch.deep_attn.rxn_graph import bondnet_batch_to_own
 class DeepAtom(nn.Module):
     ''' deeper state evolution, just add nearby atoms + edges for atom feat update '''
     ''' graph_inner_layer_sizes - how wide individual layers in gnn portion will be, is independent of graph_layers count '''
-    def __init__(self, atom_aggregators, in_feat_sizes, graph_hidden_size, graph_layers, graph_inner_layer_sizes=[], residual=True, fc_readout_sizes=[128, 64], set2set_iters=6, set2set_layers=3, atom_include_edges=True):
+    def __init__(self, atom_aggregators, b2g_aggregator, a2g_aggregator, in_feat_sizes, graph_hidden_size, graph_layers, graph_inner_layer_sizes=[], residual=True, fc_readout_sizes=[128, 64], set2set_iters=6, set2set_layers=3, atom_include_edges=True):
         super().__init__()
 
         embedding_size = graph_hidden_size
         self.embedders = nn.ModuleDict({k : nn.Linear(in_feat_sizes[k], embedding_size) for k in in_feat_sizes})
         self.assemble_gnn(
-            in_feat_sizes, embedding_size, graph_hidden_size, graph_layers, graph_inner_layer_sizes, residual, atom_aggregators, atom_include_edges
+            in_feat_sizes, embedding_size, graph_hidden_size, graph_layers, graph_inner_layer_sizes, residual, atom_aggregators, atom_include_edges,
+            b2g_aggregator, a2g_aggregator,
             )
 
         self.set2set_extract = nn.ModuleDict({
@@ -38,7 +39,7 @@ class DeepAtom(nn.Module):
             in_size = out_size
         self.fc_to_scalar.append(nn.Linear(in_size, 1))
     
-    def assemble_gnn(self, in_feat_sizes, embedding_size, graph_hidden_size, graph_layers, graph_inner_layer_sizes, residual, atom_aggregators, atom_include_edges):
+    def assemble_gnn(self, in_feat_sizes, embedding_size, graph_hidden_size, graph_layers, graph_inner_layer_sizes, residual, atom_aggregators, atom_include_edges, b2g_aggregator, a2g_aggregator):
         embed_feat_sizes = {'bond': embedding_size, 'atom': embedding_size, 'global': embedding_size}
         feat_sizes = [embed_feat_sizes] + graph_layers * [graph_hidden_size]
 
@@ -58,7 +59,7 @@ class DeepAtom(nn.Module):
             in_feat_sizes['bond'] = out_s
             atom_updt = AtomAggregUpdate(atom_aggregator, in_feat_sizes, out_s, inner_layer_sizes=inner_layer_sizes, residual=residual, include_edges=atom_include_edges)
             in_feat_sizes['atom'] = out_s
-            global_updt = GlobalAggregUpdate(bond_mean(), atom_mean(), in_feat_sizes, out_s, inner_layer_sizes=inner_layer_sizes, residual=residual)
+            global_updt = GlobalAggregUpdate(b2g_aggregator, a2g_aggregator, in_feat_sizes, out_s, inner_layer_sizes=inner_layer_sizes, residual=residual)
 
             feat_updaters = nn.ModuleDict({
                 'bond' : bond_updt,
