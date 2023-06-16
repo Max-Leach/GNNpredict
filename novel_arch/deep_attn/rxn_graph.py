@@ -20,6 +20,7 @@ class RxnFeatGenerator:
 # bond breaking reaction
 class BondDissociate(RxnFeatGenerator):
     def __init__(self, atom_mapping, bond_mapping, prods_has_bond, final_graph):
+        # prods_has_bonds - list of bool for each product if it has bonds
         self.mappings = {
             'global': [0],
             'atom': atom_mapping,

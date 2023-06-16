@@ -162,3 +162,4 @@ cython_debug/
 
 bondnet_smpl
 *.pkl
+alf_smpl.csv
