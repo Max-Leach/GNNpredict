@@ -2,13 +2,16 @@ import re
 import glob
 import os
 import pandas as pd
+import itertools
 
 #return in the form(del_E, del_H)
 def Scrape(fileId):
     Energy = 0
     Enthalpy = 0
-
-    for file in glob.glob(fileId + '_*'): filename = file
+    try:
+        for file in glob.glob(fileId + '_*'): filename = file
+    except:
+        return 0,0
     with open(filename, 'r') as f:
         for line in f:
             if re.search('Done',line):
@@ -27,9 +30,12 @@ def insert_energies():
             parentvals = Scrape(values[2])
             frag1vals = Scrape(values[3])
             frag2vals = Scrape(values[4])
-
-            BDE = frag1vals[0] + frag2vals[0] - parentvals[0]
-            BDH = frag1vals[1] + frag2vals[1] - parentvals[1]
+            if 0 in [x for x in itertools.chain(parentvals, frag1vals,frag2vals)]: 
+                BDE = None
+                BDH = None
+            else:
+                BDE = frag1vals[0] + frag2vals[0] - parentvals[0]
+                BDH = frag1vals[1] + frag2vals[1] - parentvals[1]
 
             #get BDH from last Done
             df.loc[pointer,'BDH'] = BDH
