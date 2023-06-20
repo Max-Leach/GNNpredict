@@ -4,13 +4,25 @@ import networkx.algorithms.isomorphism as nx_iso
 import networkx as nx
 import torch
 
-from novel_arch.deep_attn.data import DirectSmilesRepo, DGLwRxnMappings
+from novel_arch.deep_attn.data import DirectSmilesRepo, DGLwBDEMappings
 
-# poo = DirectSmilesRepo()
-# poo.append_reaction(['NCCCC(=O)O'], ['[CH2]CCC(=O)O', '[NH2]'])
-# poo.append_reaction(['NCCCC(=O)O'], ['[CH2]CC(=O)O', '[CH2]N'])
+dsr = DirectSmilesRepo()
+dsr.append_reaction(['NCCCC(=O)O'], ['[CH2]CCC(=O)O', '[NH2]'], [0])
+dsr.append_reaction(['NCCCC(=O)O'], ['[CH2]CC(=O)O', '[CH2]N'], [1])
 # print(len(poo.canon_to_mol))
 # print(len(poo.r_p_canon))
+
+bdemap = DGLwBDEMappings(dsr)
+print(bdemap.r_p_rxn_atom_mappings)
+exit()
+# mapping = DGLwBDEMappings.prod_to_reac_atom_map(0, dsr)
+# # print(mapping)
+# # print(len(mapping) == len(set(mapping)))
+# print(bdemap.canon_to_dgl['NCCCC(=O)O'].nodes['atom'].data)
+# prods = [bdemap.canon_to_dgl[c].nodes['atom'].data['specie'] for c in ['[CH2]CCC(=O)O', '[NH2]']]
+# # print(torch.cat(prods)[mapping])
+# print(torch.all(torch.cat(prods)[mapping] == bdemap.canon_to_dgl['NCCCC(=O)O'].nodes['atom'].data['specie']))
+# exit()
 
 # CN(N)CCCC(C)(C)C	3	[CH2]CC(C)(C)C	[CH2]N(C)N
 # COC(=O)OCCC#N	3	CO[C]=O	N#CCC[O]
@@ -43,6 +55,8 @@ gms = [nx_iso.GraphMatcher(m.to_undirected(), p.to_undirected(), nm) for p, m in
 print([gm.is_isomorphic() for gm in gms])
 print([gm.mapping for gm in gms])
 
+exit()
+
 # def sets_of_keys(sg):
 #     return [set(sg_map.keys()) for sg_map in sg]
 # r_refs = [sets_of_keys(sg) for sg in sg_maps]
@@ -63,8 +77,6 @@ print([gm.mapping for gm in gms])
 # for sg in gm.subgraph_isomorphisms_iter():
 #     print(sg)
 # print('total atom count', ps[p_i].number_of_nodes())
-
-exit()
 
 # mol = Chem.MolFromSmiles(sm)
 # ng = nx.Graph()

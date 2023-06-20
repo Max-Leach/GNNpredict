@@ -2,6 +2,7 @@ from rdkit import Chem
 import dgl
 import torch
 import networkx.algorithms.isomorphism as nx_iso
+import networkx as nx
 
 ''' 
     end storage should help create at end: 
@@ -37,36 +38,61 @@ class DirectSmilesRepo:
 class DGLwBDEMappings:
     def __init__(self, directsmilesrepo):
         self.canon_to_dgl = None
-        self.r_p_rxn_mappings = [] # order associated with entries of r_p_canon of entered DirectSmilesRepo
+        self.r_p_rxn_atom_mappings = None # order associated with entries of r_p_canon of entered DirectSmilesRepo
 
-        self.nm = nx_iso.categorical_node_match('specie', 'BAD_MATCH')
+        # self.nm = nx_iso.categorical_node_match('specie', 'BAD_MATCH')
         self._load_from_directsmilesrepo(directsmilesrepo)
     
     def _load_from_directsmilesrepo(self, dsr: DirectSmilesRepo): # dsr - direct smiles repo because i hate typing
         self.canon_to_dgl = {canon : DGLwBDEMappings.dgl_from_mol(mol) for canon, mol in dsr.canon_to_mol.items()}
-
-        assert False, 'do your mappings loser, indivudally and as list too(?)'
+        self.r_p_rxn_atom_mappings = [DGLwBDEMappings.prod_to_reac_atom_map(i, dsr) for i in range(len(dsr.r_p_canon))]
+        # assert False, 'do your mappings loser, indivudally and as list too(?)'
 
     @staticmethod
-    def prod_to_reac_atom_map(reac_idx, dsr: DirectSmilesRepo): # assumes single reactant, single bond broken, multiple products, find mapping from prod graph to reactant given reaction idx in dsr
+    def prod_to_reac_atom_map(reac_idx, dsr: DirectSmilesRepo): # assumes single reactant, single bond broken, two products, find mapping from prod graph to reactant given reaction idx in dsr
+        p_mol_nxs, p_nxs = DGLwBDEMappings.prod_and_react_nx_graphs(reac_idx, dsr)
+        nm = nx_iso.categorical_node_match('specie', 'BAD_MATCH')
+        # assumes two products from here
+        pnx_checks = set([0, 1])
+        pmol_0, pmol_1 = p_mol_nxs
+        pnx_match_first = None
+        first_map = None
+        for s in pnx_checks:
+            match = nx_iso.GraphMatcher(pmol_0.to_undirected(), p_nxs[s].to_undirected(), nm)
+            if match.is_isomorphic():
+                pnx_match_first = s
+                first_map = match.mapping
+                break
+        assert type(pnx_match_first) is int and first_map != None, 'No matching for first product!'
+        pnx_checks.remove(pnx_match_first)
+        pnx_match_sec = next(iter(pnx_checks))
+        sec_match = nx_iso.GraphMatcher(pmol_1.to_undirected(), p_nxs[pnx_match_sec].to_undirected(), nm)
+        assert sec_match.is_isomorphic(), 'No match for second product!'
+        sec_map = sec_match.mapping
+        maps_for_prod = [list(m) for m in [first_map.items(), sec_map.items()]]
+        map_idx_offset = [0]
+        for m in maps_for_prod[:-1]:
+            map_idx_offset.append(map_idx_offset[-1] + len(m))
+        concat_map = []
+        for m_for_prod, offset in zip(maps_for_prod, map_idx_offset):
+            for m in m_for_prod:
+                p, r_key = m
+                new_m = (p + offset, r_key)
+                concat_map.append(new_m)
+        return [e[0] for e in sorted(concat_map, key=lambda e: e[1])]
+
+    @staticmethod
+    def prod_and_react_nx_graphs(reac_idx, dsr): # return nx graphs, first has product dgl graph indices, second has indices of seperated reactant
         reacs, prods = dsr.r_p_canon[reac_idx]
         reac = reacs[0] # single reactant assumption
-        r_mol = dsr.cannon_to_mol[reac]
+        r_mol = dsr.canon_to_mol[reac]
         broken_idx = dsr.react_broken_bonds[reac_idx]
         p_frags = Chem.GetMolFrags(Chem.FragmentOnBonds(r_mol, broken_idx))
         r_nx = DGLwBDEMappings.mol_to_nx(r_mol)
         p_nxs = [r_nx.subgraph(p) for p in p_frags]
-        mols = [dsr.canon_to_mol[canon] for canon in prods]
-        mol_nxs = [DGLwBDEMappings.mol_to_nx(m) for m in mols]
-        '''
-            hi this is me from the future, you suck
-
-            use that trash test you made yesterday to map between atoms on fragments (using p_nxs) and 
-                products generated without fragmenting (mol_nxs), with GraphMatcher
-            \/\/
-            with atom mappings, generate bond mappings using pairs, likely put in a seperate function
-        '''
-        # NOTE: WORK FROM HERE!!
+        p_mols = [dsr.canon_to_mol[canon] for canon in prods]
+        p_mol_nxs = [DGLwBDEMappings.mol_to_nx(m) for m in p_mols]
+        return p_mol_nxs, p_nxs
 
     @staticmethod
     def mol_to_nx(mol):
@@ -104,4 +130,7 @@ class DGLwBDEMappings:
             ('global', 'g2b', 'bond') : g2b,
             ('bond', 'b2g', 'global') : tuple(reversed(g2b)),
         })
+        # load atomic number as feature
+        specie_for_atom = torch.tensor([a.GetAtomicNum() for a in mol.GetAtoms()])
+        g.nodes['atom'].data.update({'specie' : specie_for_atom})
         return g
