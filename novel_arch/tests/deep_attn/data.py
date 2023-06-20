@@ -4,7 +4,7 @@ import networkx.algorithms.isomorphism as nx_iso
 import networkx as nx
 import torch
 
-from novel_arch.deep_attn.data import DirectSmilesRepo, DGLwBDEMappings
+from novel_arch.deep_attn.data.initial_containers import DirectSmilesRepo, DGLwBDEMappings
 
 dsr = DirectSmilesRepo()
 dsr.append_reaction(['NCCCC(=O)O'], ['[CH2]CCC(=O)O', '[NH2]'], [0])

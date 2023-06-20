@@ -44,7 +44,6 @@ class DGLwBDEMappings:
         self.rxn_atom_mappings = None # order associated with entries of r_p_canon of entered DirectSmilesRepo
         self.rxn_bond_mappings = None # same as above
 
-        # self.nm = nx_iso.categorical_node_match('specie', 'BAD_MATCH')
         self._load_from_directsmilesrepo(directsmilesrepo)
     
     def _load_from_directsmilesrepo(self, dsr: DirectSmilesRepo): # dsr - direct smiles repo because i hate typing
