@@ -43,6 +43,7 @@ class DGLwBDEMappings:
         self.canon_to_dgl = None
         self.rxn_atom_mappings = None # order associated with entries of r_p_canon of entered DirectSmilesRepo
         self.rxn_bond_mappings = None # same as above
+        self.prods_has_bonds = None # same as above
 
         self._load_from_directsmilesrepo(directsmilesrepo)
     
@@ -53,6 +54,7 @@ class DGLwBDEMappings:
         self.rxn_atom_mappings = [DGLwBDEMappings.to_concat_map(m) for m in atom_map_for_rxn]
         bond_map_for_rxn = [DGLwBDEMappings.prod_to_reac_bond_map(i, at_map, dsr) for i, at_map in enumerate(atom_map_for_rxn)]
         self.rxn_bond_mappings = [DGLwBDEMappings.to_concat_map(m) for m in bond_map_for_rxn]
+        self.prods_has_bonds = [[len(bm) > 0 for bm in bms[:-1]] for bms in bond_map_for_rxn]
 
     @staticmethod
     def prod_to_reac_atom_map(reac_idx, dsr: DirectSmilesRepo): # assumes single reactant, single bond broken, two products, find mapping from prod graph to reactant given reaction idx in dsr
@@ -103,7 +105,6 @@ class DGLwBDEMappings:
         concat_map = []
         for m_for_prod, offset in zip(maps_for_prod, map_idx_offset):
             for k in m_for_prod:
-                # p, r_key = m
                 new_m = (k + offset, m_for_prod[k])
                 concat_map.append(new_m)
         return [e[0] for e in sorted(concat_map, key=lambda e: e[1])]
@@ -158,8 +159,8 @@ class DGLwBDEMappings:
             ('bond', 'b2g', 'global') : tuple(reversed(g2b)),
         })
         # NOTE: may remove - load atomic number as feature
-        specie_for_atom = torch.tensor([a.GetAtomicNum() for a in mol.GetAtoms()])
-        g.nodes['atom'].data.update({'specie' : specie_for_atom})
-        species_for_bond = torch.tensor([[b.GetBeginAtom().GetAtomicNum(), b.GetEndAtom().GetAtomicNum()] for b in mol.GetBonds()])
-        g.nodes['bond'].data.update({'species' : species_for_bond})
+        # specie_for_atom = torch.tensor([a.GetAtomicNum() for a in mol.GetAtoms()])
+        # g.nodes['atom'].data.update({'specie' : specie_for_atom})
+        # species_for_bond = torch.tensor([[b.GetBeginAtom().GetAtomicNum(), b.GetEndAtom().GetAtomicNum()] for b in mol.GetBonds()])
+        # g.nodes['bond'].data.update({'species' : species_for_bond})
         return g

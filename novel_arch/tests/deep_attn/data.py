@@ -5,6 +5,7 @@ import networkx as nx
 import torch
 
 from novel_arch.deep_attn.data.initial_containers import DirectSmilesRepo, DGLwBDEMappings
+from novel_arch.deep_attn.data.dataset import BDEDataset
 
 dsr = DirectSmilesRepo()
 dsr.append_reaction(['NCCCC(=O)O'], ['[CH2]CCC(=O)O', '[NH2]'], [0])
@@ -13,6 +14,9 @@ dsr.append_reaction(['NCCCC(=O)O'], ['[CH2]CC(=O)O', '[CH2]N'], [1])
 # print(len(poo.r_p_canon))
 
 bdemap = DGLwBDEMappings(dsr)
+dset = BDEDataset(dsr, bdemap)
+print(dset[1])
+exit()
 # print(bdemap.rxn_bond_mappings)
 # print(bdemap.rxn_atom_mappings)
 # # exit()
@@ -24,21 +28,21 @@ bdemap = DGLwBDEMappings(dsr)
 # # print(torch.cat(prods))
 # print(mapping)
 # print(torch.all(torch.cat(prods)[mapping] == bdemap.canon_to_dgl['NCCCC(=O)O'].nodes['atom'].data['specie']))
-print([sorted(b) for b in bdemap.rxn_bond_mappings])
+# print([sorted(b) for b in bdemap.rxn_bond_mappings])
+# # exit()
+# i = 0
+# mapping = bdemap.rxn_bond_mappings[i]
+# # print(mapping)
+# # print(len(mapping) == len(set(mapping)))
+# print(bdemap.canon_to_dgl['NCCCC(=O)O'].nodes['bond'].data)
+# prods = [bdemap.canon_to_dgl[c].nodes['bond'].data['species'] for c in ['[CH2]CCC(=O)O', '[NH2]']]
+# prods.append(bdemap.canon_to_dgl['NCCCC(=O)O'].nodes['bond'].data['species'][dsr.react_broken_bonds[i][0]].unsqueeze(0))
+# print('ahhhh', torch.cat(prods)[mapping])
+# res = torch.cat(prods)[mapping]
+# thing = bdemap.canon_to_dgl['NCCCC(=O)O'].nodes['bond'].data['species']
+# for r, t in zip(res, thing):
+#     print(set(r.tolist()) == set(t.tolist()))
 # exit()
-i = 0
-mapping = bdemap.rxn_bond_mappings[i]
-# print(mapping)
-# print(len(mapping) == len(set(mapping)))
-print(bdemap.canon_to_dgl['NCCCC(=O)O'].nodes['bond'].data)
-prods = [bdemap.canon_to_dgl[c].nodes['bond'].data['species'] for c in ['[CH2]CCC(=O)O', '[NH2]']]
-prods.append(bdemap.canon_to_dgl['NCCCC(=O)O'].nodes['bond'].data['species'][dsr.react_broken_bonds[i][0]].unsqueeze(0))
-print('ahhhh', torch.cat(prods)[mapping])
-res = torch.cat(prods)[mapping]
-thing = bdemap.canon_to_dgl['NCCCC(=O)O'].nodes['bond'].data['species']
-for r, t in zip(res, thing):
-    print(set(r.tolist()) == set(t.tolist()))
-exit()
 
 # CN(N)CCCC(C)(C)C	3	[CH2]CC(C)(C)C	[CH2]N(C)N
 # COC(=O)OCCC#N	3	CO[C]=O	N#CCC[O]
