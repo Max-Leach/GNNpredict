@@ -51,11 +51,9 @@ class DGLwBDEMappings:
         self.canon_to_dgl = {canon : DGLwBDEMappings.dgl_from_mol(mol) for canon, mol in dsr.canon_to_mol.items()}
 
         atom_map_for_rxn = [DGLwBDEMappings.prod_to_reac_atom_map(i, dsr) for i in range(len(dsr.r_p_canon))]
-        atom_list_for_rxn = [[list(m.items()) for m in mapping] for mapping in atom_map_for_rxn]
-        self.rxn_atom_mappings = [DGLwBDEMappings.to_concat_map(m) for m in atom_list_for_rxn]
+        self.rxn_atom_mappings = [DGLwBDEMappings.to_concat_map(m) for m in atom_map_for_rxn]
         bond_map_for_rxn = [DGLwBDEMappings.prod_to_reac_bond_map(i, at_map, dsr) for i, at_map in enumerate(atom_map_for_rxn)]
-        bond_list_for_rxn = [[list(m.items()) for m in mapping] for mapping in bond_map_for_rxn]
-        self.rxn_bond_mappings = [DGLwBDEMappings.to_concat_map(m) for m in bond_list_for_rxn]
+        self.rxn_bond_mappings = [DGLwBDEMappings.to_concat_map(m) for m in bond_map_for_rxn]
 
     @staticmethod
     def prod_to_reac_atom_map(reac_idx, dsr: DirectSmilesRepo): # assumes single reactant, single bond broken, two products, find mapping from prod graph to reactant given reaction idx in dsr
@@ -105,9 +103,9 @@ class DGLwBDEMappings:
             map_idx_offset.append(map_idx_offset[-1] + len(m))
         concat_map = []
         for m_for_prod, offset in zip(maps_for_prod, map_idx_offset):
-            for m in m_for_prod:
-                p, r_key = m
-                new_m = (p + offset, r_key)
+            for k in m_for_prod:
+                # p, r_key = m
+                new_m = (k + offset, m_for_prod[k])
                 concat_map.append(new_m)
         return [e[0] for e in sorted(concat_map, key=lambda e: e[1])]
 
