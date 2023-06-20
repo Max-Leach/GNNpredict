@@ -21,6 +21,7 @@ class DirectSmilesRepo:
         self.canon_to_mol = dict() # canonical smiles -> rdkit mol
         self.r_p_canon = [] # 1 ([reactant canon smiles], [product canon smiles]) for each reaction
         self.react_broken_bonds = [] # broken bonds list for each reaction, may change to a generic auxillary property object later if going beyond BDEs
+        self.canon_to_atom_bond_map = dict() # canonical smiles -> {atom pair -> bond}
 
     def append_reaction(self, react_smiles, prod_smiles, broken_bond_idxs): # one call -> one reaction loaded, and both params are lists
         react_canon = [Chem.CanonSmiles(sm) for sm in react_smiles]
@@ -32,27 +33,36 @@ class DirectSmilesRepo:
         for canon in react_canon + prod_canon:
             if canon in self.canon_to_mol:
                 continue
-            self.canon_to_mol[canon] = Chem.AddHs(Chem.MolFromSmiles(canon))
+            mol = Chem.AddHs(Chem.MolFromSmiles(canon))
+            self.canon_to_mol[canon] = mol
+            self.canon_to_atom_bond_map[canon] = {(b.GetBeginAtomIdx(), b.GetEndAtomIdx()) : b.GetIdx() for b in mol.GetBonds()}
 
 ### generate dgl graphs (non reaction specific) and mappings (reaction specific, atom and bond)
 class DGLwBDEMappings:
     def __init__(self, directsmilesrepo):
         self.canon_to_dgl = None
-        self.r_p_rxn_atom_mappings = None # order associated with entries of r_p_canon of entered DirectSmilesRepo
+        self.rxn_atom_mappings = None # order associated with entries of r_p_canon of entered DirectSmilesRepo
+        self.rxn_bond_mappings = None # same as above
 
         # self.nm = nx_iso.categorical_node_match('specie', 'BAD_MATCH')
         self._load_from_directsmilesrepo(directsmilesrepo)
     
     def _load_from_directsmilesrepo(self, dsr: DirectSmilesRepo): # dsr - direct smiles repo because i hate typing
         self.canon_to_dgl = {canon : DGLwBDEMappings.dgl_from_mol(mol) for canon, mol in dsr.canon_to_mol.items()}
-        self.r_p_rxn_atom_mappings = [DGLwBDEMappings.prod_to_reac_atom_map(i, dsr) for i in range(len(dsr.r_p_canon))]
-        # assert False, 'do your mappings loser, indivudally and as list too(?)'
+
+        atom_map_for_rxn = [DGLwBDEMappings.prod_to_reac_atom_map(i, dsr) for i in range(len(dsr.r_p_canon))]
+        atom_list_for_rxn = [[list(m.items()) for m in mapping] for mapping in atom_map_for_rxn]
+        self.rxn_atom_mappings = [DGLwBDEMappings.to_concat_map(m) for m in atom_list_for_rxn]
+        bond_map_for_rxn = [DGLwBDEMappings.prod_to_reac_bond_map(i, at_map, dsr) for i, at_map in enumerate(atom_map_for_rxn)]
+        bond_list_for_rxn = [[list(m.items()) for m in mapping] for mapping in bond_map_for_rxn]
+        self.rxn_bond_mappings = [DGLwBDEMappings.to_concat_map(m) for m in bond_list_for_rxn]
 
     @staticmethod
     def prod_to_reac_atom_map(reac_idx, dsr: DirectSmilesRepo): # assumes single reactant, single bond broken, two products, find mapping from prod graph to reactant given reaction idx in dsr
         p_mol_nxs, p_nxs = DGLwBDEMappings.prod_and_react_nx_graphs(reac_idx, dsr)
         nm = nx_iso.categorical_node_match('specie', 'BAD_MATCH')
         # assumes two products from here
+        # find which product maps to which product in split molecule
         pnx_checks = set([0, 1])
         pmol_0, pmol_1 = p_mol_nxs
         pnx_match_first = None
@@ -63,13 +73,33 @@ class DGLwBDEMappings:
                 pnx_match_first = s
                 first_map = match.mapping
                 break
+        # check if one member left in set, otherwise something is wrong with assumption of 1 reactant -> 2 products
         assert type(pnx_match_first) is int and first_map != None, 'No matching for first product!'
         pnx_checks.remove(pnx_match_first)
         pnx_match_sec = next(iter(pnx_checks))
         sec_match = nx_iso.GraphMatcher(pmol_1.to_undirected(), p_nxs[pnx_match_sec].to_undirected(), nm)
         assert sec_match.is_isomorphic(), 'No match for second product!'
         sec_map = sec_match.mapping
-        maps_for_prod = [list(m) for m in [first_map.items(), sec_map.items()]]
+        # map from concat product features list to reactant features
+        return [first_map, sec_map]
+        # return [list(m) for m in [first_map.items(), sec_map.items()]]
+    
+    @staticmethod
+    def prod_to_reac_bond_map(reac_idx, prods_atom_map, dsr: DirectSmilesRepo): # single reaction, generate bond mapping
+        reacs, prods = dsr.r_p_canon[reac_idx]
+        reac_sm = reacs[0] # single reactant assumption
+        prods = [dsr.canon_to_mol[c] for c in prods]
+        prod_bond_to_patoms = [{b.GetIdx() : (b.GetBeginAtomIdx(), b.GetEndAtomIdx()) for b in p.GetBonds()} for p in prods] # work from here!
+        prod_bond_to_ratoms = [{b: tuple(sorted([atom_map[a] for a in bmap[b]])) for b in bmap} for atom_map, bmap in zip(prods_atom_map, prod_bond_to_patoms)]
+        reac_atoms_to_bond = dsr.canon_to_atom_bond_map[reac_sm]
+        pbond_to_rbond = [{b: reac_atoms_to_bond[bmap[b]] for b in bmap} for bmap in prod_bond_to_ratoms]
+        # insert broken bond mapping, at end of product array assumed
+        broken_bond = dsr.react_broken_bonds[reac_idx][0]
+        pbond_to_rbond.append({0: broken_bond})
+        return pbond_to_rbond
+
+    @staticmethod
+    def to_concat_map(maps_for_prod):
         map_idx_offset = [0]
         for m in maps_for_prod[:-1]:
             map_idx_offset.append(map_idx_offset[-1] + len(m))
@@ -130,7 +160,9 @@ class DGLwBDEMappings:
             ('global', 'g2b', 'bond') : g2b,
             ('bond', 'b2g', 'global') : tuple(reversed(g2b)),
         })
-        # load atomic number as feature
+        # NOTE: may remove - load atomic number as feature
         specie_for_atom = torch.tensor([a.GetAtomicNum() for a in mol.GetAtoms()])
         g.nodes['atom'].data.update({'specie' : specie_for_atom})
+        species_for_bond = torch.tensor([[b.GetBeginAtom().GetAtomicNum(), b.GetEndAtom().GetAtomicNum()] for b in mol.GetBonds()])
+        g.nodes['bond'].data.update({'species' : species_for_bond})
         return g
