@@ -10,12 +10,26 @@ from novel_arch.deep_attn.data.dataset import BDEDataset
 dsr = DirectSmilesRepo()
 dsr.append_reaction(['NCCCC(=O)O'], ['[CH2]CCC(=O)O', '[NH2]'], [0])
 dsr.append_reaction(['NCCCC(=O)O'], ['[CH2]CC(=O)O', '[CH2]N'], [1])
-# print(len(poo.canon_to_mol))
-# print(len(poo.r_p_canon))
+
+dsr.append_reaction(['CN(N)CCCC(C)(C)C'], ['[CH2]CC(C)(C)C', '[CH2]N(C)N'], [3])
+dsr.append_reaction(['COC(=O)OCCC#N'], ['CO[C]=O', 'N#CCC[O]'], [3])
+dsr.append_reaction(['C/C=C/[C@@H](C)CCC#N'], ['[H]', 'C/C=C/[C@@H](C)[CH]CC#N'], [17])
+# CN(N)CCCC(C)(C)C	3	[CH2]CC(C)(C)C	[CH2]N(C)N
+# COC(=O)OCCC#N	3	CO[C]=O	N#CCC[O]
+# C/C=C/[C@@H](C)CCC#N	17	[H]	C/C=C/[C@@H](C)[CH]CC#N
+# CCC(=O)COC	4	C[O]	[CH2]C(=O)CC
+# C#CCCC(=O)NCCO	2	C#C[CH2]	[CH2]C(=O)NCCO
+# CC[C@@H](CC(C)=O)C(C)C	3	C[C]=O	[CH2][C@H](CC)C(C)C
+# CCOc1cccc(O)c1	11	[H]	[CH2]COc1cccc(O)c1
 
 bdemap = DGLwBDEMappings(dsr)
 dset = BDEDataset(dsr, bdemap)
-print(dset[1])
+# print(dset[1])
+from novel_arch.deep_attn.data.dataloader import RxnDataLoader
+loader = RxnDataLoader(dset, batch_size=2)
+for graphs, feats, feat_gens, r_p_refs, idxs in iter(loader):
+    print(r_p_refs)
+    print(len(dgl.unbatch(graphs)))
 exit()
 # print(bdemap.rxn_bond_mappings)
 # print(bdemap.rxn_atom_mappings)
@@ -50,6 +64,7 @@ exit()
 # CCC(=O)COC	4	C[O]	[CH2]C(=O)CC
 # C#CCCC(=O)NCCO	2	C#C[CH2]	[CH2]C(=O)NCCO
 # CC[C@@H](CC(C)=O)C(C)C	3	C[C]=O	[CH2][C@H](CC)C(C)C
+# CCOc1cccc(O)c1	11	[H]	[CH2]COc1cccc(O)c1
 
 def mol_to_nx(mol):
     ng = nx.Graph()
@@ -126,7 +141,6 @@ for b in reac.GetBonds():
 
 print('number of fatoms', reac.GetNumAtoms())
 for a in reac.GetAtoms():
-    print('pee')
     print(a.GetSymbol())
     print(a.GetAtomicNum())
     print(a.GetIdx())

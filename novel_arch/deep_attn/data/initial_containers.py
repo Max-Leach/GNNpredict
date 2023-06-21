@@ -141,7 +141,7 @@ class DGLwBDEMappings:
             from_a.append(b.GetEndAtomIdx())
             to_b.append(b.GetIdx())
         if mol.GetNumAtoms() == 1: # create fake bond so graph processing will work, from the single atom
-            assert mol.GetBonds() == 0, 'how do you have one atom but non zero bonds???'
+            assert mol.GetNumBonds() == 0, 'how do you have one atom but non zero bonds???'
             from_a.append(0)
             to_b.append(0)
         
