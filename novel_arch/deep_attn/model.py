@@ -6,7 +6,7 @@ from novel_arch.deep_attn.feat_evolve import OrderedGraphFeatUpdate
 from novel_arch.deep_attn.feat_type_updaters import EdgeNeighborUpdate, AtomAggregUpdate, GlobalAggregUpdate
 from novel_arch.deep_attn.feat_type_updaters import atom_mean, bond_mean
 from novel_arch.deep_attn.readout import Set2Set
-from novel_arch.deep_attn.rxn_graph import bondnet_batch_to_own
+from novel_arch.deep_attn.rxn_graph import bde_batch_to_feats
 
 class DeepAtom(nn.Module):
     ''' deeper state evolution, just add nearby atoms + edges for atom feat update '''
@@ -70,7 +70,7 @@ class DeepAtom(nn.Module):
             graph_net.append(graff_layer)
         self.graph_net = graph_net
     
-    def forward(self, graph, feats, reactions):
+    def forward(self, graph, feats, rxns):
         ''' 
             graph: batched dgl graph
             feats: dict of torch tensor feats for batched graph
@@ -88,7 +88,7 @@ class DeepAtom(nn.Module):
         ## difference of reactant and product features to get reaction graph features
         # graph, feats = mol_graph_to_rxn_graph(graph, feats, reactions) # from bondnet!!
         ''' reaction graph construction via own method '''
-        feats, graph = bondnet_batch_to_own(graph, feats, reactions)
+        feats, graph = bde_batch_to_feats(graph, feats, rxns)
 
         ## set2set to get 1 feature vector for each node type
         encoded_feats = {nt : self.set2set_extract[nt](graph, feats[nt]) for nt in self.set2set_extract}

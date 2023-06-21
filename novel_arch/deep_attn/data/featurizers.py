@@ -16,7 +16,7 @@ class AtomFeaturize:
     
     def __call__(self, mol):
         feat_compounded = [[self.feature_gens[fn](a, mol) for fn in self.feature_gens.keys()] for a in mol.GetAtoms()]
-        return torch.tensor([[ft for sub in atom_ft for ft in sub] for atom_ft in feat_compounded])
+        return torch.tensor([[ft for sub in atom_ft for ft in sub] for atom_ft in feat_compounded], dtype=torch.float)
 
 # NOTE: haven't seen it work on ringed atoms yet, as current tested dont have rings
 class BondFeaturize:
@@ -53,7 +53,7 @@ class GlobalFeaturize:
 
     def __call__(self, mol):
         feat_compounded = [[self.feature_gens[fn](mol) for fn in self.feature_gens.keys()]]
-        return torch.tensor([[ft for sub in bond_ft for ft in sub] for bond_ft in feat_compounded])
+        return torch.tensor([[ft for sub in bond_ft for ft in sub] for bond_ft in feat_compounded], dtype=torch.float)
 
 # given a list of options, encode one hot of entry
 def one_hot_of_set(entry, avail):

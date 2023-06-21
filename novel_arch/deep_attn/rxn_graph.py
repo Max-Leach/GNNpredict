@@ -21,6 +21,7 @@ class RxnFeatGenerator:
 class BondDissociate(RxnFeatGenerator):
     def __init__(self, atom_mapping, bond_mapping, prods_has_bond, final_graph):
         # prods_has_bonds - list of bool for each product if it has bonds
+        self.reacs, self.prods = None, None # reference graphs in larger batch
         self.mappings = {
             'global': [0],
             'atom': atom_mapping,
@@ -53,6 +54,25 @@ class BondDissociate(RxnFeatGenerator):
             final_feats[nt] = prd_feats_updated[nt][self.mappings[nt]] - reac_feats_updated[nt]
 
         return final_feats
+
+# own batch to single reaction graph
+def bde_batch_to_feats(batched_graph, batched_feats, rxns):
+    for nt in batched_feats:
+        batched_graph.nodes[nt].data.update({'ft': batched_feats[nt]})
+    
+    graphs = dgl.unbatch(batched_graph)
+    graph_feats = [{nt: g.nodes[nt].data['ft'] for nt in batched_feats} for g in graphs]
+    rxn_in_feats = [{'reac' : [graph_feats[r] for r in rxn.reacs], 'prod' : [graph_feats[p] for p in rxn.prods]} for rxn in rxns]
+    rxn_feat_gens = rxns
+    rxns_feats_list = [gen.get_g_fts(rxn_in_feat['reac'], rxn_in_feat['prod']) for gen, rxn_in_feat in zip(rxn_feat_gens, rxn_in_feats)]
+
+    rxns_feats = {}
+    for nt in batched_feats.keys():
+        rxns_feats[nt] = torch.cat([ft[nt] for ft in rxns_feats_list])
+
+    batched_graph = dgl.batch([gen.get_rxn_graph() for gen in rxn_feat_gens])
+
+    return rxns_feats, batched_graph
 
 # bondnet-style reaction list + all features to single reaction graph
 # precursor to both: reaction graph production in actual model; preprocessing the dataset

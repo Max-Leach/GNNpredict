@@ -29,7 +29,7 @@ from novel_arch.deep_attn.data.featurizers import AtomFeaturize, BondFeaturize, 
 aprop = ['atomic_num', 'total_degree', 'total_num_hs', 'ring_of_size', 'is_in_ring']
 bprop = ['is_in_ring', 'ring_of_size', 'dative']
 gprop = ['num_atoms', 'num_bonds', 'total_weight']
-dset = BDEDataset(dsr, bdemap, featurizers={'atom' : AtomFeaturize(aprop, [1, 6, 7, 8]), 'bond' : BondFeaturize(bprop), 'global' : GlobalFeaturize(gprop),}, load_graphs=True)
+dset = BDEDataset(dsr, bdemap, featurizers={'atom' : AtomFeaturize(aprop, [1, 6, 7, 8]), 'bond' : BondFeaturize(bprop), 'global' : GlobalFeaturize(gprop),}, load_graphs=False)
 # print(dset[1])
 # exit()
 from novel_arch.deep_attn.data.dataloader import RxnDataLoader
