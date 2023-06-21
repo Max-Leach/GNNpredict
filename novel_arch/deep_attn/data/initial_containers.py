@@ -37,7 +37,7 @@ class DirectSmilesRepo:
                 continue
             mol = Chem.AddHs(Chem.MolFromSmiles(canon))
             self.canon_to_mol[canon] = mol
-            self.canon_to_atom_bond_map[canon] = {(b.GetBeginAtomIdx(), b.GetEndAtomIdx()) : b.GetIdx() for b in mol.GetBonds()}
+            self.canon_to_atom_bond_map[canon] = {tuple(sorted([b.GetBeginAtomIdx(), b.GetEndAtomIdx()])) : b.GetIdx() for b in mol.GetBonds()}
 
 ### generate dgl graphs (non reaction specific) and mappings (reaction specific, atom and bond)
 class DGLwBDEMappings:
