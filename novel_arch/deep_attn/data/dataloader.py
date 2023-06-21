@@ -9,7 +9,7 @@ class RxnDataLoader(DataLoader):
     def collate_fn(self, samples):
         ## feat list
         # graphs, feats, self.rxn_feat_gens[idx], local_graph_ref, idx
-        _, _, rxn_feat_gens, _, idxs = [list(sub) for sub in zip(*samples)]
+        _, _, rxn_feat_gens, idxs = [list(sub) for sub in zip(*samples)]
         r_p_graph_refs = [self.dataset.get_r_p_graph_ref(i) for i in idxs]
         # load unique instances of graphs with idx
         ref_to_dgl = dict()
@@ -29,6 +29,9 @@ class RxnDataLoader(DataLoader):
         feats = {nt : batched_graph.nodes[nt].data['ft'] for nt in ['atom', 'bond', 'global']}
         # map from r_p_graph_ref idx to indices in graph batch above
         ref_to_local_idx = {ref : i for i, ref in enumerate(ref_to_dgl.keys())}
-        local_graph_refs = [tuple([[ref_to_local_idx[ref] for ref in reac_side] for reac_side in r_ps]) for r_ps in r_p_graph_refs]
+        for rxn_gen, r_p in zip(rxn_feat_gens, r_p_graph_refs):
+            r_p = [[ref_to_local_idx[ref] for ref in reac_side] for reac_side in r_p]
+            rxn_gen.reacs, rxn_gen.prods = r_p
+        # local_graph_refs = [tuple([[ref_to_local_idx[ref] for ref in reac_side] for reac_side in r_ps]) for r_ps in r_p_graph_refs]
         # NOTE: do feats! likely uses similar/merged proces with graphs
-        return batched_graph, feats, rxn_feat_gens, local_graph_refs, idxs
+        return batched_graph, feats, rxn_feat_gens, idxs

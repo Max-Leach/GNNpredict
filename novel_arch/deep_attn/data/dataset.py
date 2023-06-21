@@ -35,12 +35,11 @@ class BDEDataset(Dataset):
             graph_refs = [rp for rplist in self.r_p_graph_ref[idx] for rp in rplist]
             graphs = [self.dgl[i] for i in graph_refs]
             feats = {nt : self.feats[nt][idx] for nt in self.feats}
-            local_graph_ref = ([0], [1, 2]) # doesn't change due to fixed way graphs are aggregated above
+            self.rxn_feat_gens[idx].reacs, self.rxn_feat_gens[idx].prods = [0], [1, 2] # doesn't change due to fixed way graphs are aggregated above
         else:
             graphs = None
             feats = None
-            local_graph_ref = None
-        return graphs, feats, self.rxn_feat_gens[idx], local_graph_ref, idx
+        return graphs, feats, self.rxn_feat_gens[idx], idx
     
     def __len__(self):
         return len(self.r_p_graph_ref)

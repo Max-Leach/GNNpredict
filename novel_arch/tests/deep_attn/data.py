@@ -34,7 +34,7 @@ dset = BDEDataset(dsr, bdemap, featurizers={'atom' : AtomFeaturize(aprop, [1, 6,
 # exit()
 from novel_arch.deep_attn.data.dataloader import RxnDataLoader
 loader = RxnDataLoader(dset, batch_size=2)
-for graphs, feats, feat_gens, r_p_refs, idxs in iter(loader):
+for graphs, feats, feat_gens, idxs in iter(loader):
     print(feats)
     print(len(dgl.unbatch(graphs)))
 exit()
