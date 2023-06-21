@@ -5,12 +5,12 @@ from novel_arch.deep_attn.data.initial_containers import DirectSmilesRepo, DGLwB
 from novel_arch.deep_attn.data.dataset import BDEDataset
 
 dsr = DirectSmilesRepo()
-dsr.append_reaction(['NCCCC(=O)O'], ['[CH2]CCC(=O)O', '[NH2]'], [0])
-dsr.append_reaction(['NCCCC(=O)O'], ['[CH2]CC(=O)O', '[CH2]N'], [1])
+dsr.append_reaction(['NCCCC(=O)O'], ['[CH2]CCC(=O)O', '[NH2]'], [0], 0.2)
+dsr.append_reaction(['NCCCC(=O)O'], ['[CH2]CC(=O)O', '[CH2]N'], [1], 0.4)
 
-dsr.append_reaction(['CN(N)CCCC(C)(C)C'], ['[CH2]CC(C)(C)C', '[CH2]N(C)N'], [3])
-dsr.append_reaction(['COC(=O)OCCC#N'], ['CO[C]=O', 'N#CCC[O]'], [3])
-dsr.append_reaction(['C/C=C/[C@@H](C)CCC#N'], ['[H]', 'C/C=C/[C@@H](C)[CH]CC#N'], [17])
+dsr.append_reaction(['CN(N)CCCC(C)(C)C'], ['[CH2]CC(C)(C)C', '[CH2]N(C)N'], [3], 0.3)
+dsr.append_reaction(['COC(=O)OCCC#N'], ['CO[C]=O', 'N#CCC[O]'], [3], -0.2)
+dsr.append_reaction(['C/C=C/[C@@H](C)CCC#N'], ['[H]', 'C/C=C/[C@@H](C)[CH]CC#N'], [17], 0.2)
 
 bdemap = DGLwBDEMappings(dsr)
 from novel_arch.deep_attn.data.featurizers import AtomFeaturize, BondFeaturize, GlobalFeaturize
@@ -33,8 +33,9 @@ model = DeepAtom(
         graph_inner_layer_sizes=[[64]] * 3,
         residual=True
     )
-graph, feats, feat_gens, idxs = next(iter(loader))
+(graph, feats, feat_gens, idxs), values = next(iter(loader))
 print(model(graph, feats, feat_gens))
+print(values)
 
 exit()
 

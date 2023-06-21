@@ -12,6 +12,7 @@ class BDEDataset(Dataset):
     
     # data features not handled by simply copying as above will be organized into more efficient form here
     def _fill_data(self, dsr: DirectSmilesRepo, bdemap: DGLwBDEMappings, featurizers):
+        self.values = dsr.values
         self._graph_data(dsr, bdemap, featurizers)
         canon_to_idx = {c : idx for idx, c in enumerate(bdemap.canon_to_dgl.keys())}
         self.r_p_graph_ref = [([canon_to_idx[r] for r in rs], [canon_to_idx[p] for p in ps]) for rs, ps in dsr.r_p_canon]
@@ -39,7 +40,7 @@ class BDEDataset(Dataset):
         else:
             graphs = None
             feats = None
-        return graphs, feats, self.rxn_feat_gens[idx], idx
+        return (graphs, feats, self.rxn_feat_gens[idx], idx), self.values[idx]
     
     def __len__(self):
         return len(self.r_p_graph_ref)

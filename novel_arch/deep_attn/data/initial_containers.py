@@ -22,13 +22,15 @@ class DirectSmilesRepo:
         self.r_p_canon = [] # 1 ([reactant canon smiles], [product canon smiles]) for each reaction
         self.react_broken_bonds = [] # broken bonds list for each reaction, may change to a generic auxillary property object later if going beyond BDEs
         self.canon_to_atom_bond_map = dict() # canonical smiles -> {atom pair -> bond}
+        self.values = [] # same ordering of reactions as above
 
-    def append_reaction(self, react_smiles, prod_smiles, broken_bond_idxs): # one call -> one reaction loaded, and both params are lists
+    def append_reaction(self, react_smiles, prod_smiles, broken_bond_idxs, value): # one call -> one reaction loaded, and both params are lists
         react_canon = [Chem.CanonSmiles(sm) for sm in react_smiles]
         prod_canon = [Chem.CanonSmiles(sm) for sm in prod_smiles]
 
         self.r_p_canon.append((react_canon, prod_canon))
         self.react_broken_bonds.append(broken_bond_idxs)
+        self.values.append(value)
 
         for canon in react_canon + prod_canon:
             if canon in self.canon_to_mol:

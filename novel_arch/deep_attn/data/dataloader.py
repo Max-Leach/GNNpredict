@@ -9,7 +9,9 @@ class RxnDataLoader(DataLoader):
     def collate_fn(self, samples):
         ## feat list
         # graphs, feats, self.rxn_feat_gens[idx], local_graph_ref, idx
-        _, _, rxn_feat_gens, idxs = [list(sub) for sub in zip(*samples)]
+        # _, _, rxn_feat_gens, idxs = [list(sub) for sub in zip(*samples)]
+        data, values = [list(sub) for sub in zip(*samples)]
+        _, _, rxn_feat_gens, idxs = [list(sub) for sub in zip(*data)]
         r_p_graph_refs = [self.dataset.get_r_p_graph_ref(i) for i in idxs]
         # load unique instances of graphs with idx
         ref_to_dgl = dict()
@@ -34,4 +36,4 @@ class RxnDataLoader(DataLoader):
             rxn_gen.reacs, rxn_gen.prods = r_p
         # local_graph_refs = [tuple([[ref_to_local_idx[ref] for ref in reac_side] for reac_side in r_ps]) for r_ps in r_p_graph_refs]
         # NOTE: do feats! likely uses similar/merged proces with graphs
-        return batched_graph, feats, rxn_feat_gens, idxs
+        return (batched_graph, feats, rxn_feat_gens, idxs), torch.tensor(values)
