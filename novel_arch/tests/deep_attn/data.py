@@ -21,12 +21,15 @@ dsr.append_reaction(['C/C=C/[C@@H](C)CCC#N'], ['[H]', 'C/C=C/[C@@H](C)[CH]CC#N']
 # C#CCCC(=O)NCCO	2	C#C[CH2]	[CH2]C(=O)NCCO
 # CC[C@@H](CC(C)=O)C(C)C	3	C[C]=O	[CH2][C@H](CC)C(C)C
 # CCOc1cccc(O)c1	11	[H]	[CH2]COc1cccc(O)c1
+# O=C[C@H](O)[C@H](O)[C@H](O)CO	8	[CH2][C@@H](O)[C@@H](O)[C@@H](O)C=O	[OH]
+
 
 bdemap = DGLwBDEMappings(dsr)
-from novel_arch.deep_attn.data.featurizers import AtomFeaturize, one_hot_of_set
-props = ['atomic_num', 'total_degree', 'total_num_hs', 'ring_of_size', 'is_in_ring']
-a_feat = AtomFeaturize(props, [1, 6, 7, 8])
-dset = BDEDataset(dsr, bdemap, featurizers={'atom' : lambda m: a_feat(m), 'bond' : lambda f: torch.zeros(max(f.GetNumBonds(), 1), 1), 'global' : lambda f: torch.zeros(1, 1),}, load_graphs=True)
+from novel_arch.deep_attn.data.featurizers import AtomFeaturize, BondFeaturize, GlobalFeaturize
+aprop = ['atomic_num', 'total_degree', 'total_num_hs', 'ring_of_size', 'is_in_ring']
+bprop = ['is_in_ring', 'ring_of_size', 'dative']
+gprop = ['num_atoms', 'num_bonds', 'total_weight']
+dset = BDEDataset(dsr, bdemap, featurizers={'atom' : AtomFeaturize(aprop, [1, 6, 7, 8]), 'bond' : BondFeaturize(bprop), 'global' : GlobalFeaturize(gprop),}, load_graphs=True)
 # print(dset[1])
 # exit()
 from novel_arch.deep_attn.data.dataloader import RxnDataLoader
@@ -34,7 +37,6 @@ loader = RxnDataLoader(dset, batch_size=2)
 for graphs, feats, feat_gens, r_p_refs, idxs in iter(loader):
     print(feats)
     print(len(dgl.unbatch(graphs)))
-    break
 exit()
 # print(bdemap.rxn_bond_mappings)
 # print(bdemap.rxn_atom_mappings)
