@@ -1,4 +1,5 @@
 from torch.utils.data import DataLoader
+import torch
 import dgl
 
 class RxnDataLoader(DataLoader):
@@ -12,14 +13,22 @@ class RxnDataLoader(DataLoader):
         r_p_graph_refs = [self.dataset.get_r_p_graph_ref(i) for i in idxs]
         # load unique instances of graphs with idx
         ref_to_dgl = dict()
+        ref_to_feats = {nt : dict() for nt in ['atom', 'bond', 'global']} # nt -> {ref -> feat}
         for r_p_ref in r_p_graph_refs:
             for refs in r_p_ref:
                 for ref in refs:
                     if ref not in ref_to_dgl:
                         ref_to_dgl[ref] = self.dataset.dgl[ref]
-        graphs = dgl.batch(tuple(ref_to_dgl.values()))
-        # map from r_p_graph_ref idx to indices in list above
+                        for nt in ref_to_feats.keys():
+                            ref_to_feats[nt][ref] = self.dataset.feats[nt][ref]
+        graphs = tuple(ref_to_dgl.values())
+        for nt in ref_to_feats:
+            for g, ref in zip(graphs, ref_to_feats[nt]):
+                g.nodes[nt].data['ft'] = ref_to_feats[nt][ref]
+        batched_graph = dgl.batch(tuple(graphs))
+        feats = {nt : batched_graph.nodes[nt].data['ft'] for nt in ['atom', 'bond', 'global']}
+        # map from r_p_graph_ref idx to indices in graph batch above
         ref_to_local_idx = {ref : i for i, ref in enumerate(ref_to_dgl.keys())}
         local_graph_refs = [tuple([[ref_to_local_idx[ref] for ref in reac_side] for reac_side in r_ps]) for r_ps in r_p_graph_refs]
         # NOTE: do feats! likely uses similar/merged proces with graphs
-        return graphs, None, rxn_feat_gens, local_graph_refs, idxs
+        return batched_graph, feats, rxn_feat_gens, local_graph_refs, idxs

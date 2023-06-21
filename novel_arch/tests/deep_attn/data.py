@@ -23,12 +23,13 @@ dsr.append_reaction(['C/C=C/[C@@H](C)CCC#N'], ['[H]', 'C/C=C/[C@@H](C)[CH]CC#N']
 # CCOc1cccc(O)c1	11	[H]	[CH2]COc1cccc(O)c1
 
 bdemap = DGLwBDEMappings(dsr)
-dset = BDEDataset(dsr, bdemap)
+dset = BDEDataset(dsr, bdemap, featurizers={'atom' : lambda f: torch.zeros(f.GetNumAtoms(), 1), 'bond' : lambda f: torch.zeros(max(f.GetNumBonds(), 1), 1), 'global' : lambda f: torch.zeros(1, 1),}, load_graphs=True)
 # print(dset[1])
+# exit()
 from novel_arch.deep_attn.data.dataloader import RxnDataLoader
 loader = RxnDataLoader(dset, batch_size=2)
 for graphs, feats, feat_gens, r_p_refs, idxs in iter(loader):
-    print(r_p_refs)
+    print(feats)
     print(len(dgl.unbatch(graphs)))
 exit()
 # print(bdemap.rxn_bond_mappings)
