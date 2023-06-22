@@ -11,10 +11,10 @@
 import itertools
 import dgl
 import torch
-from novel_arch.archic_0.model_core import GatedGCNMolCustomConv
-from novel_arch.archic_0.directed_graph_transform import to_directed_mpnn_g
-from novel_arch.archic_0.to_dmpnn_features import GrambowFeaturizer
-from novel_arch.archic_0.readout_feature_transform import DBondtoAtomFeaturize
+from novel_arch.dmpnn_1.model_core import GatedGCNMolCustomConv
+from novel_arch.dmpnn_1.directed_graph_transform import to_directed_mpnn_g
+from novel_arch.dmpnn_1.to_dmpnn_features import GrambowFeaturizer
+from novel_arch.dmpnn_1.readout_feature_transform import DBondtoAtomFeaturize
 
 class GatedGCNReactionNetworkDMPNN(GatedGCNMolCustomConv):
     def __init__(

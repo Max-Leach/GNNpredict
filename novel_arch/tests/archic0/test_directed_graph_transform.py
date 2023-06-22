@@ -1,7 +1,7 @@
 import dgl
 import torch
 
-from novel_arch.archic_0.directed_graph_transform import to_directed_mpnn_g
+from novel_arch.dmpnn_1.directed_graph_transform import to_directed_mpnn_g
 
 # "light" isomorphism check via checking node in and out degrees
 # should show some level of isomorphism if all in and out degrees match for all nodes

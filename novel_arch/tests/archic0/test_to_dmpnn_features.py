@@ -1,4 +1,4 @@
-from novel_arch.archic_0.to_dmpnn_features import GrambowFeaturizer
+from novel_arch.dmpnn_1.to_dmpnn_features import GrambowFeaturizer
 from bondnet.utils import seed_torch
 import torch
 from torch.nn import functional as F

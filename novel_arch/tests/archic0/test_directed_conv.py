@@ -4,7 +4,7 @@ from torch.nn import functional as F
 import torch
 from bondnet.utils import seed_torch
 
-from novel_arch.archic_0.directed_conv import GatedGCNConvDMPNN
+from novel_arch.dmpnn_1.directed_conv import GatedGCNConvDMPNN
 
 def test_directed_conv_features_residue_no_norm():
     # seed_torch() # same result every time!

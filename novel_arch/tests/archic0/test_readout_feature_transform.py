@@ -2,7 +2,7 @@ import dgl
 from torch.nn import functional as F
 import torch
 
-from novel_arch.archic_0.readout_feature_transform import DBondtoAtomFeaturize
+from novel_arch.dmpnn_1.readout_feature_transform import DBondtoAtomFeaturize
 
 def test_dbond_to_atom_featurize():
     # seed_torch() # same result every time!

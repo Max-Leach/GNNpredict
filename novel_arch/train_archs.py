@@ -1,6 +1,7 @@
 from novel_arch import train
 
 # following are fns to train different architectures with the same setup
+# train using bondnet code/dataset
 
 from novel_arch.deep_attn.model import DeepAtom
 from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, aggreg_atom_edge_no_repeat, AttnNodeEdgeAggreg, AtomEdgeReducer, bond_mean, atom_mean, bond_sum, atom_sum, A2GReducer, B2GReducer
@@ -97,10 +98,10 @@ def dmpnn_like():
 
     train.train_for_epochs_w_Test_MAE(model, 'dmpnn_like_chkpoint.pkl', lr=0.0015)
 
-from novel_arch.archic_0.model import GatedGCNReactionNetworkDMPNN
-from novel_arch.archic_0.directed_conv import GatedGCNConvDMPNN
+from novel_arch.dmpnn_1.model import GatedGCNReactionNetworkDMPNN
+from novel_arch.dmpnn_1.directed_conv import GatedGCNConvDMPNN
 
-def archic_0():
+def dmpnn_1():
     gated_hidden_size = [64, 64, 64,]
     model = GatedGCNReactionNetworkDMPNN(
         in_feats=train.dataset.feature_size,

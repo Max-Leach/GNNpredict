@@ -1,4 +1,5 @@
 ## adapted from bondnet/scripts/train_bde.ipynb
+# meant for testing architectures by testing with bondnet's code and basic dataset
 
 from bondnet.data.featurizer import AtomFeaturizerMinimum, BondAsNodeFeaturizerMinimum, GlobalFeaturizer
 from bondnet.data.grapher import HeteroMoleculeGraph
