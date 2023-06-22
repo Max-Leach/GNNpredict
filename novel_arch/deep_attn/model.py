@@ -6,7 +6,7 @@ from novel_arch.deep_attn.feat_evolve import OrderedGraphFeatUpdate
 from novel_arch.deep_attn.feat_type_updaters import EdgeNeighborUpdate, AtomAggregUpdate, GlobalAggregUpdate
 from novel_arch.deep_attn.feat_type_updaters import atom_mean, bond_mean
 from novel_arch.deep_attn.readout import Set2Set
-from novel_arch.deep_attn.rxn_graph import bde_batch_to_feats, bondnet_batch_to_own
+from novel_arch.deep_attn.data.rxn_graph import bde_batch_to_feats, bondnet_batch_to_own
 
 class DeepAtom(nn.Module):
     ''' deeper state evolution, just add nearby atoms + edges for atom feat update '''
@@ -35,7 +35,7 @@ class DeepAtom(nn.Module):
             out_size = s
             self.fc_to_scalar.append(nn.Linear(in_size, out_size))
             self.fc_to_scalar.append(nn.BatchNorm1d(out_size))
-            self.fc_to_scalar.append(nn.ReLU()) #batchnorm + droptout before or afer this point pls
+            self.fc_to_scalar.append(nn.ReLU()) # maybe droptout before or afer this point pls
 
             in_size = out_size
         self.fc_to_scalar.append(nn.Linear(in_size, 1))
@@ -87,7 +87,6 @@ class DeepAtom(nn.Module):
 
         ## reaction graph construction via difference of component graphs
         ## difference of reactant and product features to get reaction graph features
-        # graph, feats = mol_graph_to_rxn_graph(graph, feats, reactions) # from bondnet!!
         ''' reaction graph construction via own method '''
         if self.use_bondnet_data:
              feats, graph = bondnet_batch_to_own(graph, feats, rxns)

@@ -1,7 +1,6 @@
 import csv
 
 from novel_arch.deep_attn.data.dataset import BDEDataset
-# from novel_arch.deep_attn.data.dataloader import DataLoader
 from novel_arch.deep_attn.data.initial_containers import DirectSmilesRepo, DGLwBDEMappings
 from novel_arch.deep_attn.data.featurizers import AtomFeaturize, BondFeaturize, GlobalFeaturize
 

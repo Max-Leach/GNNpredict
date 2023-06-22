@@ -2,7 +2,7 @@ from torch import nn
 import torch
 import dgl
 
-''' set2set on ntype of nodes given a graph and features, adapted from bondnet paper '''
+''' set2set on ntype of nodes given a graph and features, adapted from bondnet'''
 class Set2Set(nn.Module):
     def __init__(self, input_dim, n_iters, n_layers, ntype):
         super(Set2Set, self).__init__()

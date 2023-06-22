@@ -3,7 +3,7 @@ from sklearn.preprocessing import StandardScaler
 from statistics import mean, stdev
 
 from novel_arch.deep_attn.data.initial_containers import DirectSmilesRepo, DGLwBDEMappings
-from novel_arch.deep_attn.rxn_graph import BondDissociate
+from novel_arch.deep_attn.data.rxn_graph import BondDissociate
 
 # interpet array of inhomogenous data to normalize across certain column in NP
 # (such as graph features, where node count vary, but you want to normalize across entire dataset for each node feat column)
@@ -38,6 +38,10 @@ class BDEDataset(Dataset):
         self.values = dsr.values
         self._value_mean_stdev()
         self._graph_data(dsr, bdemap, featurizers)
+        self._rxn_specific_data(dsr, bdemap)
+
+    # load indices into graph/features list, create feature generators - both for each reaction
+    def _rxn_specific_data(self, dsr: DirectSmilesRepo, bdemap: DGLwBDEMappings):
         canon_to_idx = {c : idx for idx, c in enumerate(bdemap.canon_to_dgl.keys())}
         self.r_p_graph_ref = [([canon_to_idx[r] for r in rs], [canon_to_idx[p] for p in ps]) for rs, ps in dsr.r_p_canon]
         reac_graphs = [self.dgl[rs[0]] for rs, _ in self.r_p_graph_ref]

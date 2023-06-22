@@ -2,11 +2,6 @@ import dgl
 import torch
 from abc import abstractmethod
 
-# reactants, products indexint
-# atom, bond mapping (global index is guaranteed to be same, only one)
-
-# also need to figure out what to do with destroyed bonds
-
 # generic reaction, accept list of reactants and products, return features of a larger graph
 class RxnFeatGenerator:
     @abstractmethod

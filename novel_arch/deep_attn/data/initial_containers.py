@@ -4,16 +4,6 @@ import torch
 import networkx.algorithms.isomorphism as nx_iso
 import networkx as nx
 
-''' 
-    end storage should help create at end: 
-    all unique molecules stored, 
-    associated features for all, 
-    cover items for BondDissociate instance:
-        mappings b/w reactant, products features concated
-
-    final dataset should batch required graphs, get batched features, and return rxngenerator that point to batched properly
-'''
-
 ### first step from raw smiles, generate canon -> mol and reactions with their canon mols
 class DirectSmilesRepo:
     def __init__(self):
@@ -160,9 +150,4 @@ class DGLwBDEMappings:
             ('global', 'g2b', 'bond') : g2b,
             ('bond', 'b2g', 'global') : tuple(reversed(g2b)),
         })
-        # NOTE: may remove - load atomic number as feature
-        # specie_for_atom = torch.tensor([a.GetAtomicNum() for a in mol.GetAtoms()])
-        # g.nodes['atom'].data.update({'specie' : specie_for_atom})
-        # species_for_bond = torch.tensor([[b.GetBeginAtom().GetAtomicNum(), b.GetEndAtom().GetAtomicNum()] for b in mol.GetBonds()])
-        # g.nodes['bond'].data.update({'species' : species_for_bond})
         return g
