@@ -29,6 +29,7 @@ class RxnDataLoader(DataLoader):
                 g.nodes[nt].data['ft'] = ref_to_feats[nt][ref]
         batched_graph = dgl.batch(tuple(graphs))
         feats = {nt : batched_graph.nodes[nt].data['ft'] for nt in ['atom', 'bond', 'global']}
+        feats = {nt : torch.tensor(self.dataset.transform[nt](feats[nt]), dtype=torch.float) for nt in feats}
         # map from r_p_graph_ref idx to indices in graph batch above
         ref_to_local_idx = {ref : i for i, ref in enumerate(ref_to_dgl.keys())}
         for rxn_gen, r_p in zip(rxn_feat_gens, r_p_graph_refs):

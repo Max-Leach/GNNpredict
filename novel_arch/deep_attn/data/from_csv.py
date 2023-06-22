@@ -5,7 +5,7 @@ from novel_arch.deep_attn.data.dataset import BDEDataset
 from novel_arch.deep_attn.data.initial_containers import DirectSmilesRepo, DGLwBDEMappings
 from novel_arch.deep_attn.data.featurizers import AtomFeaturize, BondFeaturize, GlobalFeaturize
 
-def bdedataset_from_csv(path, max_lines=None, entry_name_to_col={'reacs': [1], 'prods': [3,4], 'broken_idx': 2, 'bde': 5}):
+def bdedataset_from_csv(path, max_lines=None, entry_name_to_col={'reacs': [1], 'prods': [3,4], 'broken_idx': 2, 'bde': 5}, **kwargs):
     with open(path) as csv_file:
         csv_read = csv.reader(csv_file, delimiter=',')
         line_count = 0
@@ -24,6 +24,6 @@ def bdedataset_from_csv(path, max_lines=None, entry_name_to_col={'reacs': [1], '
         aprop = ['atomic_num', 'total_degree', 'total_num_hs', 'ring_of_size', 'is_in_ring']
         bprop = ['is_in_ring', 'ring_of_size', 'dative']
         gprop = ['num_atoms', 'num_bonds', 'total_weight']
-        dset = BDEDataset(dsr, bdemap, featurizers={'atom' : AtomFeaturize(aprop, [1, 6, 7, 8]), 'bond' : BondFeaturize(bprop), 'global' : GlobalFeaturize(gprop),}, load_graphs=False)
+        dset = BDEDataset(dsr, bdemap, featurizers={'atom' : AtomFeaturize(aprop, [1, 6, 7, 8]), 'bond' : BondFeaturize(bprop), 'global' : GlobalFeaturize(gprop),}, **kwargs)
 
         return dset
