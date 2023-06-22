@@ -1,5 +1,5 @@
 from novel_arch.deep_attn.data.from_csv import bdedataset_from_csv
-from novel_arch.deep_attn.model import DeepAtom
+from novel_arch.deep_attn.model import DeepAttn
 from novel_arch.deep_attn.data.dataloader import DataLoader
 from novel_arch.deep_attn.data.initial_containers import DirectSmilesRepo, DGLwBDEMappings
 from novel_arch.deep_attn.data.dataset import BDEDataset
@@ -8,7 +8,7 @@ dset = bdedataset_from_csv('/home/pmistry/Documents/research/data/ALFABET_data/a
 from novel_arch.deep_attn.data.dataloader import RxnDataLoader
 
 from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, aggreg_atom_edge_no_repeat, AttnNodeEdgeAggreg, AtomEdgeReducer, bond_mean, atom_mean, bond_sum, atom_sum, A2GReducer, B2GReducer
-model = DeepAtom(
+model = DeepAttn(
         atom_aggregators=concat_sum_atom_edge_feat,
         b2g_aggregator=bond_mean(),
         a2g_aggregator=atom_mean(),
@@ -65,17 +65,17 @@ exit()
 # this file just makes the import system of python less painful when running scripts w/o a notebook
 
 # import novel_arch.tests.deep_attn.bondnet_sample
-from novel_arch.train_archs import deepatomsum, deepatomattn, deepatomattnnoedges, deepatomglobalattn, bondnet_original
+from novel_arch.train_archs import deepattnsum, deepattnattn, deepattnattnnoedges, deepattnglobalattn, bondnet_original
 
 for i in range(4):
     print('---------------- Trial {} ----------------'.format(i))
-    print('------ deep atom and global attn ------')
-    deepatomglobalattn()
-    print('------ deep atom attn ------')
-    deepatomattn()
-    # print('------ deep atom attn no edges ------')
-    # deepatomattnnoedges()
-    # print('------ deep atom sum ------')
-    # deepatomsum()
+    print('------ deep attn and global attn ------')
+    deepattnglobalattn()
+    print('------ deep attn attn ------')
+    deepattnattn()
+    # print('------ deep attn attn no edges ------')
+    # deepattnattnnoedges()
+    # print('------ deep attn sum ------')
+    # deepattnsum()
     print('------ bond net original ------')
     bondnet_original()

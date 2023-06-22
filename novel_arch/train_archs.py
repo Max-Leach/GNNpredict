@@ -3,15 +3,15 @@ from novel_arch import train
 # following are fns to train different architectures with the same setup
 # train using bondnet code/dataset
 
-from novel_arch.deep_attn.model import DeepAtom
+from novel_arch.deep_attn.model import DeepAttn
 from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, aggreg_atom_edge_no_repeat, AttnNodeEdgeAggreg, AtomEdgeReducer, bond_mean, atom_mean, bond_sum, atom_sum, A2GReducer, B2GReducer
 
 ''' NOTE: don't forget about no edges + global attn case for actual trials! '''
-def deepatomglobalattn():
+def deepattnglobalattn():
     attn_aggreg = AtomEdgeReducer(AttnNodeEdgeAggreg(64, 32))
     a2g_aggreg = A2GReducer(AttnNodeEdgeAggreg(64, 32, include_attn_edges=False))
     b2g_aggreg = B2GReducer(AttnNodeEdgeAggreg(64, 32, include_attn_edges=False))
-    model = DeepAtom(
+    model = DeepAttn(
         atom_aggregators=attn_aggreg,
         b2g_aggregator=b2g_aggreg,
         a2g_aggregator=a2g_aggreg,
@@ -25,9 +25,9 @@ def deepatomglobalattn():
 
     train.train_for_epochs_w_Test_MAE(model, 'deepatomattnnoedges.pkl', lr=0.001)
 
-def deepatomattnnoedges():
+def deepattnattnnoedges():
     attn_aggreg = AtomEdgeReducer(AttnNodeEdgeAggreg(64, 32, include_edges=False))
-    model = DeepAtom(
+    model = DeepAttn(
         atom_aggregators=attn_aggreg,
         b2g_aggregator=bond_mean(),
         a2g_aggregator=atom_mean(),
@@ -42,9 +42,9 @@ def deepatomattnnoedges():
 
     train.train_for_epochs_w_Test_MAE(model, 'deepatomattnnoedges.pkl', lr=0.001)
 
-def deepatomattn():
+def deepattnattn():
     attn_aggreg = AtomEdgeReducer(AttnNodeEdgeAggreg(64, 32))
-    model = DeepAtom(
+    model = DeepAttn(
         atom_aggregators=attn_aggreg,
         b2g_aggregator=bond_mean(),
         a2g_aggregator=atom_mean(),
@@ -58,8 +58,8 @@ def deepatomattn():
 
     train.train_for_epochs_w_Test_MAE(model, 'deepatomattn.pkl', lr=0.001)
 
-def deepatomsum():
-    model = DeepAtom(
+def deepattnsum():
+    model = DeepAttn(
         atom_aggregators=concat_sum_atom_edge_feat,
         b2g_aggregator=bond_mean(),
         a2g_aggregator=atom_mean(),
