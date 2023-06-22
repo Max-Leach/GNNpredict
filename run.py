@@ -4,7 +4,7 @@ from novel_arch.deep_attn.data.dataloader import DataLoader
 from novel_arch.deep_attn.data.initial_containers import DirectSmilesRepo, DGLwBDEMappings
 from novel_arch.deep_attn.data.dataset import BDEDataset
 
-dset = bdedataset_from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated.csv', max_lines=20)
+dset = bdedataset_from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated.csv', max_lines=200)
 from novel_arch.deep_attn.data.dataloader import RxnDataLoader
 
 from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, aggreg_atom_edge_no_repeat, AttnNodeEdgeAggreg, AtomEdgeReducer, bond_mean, atom_mean, bond_sum, atom_sum, A2GReducer, B2GReducer
@@ -22,14 +22,15 @@ from torch.optim import Adam
 from torch.nn import MSELoss
 loss_fn = MSELoss()
 op = Adam(model.parameters(), lr=0.001)
+print(dset.val_stdev, dset.val_mean)
 
-for e in range(50):
-    loader = RxnDataLoader(dset, batch_size=5)
+for e in range(20):
+    loader = RxnDataLoader(dset, batch_size=64)
     print('------------- epoch {} ------------'.format(e))
     for i, data in enumerate(loader):
         (graph, feats, feat_gens, idxs), values = data
         calc = model(graph, feats, feat_gens)
-        loss = loss_fn(calc, values)
+        loss = loss_fn(calc, (values.view([-1, 1]) - dset.val_mean) / dset.val_stdev)
         op.zero_grad()
         loss.backward()
         # for (n, param) in model.named_parameters():z
@@ -38,11 +39,13 @@ for e in range(50):
         op.step()
         print('loss lul', loss)
 
-# loader = RxnDataLoader(dset, batch_size=1)
+loader = RxnDataLoader(dset, batch_size=1)
 (graph, feats, feat_gens, idxs), values = next(iter(loader))
 # print('fake', graph, feats, feat_gens, idxs, values)
-print(model(graph, feats, feat_gens))
+model.eval()
+print((model(graph, feats, feat_gens) * dset.val_stdev) + dset.val_mean)
 print(values)
+exit()
 
 # dsr = DirectSmilesRepo()
 # dsr.append_reaction(['NCCCC(=O)O'], ['[CH2]CCC(=O)O', '[NH2]'], [0], 0.2)
@@ -58,8 +61,6 @@ print(values)
 # bprop = ['is_in_ring', 'ring_of_size', 'dative']
 # gprop = ['num_atoms', 'num_bonds', 'total_weight']
 # dset = BDEDataset(dsr, bdemap, featurizers={'atom' : AtomFeaturize(aprop, [1, 6, 7, 8]), 'bond' : BondFeaturize(bprop), 'global' : GlobalFeaturize(gprop),}, load_graphs=False)
-
-exit()
 
 # this file just makes the import system of python less painful when running scripts w/o a notebook
 

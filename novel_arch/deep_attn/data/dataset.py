@@ -1,5 +1,6 @@
 from torch.utils.data import Dataset
 from sklearn.preprocessing import StandardScaler
+from statistics import mean, stdev
 
 from novel_arch.deep_attn.data.initial_containers import DirectSmilesRepo, DGLwBDEMappings
 from novel_arch.deep_attn.rxn_graph import BondDissociate
@@ -35,12 +36,17 @@ class BDEDataset(Dataset):
     # data features not handled by simply copying as above will be organized into more efficient form here
     def _fill_data(self, dsr: DirectSmilesRepo, bdemap: DGLwBDEMappings, featurizers):
         self.values = dsr.values
+        self._value_mean_stdev()
         self._graph_data(dsr, bdemap, featurizers)
         canon_to_idx = {c : idx for idx, c in enumerate(bdemap.canon_to_dgl.keys())}
         self.r_p_graph_ref = [([canon_to_idx[r] for r in rs], [canon_to_idx[p] for p in ps]) for rs, ps in dsr.r_p_canon]
         reac_graphs = [self.dgl[rs[0]] for rs, _ in self.r_p_graph_ref]
         bdegen_properties = zip(bdemap.rxn_atom_mappings, bdemap.rxn_bond_mappings, bdemap.prods_has_bonds, reac_graphs)
         self.rxn_feat_gens = [BondDissociate(am, bm, p_has_bs, final_g) for am, bm, p_has_bs, final_g in bdegen_properties]
+
+    def _value_mean_stdev(self):
+        self.val_mean = mean(self.values)
+        self.val_stdev = stdev(self.values)
 
     # create dgl graphs and features associated with them
     def _graph_data(self, dsr: DirectSmilesRepo, bdemap: DGLwBDEMappings, featurizers):

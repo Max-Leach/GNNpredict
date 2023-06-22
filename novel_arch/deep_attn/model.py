@@ -6,14 +6,15 @@ from novel_arch.deep_attn.feat_evolve import OrderedGraphFeatUpdate
 from novel_arch.deep_attn.feat_type_updaters import EdgeNeighborUpdate, AtomAggregUpdate, GlobalAggregUpdate
 from novel_arch.deep_attn.feat_type_updaters import atom_mean, bond_mean
 from novel_arch.deep_attn.readout import Set2Set
-from novel_arch.deep_attn.rxn_graph import bde_batch_to_feats
+from novel_arch.deep_attn.rxn_graph import bde_batch_to_feats, bondnet_batch_to_own
 
 class DeepAtom(nn.Module):
     ''' deeper state evolution, just add nearby atoms + edges for atom feat update '''
     ''' graph_inner_layer_sizes - how wide individual layers in gnn portion will be, is independent of graph_layers count '''
-    def __init__(self, atom_aggregators, b2g_aggregator, a2g_aggregator, in_feat_sizes, graph_hidden_size, graph_layers, graph_inner_layer_sizes=[], residual=True, fc_readout_sizes=[128, 64], set2set_iters=6, set2set_layers=3, atom_include_edges=True):
+    def __init__(self, atom_aggregators, b2g_aggregator, a2g_aggregator, in_feat_sizes, graph_hidden_size, graph_layers, graph_inner_layer_sizes=[], residual=True, fc_readout_sizes=[128, 64], set2set_iters=6, set2set_layers=3, atom_include_edges=True, use_bondnet_data=False):
         super().__init__()
 
+        self.use_bondnet_data = use_bondnet_data
         embedding_size = graph_hidden_size
         self.embedders = nn.ModuleDict({k : nn.Linear(in_feat_sizes[k], embedding_size) for k in in_feat_sizes})
         self.assemble_gnn(
@@ -88,7 +89,10 @@ class DeepAtom(nn.Module):
         ## difference of reactant and product features to get reaction graph features
         # graph, feats = mol_graph_to_rxn_graph(graph, feats, reactions) # from bondnet!!
         ''' reaction graph construction via own method '''
-        feats, graph = bde_batch_to_feats(graph, feats, rxns)
+        if self.use_bondnet_data:
+             feats, graph = bondnet_batch_to_own(graph, feats, rxns)
+        else:
+            feats, graph = bde_batch_to_feats(graph, feats, rxns)
 
         ## set2set to get 1 feature vector for each node type
         encoded_feats = {nt : self.set2set_extract[nt](graph, feats[nt]) for nt in self.set2set_extract}

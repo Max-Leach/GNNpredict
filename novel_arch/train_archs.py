@@ -19,6 +19,7 @@ def deepatomglobalattn():
         graph_layers=3,
         graph_inner_layer_sizes=[[64]] * 3,
         residual=True,
+        use_bondnet_data=True
     )
 
     train.train_for_epochs_w_Test_MAE(model, 'deepatomattnnoedges.pkl', lr=0.001)
@@ -34,7 +35,8 @@ def deepatomattnnoedges():
         graph_layers=3,
         graph_inner_layer_sizes=[[64]] * 3,
         residual=True,
-        atom_include_edges=False
+        atom_include_edges=False,
+        use_bondnet_data=True
     )
 
     train.train_for_epochs_w_Test_MAE(model, 'deepatomattnnoedges.pkl', lr=0.001)
@@ -49,7 +51,8 @@ def deepatomattn():
         graph_hidden_size=64,
         graph_layers=3,
         graph_inner_layer_sizes=[[64]] * 3,
-        residual=True
+        residual=True,
+        use_bondnet_data=True
     )
 
     train.train_for_epochs_w_Test_MAE(model, 'deepatomattn.pkl', lr=0.001)
@@ -63,7 +66,8 @@ def deepatomsum():
         graph_hidden_size=64,
         graph_layers=3,
         graph_inner_layer_sizes=[[64]] * 3,
-        residual=True
+        residual=True,
+        use_bondnet_data=True
     )
 
     train.train_for_epochs_w_Test_MAE(model, 'deepatomsum.pkl', lr=0.001)
