@@ -73,12 +73,12 @@ def deepatomsum():
 
     train.train_for_epochs_w_Test_MAE(model, 'deepatomsum.pkl', lr=0.001)
 
-from novel_arch.dmpnn_like.model import DMPNNLike
-from novel_arch.dmpnn_like.directed_conv import DMPNNPropag
+from novel_arch.dmpnn_2.model import DMPNNLike
+from novel_arch.dmpnn_2.directed_conv import DMPNNPropag
 
 ### === dmpnn inspired section, not very performant!
 
-def dmpnn_like():
+def dmpnn_2():
     model = DMPNNLike(
         in_feats=train.dataset.feature_size,
         dbond_feat_size=64, # atom, bond -> dbond features
@@ -96,7 +96,7 @@ def dmpnn_like():
         conv_op=DMPNNPropag
     )
 
-    train.train_for_epochs_w_Test_MAE(model, 'dmpnn_like_chkpoint.pkl', lr=0.0015)
+    train.train_for_epochs_w_Test_MAE(model, 'dmpnn_2_chkpoint.pkl', lr=0.0015)
 
 from novel_arch.dmpnn_1.model import GatedGCNReactionNetworkDMPNN
 from novel_arch.dmpnn_1.directed_conv import GatedGCNConvDMPNN

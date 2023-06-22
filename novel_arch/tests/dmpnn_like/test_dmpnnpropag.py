@@ -4,7 +4,7 @@ from torch.nn import functional as F
 import torch
 from bondnet.utils import seed_torch
 
-from novel_arch.dmpnn_like.directed_conv import DMPNNPropag
+from novel_arch.dmpnn_2.directed_conv import DMPNNPropag
 
 def test_dmpnnpropag_features_no_norm():
     # seed_torch() # same result every time!
