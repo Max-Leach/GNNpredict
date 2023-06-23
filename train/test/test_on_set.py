@@ -1,4 +1,4 @@
-from train.eval_metrics import deep_attn_item_handle, eval_metrics_over_loader
+from train.test.eval_metrics import deep_attn_item_handle, eval_metrics_over_loader
 from novel_arch.deep_attn.data.dataloader import RxnDataLoader
 
 # test a model with same conditions every time
