@@ -28,5 +28,6 @@ class Trainer:
                 optim.step()
                 losses[-1].append(loss.detach().item())
             valid_score = self.validator(model)
-            logging.info('>> validation after epoch {} : {}'.format(e, valid_score))
+            if valid_score != None:
+                logging.info('>> validation after epoch {} : {}'.format(e, valid_score))
         return losses
