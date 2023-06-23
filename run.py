@@ -6,7 +6,7 @@ from novel_arch.deep_attn.data.dataloader import RxnDataLoader
 
 from novel_arch.deep_attn.model import DeepAttn
 from novel_arch.deep_attn.data.initial_containers import DirectSmilesRepo, DGLwBDEMappings
-from novel_arch.deep_attn.data.dataset import BDEDataset
+from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset
 
 dset = bdedataset_from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated.csv', max_lines=200)
 
@@ -28,7 +28,8 @@ from train.test.eval_metrics import deep_attn_item_handle
 loader = RxnDataLoader(dset, batch_size=100)
 test_dset = TestonSet(loader, metric_fns, handle_mod_out=lambda x: (x * dset.val_stdev) + dset.val_mean)
 import torch
-train_dataset, test_dataset = bdedataset_from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated.csv', max_lines=200), bdedataset_from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated.csv', max_lines=30)
+train_dataset = dset
+test_dataset = BDESubset(dset, [32])
 valid_dset = TestonSet(RxnDataLoader(test_dataset, batch_size=100), metric_fns, handle_mod_out=lambda x: (x * test_dataset.val_stdev) + test_dataset.val_mean)
 begin_test = test_dset(model)
 from torch.optim import Adam

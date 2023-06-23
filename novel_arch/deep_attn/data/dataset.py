@@ -90,3 +90,41 @@ class BDEDataset(Dataset):
     
     def __len__(self):
         return len(self.r_p_graph_ref)
+
+
+## subset of above, plug in main dataset and indices that will be here
+# important for the loader used to aggregated graphs
+class BDESubset(Dataset):
+    def __init__(self, dataset, indices):
+        self.dataset = dataset
+        self.indices = indices
+    
+    def __len__(self):
+        return len(self.indices)
+    
+    def __getitem__(self, idx):
+        (graph, feat, gen, _), val = self.dataset[self.indices[idx]]
+        return (graph, feat, gen, idx), val
+
+    def get_r_p_graph_ref(self, idx):
+        return self.dataset.get_r_p_graph_ref(self.indices[idx])
+
+    @property
+    def transform(self):
+        return self.dataset.transform
+    
+    @property
+    def dgl(self):
+        return self.dataset.dgl
+
+    @property
+    def feats(self):
+        return self.dataset.feats
+    
+    @property
+    def val_stdev(self):
+        return self.dataset.val_stdev
+
+    @property
+    def val_mean(self):
+        return self.dataset.val_mean
