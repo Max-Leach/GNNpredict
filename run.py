@@ -11,12 +11,13 @@ from torch.optim import Adam
 from torch.nn import MSELoss
 import torch
 from train.trainer import Trainer
+
 from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error
 
 import logging
 logging.basicConfig(format='%(message)s', level=logging.DEBUG)
 
-dset = bdedataset_from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated.csv', max_lines=400)
+dset = bdedataset_from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=64)
 metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error}
 loss_fn = MSELoss()
 

@@ -4,12 +4,14 @@ from novel_arch.deep_attn.data.dataset import BDEDataset
 from novel_arch.deep_attn.data.initial_containers import DirectSmilesRepo, DGLwBDEMappings
 from novel_arch.deep_attn.data.featurizers import AtomFeaturize, BondFeaturize, GlobalFeaturize
 
-def bdedataset_from_csv(path, max_lines=None, entry_name_to_col={'reacs': [1], 'prods': [3,4], 'broken_idx': 2, 'bde': 5}, **kwargs):
+def bdedataset_from_csv(path, max_lines=None, start_line=None, entry_name_to_col={'reacs': [1], 'prods': [3,4], 'broken_idx': 2, 'bde': 5}, **kwargs):
     with open(path) as csv_file:
         csv_read = csv.reader(csv_file, delimiter=',')
         line_count = 0
         dsr = DirectSmilesRepo()
-        for rxn_line in csv_read:
+        if start_line == None:
+            start_line = 0
+        for rxn_line in tuple(csv_read)[start_line:]:
             rsmiles = [rxn_line[i] for i in entry_name_to_col['reacs']]
             psmiles = [rxn_line[i] for i in entry_name_to_col['prods']]
             broken_bond_idxs = [int(rxn_line[entry_name_to_col['broken_idx']])]
