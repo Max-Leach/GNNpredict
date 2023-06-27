@@ -5,6 +5,7 @@ from ray.air import session, Checkpoint
 from novel_arch.deep_attn.model import DeepAttn
 from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, aggreg_atom_edge_no_repeat, AttnNodeEdgeAggreg, AtomEdgeReducer, bond_mean, atom_mean, bond_sum, atom_sum, A2GReducer, B2GReducer
 
+from lion_pytorch import Lion
 from torch.optim import Adam
 from torch.nn import MSELoss
 import torch
@@ -43,7 +44,8 @@ def eval_on_config(config, valid_tester, train_set):
                 residual=True
             )
     loss_fn = MSELoss()
-    op = Adam(model.parameters(), lr=config['lr'])
+    # op = Adam(model.parameters(), lr=config['lr'])
+    op = Lion(model.parameters(), lr=config['lr'])
 
     checkpoint = session.get_checkpoint()
 
@@ -67,7 +69,7 @@ def eval_on_config(config, valid_tester, train_set):
     trainer(model)
     
 def get_dataset():
-    dset = bdedataset_from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=5000, start_line=1)
+    dset = bdedataset_from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=800, start_line=1)
     all_indices = tuple(range(len(dset)))
     split = int(0.9 * len(all_indices))
     train_set = BDESubset(dset, all_indices[:split])
@@ -88,15 +90,15 @@ def main():
         "graph_layer_count": tune.choice([i for i in range(2, 6)]),
         "graph_inner_width": tune.choice([2**i for i in range(4,7)]),
         "graph_inner_depth": tune.choice(tuple(range(1,5))),
-        "lr": tune.loguniform(1e-4, 1e-2),
-        "epochs": tune.choice(tuple(range(30, 40))),
+        "lr": tune.loguniform(0.9e-4, 2.3e-3),
+        "epochs": tune.choice(tuple(range(40, 60))),
         "batch_size": tune.choice([16, 32, 64]),
     }
     scheduler = AsyncHyperBandScheduler(time_attr='training_iteration', max_t=100, metric='loss', mode='min', reduction_factor=2)
     result = tune.run(
                 lambda config: eval_on_config(config, valid_tester, train_set), 
                 config=config, 
-                num_samples=100, 
+                num_samples=45, 
                 scheduler=scheduler
                 )
 

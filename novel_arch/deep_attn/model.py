@@ -35,6 +35,7 @@ class DeepAttn(nn.Module):
             out_size = s
             self.fc_to_scalar.append(nn.Linear(in_size, out_size))
             self.fc_to_scalar.append(nn.BatchNorm1d(out_size))
+            self.fc_to_scalar.append(nn.Dropout1d(p=0.0))
             self.fc_to_scalar.append(nn.ReLU()) # maybe droptout before or afer this point pls
 
             in_size = out_size

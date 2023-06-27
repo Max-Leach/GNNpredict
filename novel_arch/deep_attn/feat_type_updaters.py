@@ -14,7 +14,7 @@ class EdgeNeighborUpdate(nn.Module):
 
         self.residual = residual
         in_mlp_size = sum(in_feat_sizes.values())
-        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias, batch_norm=True)
+        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias, batch_norm=True, dropout=True)
 
     def forward(self, feats, graph): # features are assumed to be loaded in before this fn
         g = graph.local_var()
@@ -49,7 +49,7 @@ class AtomAggregUpdate(nn.Module):
         in_mlp_size = 2*in_feat_sizes['atom'] + in_feat_sizes['global']
         if include_edges:
             in_mlp_size += in_feat_sizes['bond']
-        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias, batch_norm=True)
+        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias, batch_norm=True, dropout=True)
         self.include_edges = include_edges
 
     def forward(self, feats, graph):
@@ -144,7 +144,7 @@ class GlobalAggregUpdate(nn.Module):
         self.edge_aggreg = edge_aggreg
         self.residual = residual
         in_mlp_size = sum(in_feat_sizes.values())
-        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias, batch_norm=True)
+        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias, batch_norm=True, dropout=True)
 
     def forward(self, feats, graph):
         g = graph.local_var()
