@@ -7,6 +7,7 @@ from train.test.eval_metrics import deep_attn_item_handle
 from novel_arch.deep_attn.model import DeepAttn
 from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, aggreg_atom_edge_no_repeat, AttnNodeEdgeAggreg, AtomEdgeReducer, bond_mean, atom_mean, bond_sum, atom_sum, A2GReducer, B2GReducer
 
+from lion_pytorch import Lion
 from torch.optim import Adam
 from torch.nn import MSELoss
 import torch
@@ -16,12 +17,8 @@ from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error
 
 import logging
 logging.basicConfig(format='%(message)s', level=logging.DEBUG)
-
 from novel_arch.deep_attn import hp_op
-
-if __name__ == '__main__':
-    hp_op.main()
-exit()
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 def kfold():
     dset = bdedataset_from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=64, start_line=1)
@@ -53,26 +50,37 @@ def kfold():
     sum_test = sum([item[0] * item[1] for item in test['mape']])
     print('total score mape', sum_test / total, 'total elements k fold', total)
 def std_train():
+    # dset = bdedataset_from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=800, start_line=1)
+    _, valid_tester, train_set = hp_op.get_dataset(line_cap=1500)
+    loss_fn = MSELoss()
+    metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
+
     model = DeepAttn(
             atom_aggregators=concat_sum_atom_edge_feat,
             b2g_aggregator=bond_mean(),
             a2g_aggregator=atom_mean(),
             in_feat_sizes={'atom': 12, 'bond': 7, 'global': 3},
-            graph_hidden_size=64,
+            graph_hidden_size=32,
             graph_layers=3,
-            graph_inner_layer_sizes=[[64]] * 3,
-            residual=True
+            graph_inner_layer_sizes=[[64] * 3] * 5,
+            residual=True,
+            fc_readout_sizes=[128] + [64] * 3
         )
-    loader = RxnDataLoader(dset, batch_size=100)
-    test_dset = TestonSet(loader, metric_fns, handle_mod_out=lambda x: (x * dset.val_stdev) + dset.val_mean)
-    test_dataset = BDESubset(dset, [32])
-    valid_dset = TestonSet(RxnDataLoader(test_dataset, batch_size=100), metric_fns, handle_mod_out=lambda x: (x * test_dataset.val_stdev) + test_dataset.val_mean)
-    begin_test = test_dset(model)
+    # loader = RxnDataLoader(dset, batch_size=100)
+    # test_dset = TestonSet(loader, metric_fns, handle_mod_out=lambda x: (x * dset.val_stdev) + dset.val_mean)
+    # test_dataset = BDESubset(dset, [32])
+    # valid_dset = TestonsSet(RxnDataLoader(test_dataset, batch_size=100), metric_fns, handle_mod_out=lambda x: (x * test_dataset.val_stdev) + test_dataset.val_mean)
+    begin_test = valid_tester(model)
     loss_fn = MSELoss()
-    op = Adam(model.parameters(), lr=0.001)
-
-    trainer = Trainer(20, lambda p: Adam(p, lr=0.001), lambda p,t: loss_fn((p.flatten() * dset.val_stdev) + dset.val_mean, t), valid_dset, RxnDataLoader(dset, batch_size=16, shuffle=True), deep_attn_item_handle)
+    # op = Adam(model.parameters(), lr=0.001)
+    optim = Lion(model.parameters(), lr=0.0001)
+    lr_sched = ReduceLROnPlateau(optim, factor=0.5, patience=30, threshold=3)
+    trainer = Trainer(130, lambda p: optim, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, RxnDataLoader(train_set, batch_size=32, shuffle=True), deep_attn_item_handle, epoch_fn=lambda scores, epoch: lr_sched.step(scores['loss']))
     trainer(model)
 
     print('begin test result', begin_test)
-    print('end test result', test_dset(model))
+    print('end test result', valid_tester(model))
+
+if __name__ == '__main__':
+    # hp_op.main()
+    std_train()

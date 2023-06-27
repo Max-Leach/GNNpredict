@@ -18,6 +18,7 @@ from novel_arch.deep_attn.data.dataloader import RxnDataLoader
 from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset
 
 from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error
+import random
 
 def valid_reporter(scores, losses, epoch, model, optim):
     checkpoint_data = {
@@ -41,7 +42,8 @@ def eval_on_config(config, valid_tester, train_set):
                 graph_hidden_size=config['graph_hidden_size'],
                 graph_layers=config['graph_layer_count'],
                 graph_inner_layer_sizes=[[config['graph_inner_width']] * config['graph_inner_depth']] * config['graph_layer_count'],
-                residual=True
+                residual=True,
+                fc_readout_sizes=[128] + [64] * config['fc_excess_layers'],
             )
     loss_fn = MSELoss()
     # op = Adam(model.parameters(), lr=config['lr'])
@@ -68,9 +70,10 @@ def eval_on_config(config, valid_tester, train_set):
                     )
     trainer(model)
     
-def get_dataset():
-    dset = bdedataset_from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=800, start_line=1)
-    all_indices = tuple(range(len(dset)))
+def get_dataset(line_cap=800):
+    dset = bdedataset_from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=line_cap, start_line=1)
+    all_indices = list(range(len(dset)))
+    random.shuffle(all_indices)
     split = int(0.9 * len(all_indices))
     train_set = BDESubset(dset, all_indices[:split])
     test_set = BDESubset(dset, all_indices[split:])
@@ -93,6 +96,7 @@ def main():
         "lr": tune.loguniform(0.9e-4, 2.3e-3),
         "epochs": tune.choice(tuple(range(40, 60))),
         "batch_size": tune.choice([16, 32, 64]),
+        "fc_excess_layers": tune.choice(tuple(range(1,4)))
     }
     scheduler = AsyncHyperBandScheduler(time_attr='training_iteration', max_t=100, metric='loss', mode='min', reduction_factor=2)
     result = tune.run(
@@ -102,7 +106,7 @@ def main():
                 scheduler=scheduler
                 )
 
-    best_trial = result.get_best_trial("loss", "min", "last")
+    best_trial = result.get_best_trial("mae", "min", "last")
     print('Final Results')
     print('best trial', best_trial.config)
     for m_n in ['loss', 'mape', 'mae']:
