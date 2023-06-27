@@ -17,10 +17,10 @@ from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error
 import logging
 logging.basicConfig(format='%(message)s', level=logging.DEBUG)
 
-from novel_arch.deep_attn.hp_op import main
+from novel_arch.deep_attn import hp_op
 
 if __name__ == '__main__':
-    main()
+    hp_op.main()
 exit()
 
 def kfold():
