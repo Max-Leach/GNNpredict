@@ -20,6 +20,8 @@ from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset
 from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error
 import random
 
+import csv
+
 def valid_reporter(scores, losses, epoch, model, optim):
     checkpoint_data = {
         "epoch": epoch,
@@ -33,7 +35,6 @@ def valid_reporter(scores, losses, epoch, model, optim):
             checkpoint=checkpoint)
 
 def eval_on_config(config, valid_tester, train_set):
-    # very rudimentary, we need things like variable inner graph size
     model = DeepAttn(
                 atom_aggregators=concat_sum_atom_edge_feat,
                 b2g_aggregator=bond_mean(),
@@ -86,7 +87,7 @@ def get_dataset(line_cap=800):
     return train_loader, valid_tester, train_set
 
 def main():
-    _, valid_tester, train_set = get_dataset()
+    _, valid_tester, train_set = get_dataset(line_cap=2500)
 
     config = {
         "graph_hidden_size": tune.choice([2**i for i in range(3, 6)]),
@@ -111,6 +112,13 @@ def main():
     print('best trial', best_trial.config)
     for m_n in ['loss', 'mape', 'mae']:
         print('final {} in trial'.format(m_n), best_trial.last_result[m_n])
+
+    with open('all_trials.csv', 'wb') as f:
+        writer = csv.writer(f)
+        writer.writerow(str({n : best_trial.last_result[n] for n in ['loss', 'mae', 'mape']}))
+    with open('best_results.csv', 'wb') as f:
+        writer = csv.writer(f)
+        writer.writerow(str({n : best_trial.last_result[n] for n in ['loss', 'mae', 'mape']}))
 
     # config = {
     #     "graph_hidden_size": 32,
