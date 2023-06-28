@@ -74,23 +74,31 @@ from ray import tune
 
 def tweaker():
     config = {
-        "graph_hidden_size": tune.choice([2**i for i in range(3, 6)]),
-        "graph_layer_count": tune.choice([i for i in range(2, 6)]),
-        "graph_inner_width": tune.choice([2**i for i in range(4,7)]),
-        "graph_inner_depth": tune.choice(tuple(range(1,5))),
+        "graph_hidden_size": tune.choice([2**i for i in range(3, 8)]),
+        "graph_layer_count": tune.choice([i for i in range(2, 7)]),
+        "graph_inner_width": tune.choice([2**i for i in range(4,9)]),
+        "graph_inner_depth": tune.choice(tuple(range(1,7))),
         "lr": tune.loguniform(0.9e-4, 2.3e-3),
-        # "epochs": tune.choice(tuple(range(40, 60))),
-        "epochs": tune.choice(tuple(range(1, 3))),
-        "batch_size": tune.choice([16, 32, 64]),
-        "fc_excess_layers": tune.choice(tuple(range(1,4)))
+        "epochs": tune.choice(tuple(range(50, 80))),
+        "batch_size": tune.choice([64, 84, 94, 128]),
+        "fc_excess_layers": tune.choice(tuple(range(1,6)))
     }
-    def attn_model_on_config(config: dict):
+    def model_on_config(config: dict):
+        construct_model.get_attn_model()
         return construct_model.get_std_model(
             fc_readout_sizes=[128]+[64]*config['fc_excess_layers'], 
             graph_inner_layer_sizes=[[config['graph_inner_width']]*config['graph_inner_depth']]*config['graph_layer_count'], 
-            graph_hidden_size=config['graph_hidden_size'])
-    hp_op.tweak_model_on_config(attn_model_on_config, config)
+            graph_hidden_size=config['graph_hidden_size'],
+            internal_attn_size=config['internal_attn_size'])
+    hp_op.tweak_model_on_config(model_on_config, config)
+
+import pickle
+def save_full_dataset():
+    dset = bdedataset_from_csv('paff', start_line=1)
+    with open('converted.pkl', 'wb') as dset_file:
+        pickle.dump(dset, dset_file)
 
 if __name__ == '__main__':
-    tweaker()
+    save_full_dataset()
+    # tweaker()
     # train_select()
