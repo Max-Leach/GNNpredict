@@ -87,7 +87,7 @@ def tweaker():
     }
     def model_on_config(config: dict):
         construct_model.get_attn_model()
-        return construct_model.get_std_model(
+        return construct_model.get_attn_model(
             fc_readout_sizes=[128]+[64]*config['fc_excess_layers'], 
             graph_inner_layer_sizes=[[config['graph_inner_width']]*config['graph_inner_depth']]*config['graph_layer_count'], 
             graph_hidden_size=config['graph_hidden_size'],

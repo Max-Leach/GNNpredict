@@ -69,7 +69,7 @@ class DGLwBDEMappings:
         pnx_checks.remove(pnx_match_first)
         pnx_match_sec = next(iter(pnx_checks))
         sec_match = nx_iso.GraphMatcher(pmol_1.to_undirected(), p_nxs[pnx_match_sec].to_undirected(), nm)
-        assert sec_match.is_isomorphic(), 'No match for second product!'
+        assert sec_match.is_isomorphic(), 'No match for second product!: {}'.format(reac_idx)
         sec_map = sec_match.mapping
         # map from concat product features list to reactant features
         return [first_map, sec_map]

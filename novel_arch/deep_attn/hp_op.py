@@ -79,7 +79,7 @@ def get_dataset(line_cap=800):
 def tweak_model_on_config(model_construct, config, num_samples=3):
     _, valid_tester, train_set = get_dataset(line_cap=800)
 
-    scheduler = AsyncHyperBandScheduler(time_attr='training_iteration', max_t=100, metric='loss', mode='min', reduction_factor=2)
+    scheduler = AsyncHyperBandScheduler(time_attr='training_iteration', max_t=300, metric='loss', mode='min', reduction_factor=2)
     result = tune.run(
                 lambda config: eval_on_config(config, valid_tester, train_set, model_construct), 
                 config=config, 
