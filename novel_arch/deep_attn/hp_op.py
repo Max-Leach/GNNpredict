@@ -34,18 +34,8 @@ def valid_reporter(scores, losses, epoch, model, optim):
             scores, # assume scores will have 'mape' and 'loss' keys
             checkpoint=checkpoint)
 
-def eval_on_config(config, valid_tester, train_set):
-    model = DeepAttn(
-                atom_aggregators=concat_sum_atom_edge_feat,
-                b2g_aggregator=bond_mean(),
-                a2g_aggregator=atom_mean(),
-                in_feat_sizes={'atom': 12, 'bond': 7, 'global': 3},
-                graph_hidden_size=config['graph_hidden_size'],
-                graph_layers=config['graph_layer_count'],
-                graph_inner_layer_sizes=[[config['graph_inner_width']] * config['graph_inner_depth']] * config['graph_layer_count'],
-                residual=True,
-                fc_readout_sizes=[128] + [64] * config['fc_excess_layers'],
-            )
+def eval_on_config(config, valid_tester, train_set, model_construct):
+    model = model_construct(config)
     loss_fn = MSELoss()
     # op = Adam(model.parameters(), lr=config['lr'])
     op = Lion(model.parameters(), lr=config['lr'])
@@ -86,24 +76,14 @@ def get_dataset(line_cap=800):
     train_loader = RxnDataLoader(train_set, batch_size=32, shuffle=True)
     return train_loader, valid_tester, train_set
 
-def main():
-    _, valid_tester, train_set = get_dataset(line_cap=2500)
+def tweak_model_on_config(model_construct, config, num_samples=3):
+    _, valid_tester, train_set = get_dataset(line_cap=800)
 
-    config = {
-        "graph_hidden_size": tune.choice([2**i for i in range(3, 6)]),
-        "graph_layer_count": tune.choice([i for i in range(2, 6)]),
-        "graph_inner_width": tune.choice([2**i for i in range(4,7)]),
-        "graph_inner_depth": tune.choice(tuple(range(1,5))),
-        "lr": tune.loguniform(0.9e-4, 2.3e-3),
-        "epochs": tune.choice(tuple(range(40, 60))),
-        "batch_size": tune.choice([16, 32, 64]),
-        "fc_excess_layers": tune.choice(tuple(range(1,4)))
-    }
     scheduler = AsyncHyperBandScheduler(time_attr='training_iteration', max_t=100, metric='loss', mode='min', reduction_factor=2)
     result = tune.run(
-                lambda config: eval_on_config(config, valid_tester, train_set), 
+                lambda config: eval_on_config(config, valid_tester, train_set, model_construct), 
                 config=config, 
-                num_samples=45, 
+                num_samples=num_samples, 
                 scheduler=scheduler
                 )
 
@@ -113,17 +93,6 @@ def main():
     for m_n in ['loss', 'mape', 'mae']:
         print('final {} in trial'.format(m_n), best_trial.last_result[m_n])
 
-    with open('all_trials.csv', 'wb') as f:
+    with open('best_results.csv', 'w') as f:
         writer = csv.writer(f)
-        writer.writerow(str({n : best_trial.last_result[n] for n in ['loss', 'mae', 'mape']}))
-    with open('best_results.csv', 'wb') as f:
-        writer = csv.writer(f)
-        writer.writerow(str({n : best_trial.last_result[n] for n in ['loss', 'mae', 'mape']}))
-
-    # config = {
-    #     "graph_hidden_size": 32,
-    #     "graph_layer_count": 3,
-    #     "lr": 0.001,
-    #     # "batch_size": tune.choice([2, 4, 8, 16, 32, 64]),
-    # }
-    # eval_on_config(config, train_loader, valid_tester, train_set)
+        writer.writerow([str({n : best_trial.last_result[n] for n in ['loss', 'mae', 'mape']}), str(best_trial.config)])
