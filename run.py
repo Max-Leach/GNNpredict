@@ -78,10 +78,12 @@ def tweaker():
         "graph_layer_count": tune.choice([i for i in range(2, 7)]),
         "graph_inner_width": tune.choice([2**i for i in range(4,9)]),
         "graph_inner_depth": tune.choice(tuple(range(1,7))),
+        "fc_excess_layers": tune.choice(tuple(range(1,6))),
+        "internal_attn_size": tune.choice([2**i for i in range(3, 7)]),
+
         "lr": tune.loguniform(0.9e-4, 2.3e-3),
         "epochs": tune.choice(tuple(range(50, 80))),
         "batch_size": tune.choice([64, 84, 94, 128]),
-        "fc_excess_layers": tune.choice(tuple(range(1,6)))
     }
     def model_on_config(config: dict):
         construct_model.get_attn_model()
@@ -90,7 +92,7 @@ def tweaker():
             graph_inner_layer_sizes=[[config['graph_inner_width']]*config['graph_inner_depth']]*config['graph_layer_count'], 
             graph_hidden_size=config['graph_hidden_size'],
             internal_attn_size=config['internal_attn_size'])
-    hp_op.tweak_model_on_config(model_on_config, config)
+    hp_op.tweak_model_on_config(model_on_config, config, num_samples=3000)
 
 import pickle
 def save_full_dataset():
@@ -99,6 +101,6 @@ def save_full_dataset():
         pickle.dump(dset, dset_file)
 
 if __name__ == '__main__':
-    save_full_dataset()
-    # tweaker()
+    # save_full_dataset()
+    tweaker()
     # train_select()
