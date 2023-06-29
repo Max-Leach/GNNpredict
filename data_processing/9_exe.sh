@@ -1,5 +1,11 @@
 #! /bin/bash
 
+#add all input xyz's and output log files within the same directory as this file and execute
+#outputs: 
+#incorrect molecules in the incorrect directory
+#cmp file containing structural matches between input and output
+#inch_diff file containing inchi checks between output molecule and input SMILES
+
 mkdir incorrect
 for i in *.log;do freq_real=$(grep " Frequencies -- " $i | head -n 1 | awk '{print $3}');freq=$(grep " Frequencies -- " $i | head -n 1 | awk '{print $3}' | cut -f 1-1 -d .);if [ $freq -lt 0 ];then echo "$i $freq_real" >> negative_freqs;mv $i incorrect/;mv ${i%log}xyz incorrect/;fi;done
 
@@ -15,3 +21,8 @@ for i in *.sdf; do
         mv temp ${i}
 done
 
+for i in *_i.sdf; do
+	python3 compare.py ${i} ${i%_i.sdf}_o.sdf ${i%_i.sdf}.log cmp
+done
+
+python cross-check.py

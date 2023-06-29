@@ -10,8 +10,8 @@ import re
 from io import StringIO
 rdBase.WrapLogs()
 
-#Code block adapted from https://github.com/pstjohn/bde, 
-# St. John, P.C., Guan, Y., Kim, Y. et al. Quantum chemical calculations for over 200,000 organic radical species and 40,000 associated closed-shell molecules. 
+#Code block adapted from https://github.com/pstjohn/bde,
+# St. John, P.C., Guan, Y., Kim, Y. et al. Quantum chemical calculations for over 200,000 organic radical species and 40,000 associated closed-shell molecules.
 # Sci Data 7, 244 (2020). https://doi.org/10.1038/s41597-020-00588-x
 def optimize_molecule_UFF(SMILES):
         """ Embed a molecule in 3D space, optimizing a number of conformers and
@@ -87,7 +87,7 @@ def RDKITConformer(mol, conformers):
 def isRadical(mol, radical_index):
     radical_atom = mol.GetAtomWithIdx(radical_index)
     radical_atom.SetNumExplicitHs(int(radical_atom.GetNumExplicitHs()) - 1)
-    radical_atom.SetNumRadicalElectrons(1) 
+    radical_atom.SetNumRadicalElectrons(1)
 #end of codeblock
 
 def RDKITwritetoXYZ(Id, arg, script_dir, SDFdirectory):
@@ -98,13 +98,13 @@ def RDKITwritetoXYZ(Id, arg, script_dir, SDFdirectory):
 
     with open(os.path.join(script_dir, SDFdirectory + '/' + Id[0]+ '_' + Id[4].rstrip('\n')+ '_' + Id[3] + '.xyz'), 'w') as wfile:
         wfile.writelines(lines)
-    os.remove(Id[0] + '.xyz') 
+    os.remove(Id[0] + '.xyz')
 
 if __name__ == "__main__":
     SDFdirectory = 'molecules'
     count = 0
-    list_file = sys.argv[1] 
-    err_file = sys.argv[2] 
+    list_file = sys.argv[1]
+    err_file = sys.argv[2]
     sio = sys.stderr = StringIO()
 
     if not os.path.exists(SDFdirectory): os.makedirs(SDFdirectory) #Create directory iff doesn't exist
@@ -115,9 +115,12 @@ if __name__ == "__main__":
         script_path = os.path.abspath(__file__)
         script_dir = os.path.split(script_path)[0] #find the absolute filepath to current directory
 
-        for line in iter(lambda: listfile.readline(), ''): 
+        for line in iter(lambda: listfile.readline(), ''):
             Id = line.split(' ') #split into [Index, molecule]
-            count += 1
+            out_file.write(line)
+            if os.path.isfile(os.path.join(script_dir, 'molecules2/' + Id[0]+ '_' + Id[4].rstrip('\n')+ '_' + Id[3] + '.xyz')):
+                continue
+
 
             try:
                 #Catch this
@@ -126,9 +129,8 @@ if __name__ == "__main__":
                 mol, arg = optimize_molecule_UFF(Id[1])
                 if re.search('UFFTYPER', sio.getvalue()): continue
             except:
-                out_file.writelines(line)
                 continue
-            
+
             if arg != None: RDKITwritetoXYZ(Id,arg,script_dir,SDFdirectory)
             else:
                 Chem.MolToMolFile(mol, Id[0] + '.sdf')
@@ -136,13 +138,13 @@ if __name__ == "__main__":
                 os.system("obabel -i sdf " + Id[0]+"_opt.sdf -o xyz -O " +Id[0] +".xyz")
                 os.remove(Id[0] + '.sdf')
                 os.remove(Id[0] + "_opt.sdf")
-                
+
                 with open(Id[0] + '.xyz', 'r') as rfile:
                     lines = rfile.readlines()
                     lines[1] = Id[2] + ' ' + Id[3].rstrip('\n') + ' ' + Id[1] + '\n'
 
                 with open(os.path.join(script_dir, SDFdirectory + '/' + Id[0]+ '_' + Id[4].rstrip('\n')+ '_' + Id[3] + '.xyz'), 'w') as wfile:
                     wfile.writelines(lines)
-                    os.remove(Id[0] + '.xyz') 
-            print(count)
+                    os.remove(Id[0] + '.xyz')
     print("Optimizations complete, time elapsed: " + str(time.time()-start))
+    
