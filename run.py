@@ -96,11 +96,12 @@ def tweaker():
 
 import pickle
 def save_full_dataset():
-    dset = bdedataset_from_csv('paff', start_line=1)
+    dset = bdedataset_from_csv('acp_updated_NoDupes.csv', start_line=1)
+    # dset = bdedataset_from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', start_line=10316, max_lines=2)
     with open('converted.pkl', 'wb') as dset_file:
         pickle.dump(dset, dset_file)
 
 if __name__ == '__main__':
-    # save_full_dataset()
-    tweaker()
+    save_full_dataset()
+    # tweaker()
     # train_select()

@@ -4,6 +4,7 @@ import torch
 import networkx.algorithms.isomorphism as nx_iso
 import networkx as nx
 
+# NOTE: no longer canonicalizing smiles! just didn't want to change the variable name atm :P
 ### first step from raw smiles, generate canon -> mol and reactions with their canon mols
 class DirectSmilesRepo:
     def __init__(self):
@@ -15,8 +16,10 @@ class DirectSmilesRepo:
         self.values = [] # same ordering of reactions as above
 
     def append_reaction(self, react_smiles, prod_smiles, broken_bond_idxs, value): # one call -> one reaction loaded, and both params are lists
-        react_canon = [Chem.CanonSmiles(sm) for sm in react_smiles]
-        prod_canon = [Chem.CanonSmiles(sm) for sm in prod_smiles]
+        # react_canon = [Chem.CanonSmiles(sm) for sm in react_smiles]
+        # prod_canon = [Chem.CanonSmiles(sm) for sm in prod_smiles]
+        react_canon = react_smiles
+        prod_canon = prod_smiles
 
         self.r_p_canon.append((react_canon, prod_canon))
         self.react_broken_bonds.append(broken_bond_idxs)
@@ -28,6 +31,12 @@ class DirectSmilesRepo:
             mol = Chem.AddHs(Chem.MolFromSmiles(canon))
             self.canon_to_mol[canon] = mol
             self.canon_to_atom_bond_map[canon] = {tuple(sorted([b.GetBeginAtomIdx(), b.GetEndAtomIdx()])) : b.GetIdx() for b in mol.GetBonds()}
+        # for sm, canon in zip(react_smiles + prod_smiles, react_canon + prod_canon):
+        #     if canon in self.canon_to_mol:
+        #         continue
+        #     mol = Chem.AddHs(Chem.MolFromSmiles(sm))
+        #     self.canon_to_mol[canon] = mol
+        #     self.canon_to_atom_bond_map[canon] = {tuple(sorted([b.GetBeginAtomIdx(), b.GetEndAtomIdx()])) : b.GetIdx() for b in mol.GetBonds()}
 
 ### generate dgl graphs (non reaction specific) and mappings (reaction specific, atom and bond)
 class DGLwBDEMappings:
