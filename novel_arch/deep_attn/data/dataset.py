@@ -1,6 +1,10 @@
 from torch.utils.data import Dataset
 from sklearn.preprocessing import StandardScaler
 from statistics import mean, stdev
+import dgl
+from os import path as opath
+import os
+import pickle
 
 from novel_arch.deep_attn.data.initial_containers import DirectSmilesRepo, DGLwBDEMappings
 from novel_arch.deep_attn.data.rxn_graph import BondDissociate
@@ -27,12 +31,52 @@ class InHomoInterpretNP:
 # initial containers of bde dataset into entries
 class BDEDataset(Dataset):
     # featurizers - dict of callables under 'atom', 'bond', 'global' keys
-    def __init__(self, dsr: DirectSmilesRepo, bdemap: DGLwBDEMappings, featurizers, std_data=True, load_graphs=False):
-        super().__init__()
-        self.std_data = std_data
-        self.load_graphs = load_graphs # don't load graphs directly, such as in case where dataloader handles it
-        self._fill_data(dsr, bdemap, featurizers)
+    @staticmethod
+    def from_initials(dsr: DirectSmilesRepo, bdemap: DGLwBDEMappings, featurizers, std_data=True, load_graphs=False):
+        dset = BDEDataset()
+        dset.std_data = std_data
+        dset.load_graphs = load_graphs # don't load graphs directly, such as in case where dataloader handles it
+        dset.bdemap = bdemap # store which makes saving easier
+        dset._fill_data(dsr, bdemap, featurizers)
+        return dset
     
+    @staticmethod
+    def load(path):
+        dset = BDEDataset()
+        dset.dgl, _ = dgl.load_graphs(opath.join(path, 'dgl'))
+        with open(opath.join(path, 'picklable'), 'rb') as f:
+            block = pickle.load(f)
+            (dset.values, 
+                        dset.feats, 
+                        dset.r_p_graph_ref, 
+                        dset.stders, 
+                        dset.transform, 
+                        dset.val_mean, 
+                        dset.val_stdev,
+                        dset.load_graphs,
+                        dset.std_data, 
+                        dset.bdemap) = block
+            dset._rxn_gen_load(dset.bdemap)
+        return dset
+
+    def save(self, path):
+        path = opath.join(path, 'dset')
+        if not opath.exists(path):
+            os.makedirs(path)
+        dgl.save_graphs(opath.join(path, 'dgl'), self.dgl)
+        block = (self.values, 
+                    self.feats, 
+                    self.r_p_graph_ref, 
+                    self.stders, 
+                    self.transform, 
+                    self.val_mean, 
+                    self.val_stdev,
+                    self.load_graphs,
+                    self.std_data,
+                    self.bdemap)
+        with open(opath.join(path, 'picklable'), 'wb') as f:
+                pickle.dump(block, f)
+
     # data features not handled by simply copying as above will be organized into more efficient form here
     def _fill_data(self, dsr: DirectSmilesRepo, bdemap: DGLwBDEMappings, featurizers):
         self.values = dsr.values
@@ -44,6 +88,9 @@ class BDEDataset(Dataset):
     def _rxn_specific_data(self, dsr: DirectSmilesRepo, bdemap: DGLwBDEMappings):
         canon_to_idx = {c : idx for idx, c in enumerate(bdemap.canon_to_dgl.keys())}
         self.r_p_graph_ref = [([canon_to_idx[r] for r in rs], [canon_to_idx[p] for p in ps]) for rs, ps in dsr.r_p_canon]
+        self._rxn_gen_load(bdemap)
+
+    def _rxn_gen_load(self, bdemap):
         reac_graphs = [self.dgl[rs[0]] for rs, _ in self.r_p_graph_ref]
         bdegen_properties = zip(bdemap.rxn_atom_mappings, bdemap.rxn_bond_mappings, bdemap.prods_has_bonds, reac_graphs)
         self.rxn_feat_gens = [BondDissociate(am, bm, p_has_bs, final_g) for am, bm, p_has_bs, final_g in bdegen_properties]

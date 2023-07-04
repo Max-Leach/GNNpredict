@@ -25,6 +25,6 @@ def from_csv(path, max_lines=None, start_line=None, entry_name_to_col={'reacs': 
         aprop = ['atomic_num', 'total_degree', 'total_num_hs', 'ring_of_size', 'is_in_ring']
         bprop = ['is_in_ring', 'ring_of_size', 'dative']
         gprop = ['num_atoms', 'num_bonds', 'total_weight']
-        dset = BDEDataset(dsr, bdemap, featurizers={'atom' : AtomFeaturize(aprop, [1, 6, 7, 8]), 'bond' : BondFeaturize(bprop), 'global' : GlobalFeaturize(gprop),}, **kwargs)
+        dset = BDEDataset.from_initials(dsr, bdemap, featurizers={'atom' : AtomFeaturize(aprop, [1, 6, 7, 8]), 'bond' : BondFeaturize(bprop), 'global' : GlobalFeaturize(gprop),}, **kwargs)
 
         return dset

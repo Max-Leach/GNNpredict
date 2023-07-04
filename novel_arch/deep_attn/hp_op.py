@@ -76,7 +76,9 @@ def get_dataset(dset):
     train_loader = RxnDataLoader(train_set, batch_size=32, shuffle=True)
     return train_loader, valid_tester, train_set
 
-def tweak_model_on_config(model_construct, config, num_samples=3, dset=from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=800, start_line=1)):
+def tweak_model_on_config(model_construct, config, num_samples=3, dset=None):
+    if dset == None:
+        dset = from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=800, start_line=1)
     _, valid_tester, train_set = get_dataset(dset)
 
     scheduler = AsyncHyperBandScheduler(time_attr='training_iteration', max_t=300, metric='loss', mode='min', reduction_factor=2)
