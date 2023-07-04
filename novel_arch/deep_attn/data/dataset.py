@@ -36,7 +36,7 @@ class BDEDataset(Dataset):
         dset = BDEDataset()
         dset.std_data = std_data
         dset.load_graphs = load_graphs # don't load graphs directly, such as in case where dataloader handles it
-        dset.bdemap = bdemap # store which makes saving easier
+        # dset.bdemap = bdemap # store which makes saving easier
         dset._fill_data(dsr, bdemap, featurizers)
         return dset
     
@@ -46,17 +46,19 @@ class BDEDataset(Dataset):
         dset.dgl, _ = dgl.load_graphs(opath.join(path, 'dgl'))
         with open(opath.join(path, 'picklable'), 'rb') as f:
             block = pickle.load(f)
-            (dset.values, 
-                        dset.feats, 
-                        dset.r_p_graph_ref, 
-                        dset.stders, 
-                        dset.transform, 
-                        dset.val_mean, 
-                        dset.val_stdev,
-                        dset.load_graphs,
-                        dset.std_data, 
-                        dset.bdemap) = block
-            dset._rxn_gen_load(dset.bdemap)
+            (dset.rxn_feat_gens,
+                    dset.values, 
+                    dset.feats, 
+                    dset.r_p_graph_ref, 
+                    dset.stders, 
+                    dset.transform, 
+                    dset.val_mean, 
+                    dset.val_stdev,
+                    dset.load_graphs,
+                    dset.std_data, 
+                    ) = block
+            # dset.rxn_feat_gens = [BondDissociate(fg[0]['atom'], fg[0]['bond'], fg[1]) for fg in feat_gen_props]
+            dset._populate_reac_graph()
         return dset
 
     def save(self, path):
@@ -64,7 +66,9 @@ class BDEDataset(Dataset):
         if not opath.exists(path):
             os.makedirs(path)
         dgl.save_graphs(opath.join(path, 'dgl'), self.dgl)
-        block = (self.values, 
+        feat_gens_no_graph = [BondDissociate(fg.mappings['atom'], fg.mappings['bond'], fg.prods_has_bond, None) for fg in self.rxn_feat_gens]
+        block = (feat_gens_no_graph,
+                    self.values, 
                     self.feats, 
                     self.r_p_graph_ref, 
                     self.stders, 
@@ -72,8 +76,7 @@ class BDEDataset(Dataset):
                     self.val_mean, 
                     self.val_stdev,
                     self.load_graphs,
-                    self.std_data,
-                    self.bdemap)
+                    self.std_data,)
         with open(opath.join(path, 'picklable'), 'wb') as f:
                 pickle.dump(block, f)
 
@@ -94,6 +97,11 @@ class BDEDataset(Dataset):
         reac_graphs = [self.dgl[rs[0]] for rs, _ in self.r_p_graph_ref]
         bdegen_properties = zip(bdemap.rxn_atom_mappings, bdemap.rxn_bond_mappings, bdemap.prods_has_bonds, reac_graphs)
         self.rxn_feat_gens = [BondDissociate(am, bm, p_has_bs, final_g) for am, bm, p_has_bs, final_g in bdegen_properties]
+    
+    def _populate_reac_graph(self):
+        reac_graphs = [self.dgl[rs[0]] for rs, _ in self.r_p_graph_ref]
+        for rg, feat_gen in zip(reac_graphs, self.rxn_feat_gens):
+            feat_gen._final_graph = rg
 
     def _value_mean_stdev(self):
         self.val_mean = mean(self.values)
