@@ -16,6 +16,7 @@ from train.trainer import Trainer
 
 from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error
 
+import random
 import logging
 logging.basicConfig(format='%(message)s', level=logging.DEBUG)
 from novel_arch.deep_attn import hp_op
