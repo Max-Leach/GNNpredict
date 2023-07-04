@@ -1,6 +1,7 @@
 from ray import tune
 from ray.tune.schedulers import AsyncHyperBandScheduler
 from ray.air import session, Checkpoint
+import ray
 
 from novel_arch.deep_attn.model import DeepAttn
 from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, aggreg_atom_edge_no_repeat, AttnNodeEdgeAggreg, AtomEdgeReducer, bond_mean, atom_mean, bond_sum, atom_sum, A2GReducer, B2GReducer
@@ -34,11 +35,13 @@ def valid_reporter(scores, losses, epoch, model, optim):
             scores, # assume scores will have 'mape' and 'loss' keys
             checkpoint=checkpoint)
 
-def eval_on_config(config, valid_tester, train_set, model_construct):
+def eval_on_config(config, valid_tester_ref, train_set_ref, model_construct):
     model = model_construct(config)
     loss_fn = MSELoss()
     # op = Adam(model.parameters(), lr=config['lr'])
     op = Lion(model.parameters(), lr=config['lr'])
+    train_set = ray.get(train_set_ref)
+    valid_tester = ray.get(valid_tester_ref)
 
     checkpoint = session.get_checkpoint()
 
@@ -80,10 +83,12 @@ def tweak_model_on_config(model_construct, config, num_samples=3, dset=None):
     if dset == None:
         dset = from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=800, start_line=1)
     _, valid_tester, train_set = get_dataset(dset)
+    tester_ref = ray.put(valid_tester)
+    train_set_ref = ray.put(train_set)
 
     scheduler = AsyncHyperBandScheduler(time_attr='training_iteration', max_t=300, metric='loss', mode='min', reduction_factor=2)
     result = tune.run(
-                lambda config: eval_on_config(config, valid_tester, train_set, model_construct), 
+                lambda config: eval_on_config(config, tester_ref, train_set_ref, model_construct), 
                 config=config, 
                 num_samples=num_samples, 
                 scheduler=scheduler

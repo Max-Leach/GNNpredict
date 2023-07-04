@@ -93,7 +93,11 @@ def tweaker():
             graph_inner_layer_sizes=[[config['graph_inner_width']]*config['graph_inner_depth']]*config['graph_layer_count'], 
             graph_hidden_size=config['graph_hidden_size'],
             internal_attn_size=config['internal_attn_size'])
-    hp_op.tweak_model_on_config(model_on_config, config, num_samples=3000)
+    # paff = '/home/pmistry/Documents/research/data/dset'
+    # hp_op.tweak_model_on_config(model_on_config, config, num_samples=3000, dset=BDEDataset.load(paff))
+    dset = from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=2500, start_line=1)
+    hp_op.tweak_model_on_config(model_on_config, config, num_samples=4, dset=dset)
+    
     # with open('/home/pmistry/Documents/research/data/converted.pkl', 'rb') as dset_f:
         # hp_op.tweak_model_on_config(model_on_config, config, num_samples=300, dset=pickle.load(dset_f))
 
