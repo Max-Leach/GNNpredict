@@ -4,7 +4,7 @@ from novel_arch.deep_attn.data.dataset import BDEDataset
 from novel_arch.deep_attn.data.initial_containers import DirectSmilesRepo, DGLwBDEMappings
 from novel_arch.deep_attn.data.featurizers import AtomFeaturize, BondFeaturize, GlobalFeaturize
 
-def bdedataset_from_csv(path, max_lines=None, start_line=None, entry_name_to_col={'reacs': [1], 'prods': [3,4], 'broken_idx': 2, 'bde': 5}, **kwargs):
+def from_csv(path, max_lines=None, start_line=None, entry_name_to_col={'reacs': [1], 'prods': [3,4], 'broken_idx': 2, 'bde': 5}, **kwargs):
     with open(path) as csv_file:
         csv_read = csv.reader(csv_file, delimiter=',')
         line_count = 0

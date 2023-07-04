@@ -13,7 +13,7 @@ import torch
 from train.trainer import Trainer
 from train.test.eval_metrics import deep_attn_item_handle
 from train.test.test_on_set import TestonSet
-from novel_arch.deep_attn.data.from_csv import bdedataset_from_csv
+from novel_arch.deep_attn.data.dset_generate import from_csv
 from novel_arch.deep_attn.data.dataloader import RxnDataLoader
 from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset
 
@@ -61,8 +61,8 @@ def eval_on_config(config, valid_tester, train_set, model_construct):
                     )
     trainer(model)
     
-def get_dataset(line_cap=800):
-    dset = bdedataset_from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=line_cap, start_line=1)
+def get_dataset(dset):
+    # dset = from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=line_cap, start_line=1)
     all_indices = list(range(len(dset)))
     random.shuffle(all_indices)
     split = int(0.9 * len(all_indices))
@@ -76,8 +76,8 @@ def get_dataset(line_cap=800):
     train_loader = RxnDataLoader(train_set, batch_size=32, shuffle=True)
     return train_loader, valid_tester, train_set
 
-def tweak_model_on_config(model_construct, config, num_samples=3):
-    _, valid_tester, train_set = get_dataset(line_cap=800)
+def tweak_model_on_config(model_construct, config, num_samples=3, dset=from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=800, start_line=1)):
+    _, valid_tester, train_set = get_dataset(dset)
 
     scheduler = AsyncHyperBandScheduler(time_attr='training_iteration', max_t=300, metric='loss', mode='min', reduction_factor=2)
     result = tune.run(

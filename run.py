@@ -1,4 +1,4 @@
-from novel_arch.deep_attn.data.from_csv import bdedataset_from_csv
+from novel_arch.deep_attn.data.dset_generate import from_csv
 from novel_arch.deep_attn.data.dataloader import RxnDataLoader
 from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset
 
@@ -22,7 +22,7 @@ from novel_arch.deep_attn import hp_op
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 def kfold():
-    dset = bdedataset_from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=64, start_line=1)
+    dset = from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=64, start_line=1)
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error}
     loss_fn = MSELoss()
 
@@ -51,8 +51,8 @@ def kfold():
     sum_test = sum([item[0] * item[1] for item in test['mape']])
     print('total score mape', sum_test / total, 'total elements k fold', total)
 def train_select():
-    # dset = bdedataset_from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=800, start_line=1)
-    _, valid_tester, train_set = hp_op.get_dataset(line_cap=2500)
+    dset = from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=2500, start_line=1)
+    _, valid_tester, train_set = hp_op.get_dataset(dset)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -92,12 +92,13 @@ def tweaker():
             graph_inner_layer_sizes=[[config['graph_inner_width']]*config['graph_inner_depth']]*config['graph_layer_count'], 
             graph_hidden_size=config['graph_hidden_size'],
             internal_attn_size=config['internal_attn_size'])
-    hp_op.tweak_model_on_config(model_on_config, config, num_samples=3000)
+    hp_op.tweak_model_on_config(model_on_config, config, num_samples=1)
+    # with open('/home/pmistry/Documents/research/data/converted.pkl', 'rb') as dset_f:
+        # hp_op.tweak_model_on_config(model_on_config, config, num_samples=1, dset=pickle.load(dset_f))
 
 import pickle
 def save_full_dataset():
-    dset = bdedataset_from_csv('acp_updated_NoDupes.csv', start_line=1)
-    # dset = bdedataset_from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', start_line=10316, max_lines=2)
+    dset = from_csv('acp_updated_NoDupes.csv', start_line=1)
     with open('converted.pkl', 'wb') as dset_file:
         pickle.dump(dset, dset_file)
 
