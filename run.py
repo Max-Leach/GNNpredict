@@ -95,12 +95,13 @@ def tweaker():
             graph_hidden_size=config['graph_hidden_size'],
             internal_attn_size=config['internal_attn_size'])
     paff = '/home/pmistry/Documents/research/data/dset'
-    dset = BDEDataset.load(paff)
+    # dset = BDEDataset.load(paff)
+    dset = from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=2500, start_line=1)
     all_indices = list(range(len(dset)))
     random.shuffle(all_indices)
-    split = all_indices[:5000]
-    subset = BDESubset(dset, split)
-    hp_op.tweak_model_on_config(model_on_config, config, num_samples=3000, dset=subset)
+    indices = all_indices[:5000]
+    # subset = BDESubset(dset, split)
+    hp_op.tweak_model_on_config(model_on_config, config, num_samples=10, dset=dset, indices=indices)
 
     # dset = from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=2500, start_line=1)
     # hp_op.tweak_model_on_config(model_on_config, config, num_samples=4, dset=dset)

@@ -35,13 +35,17 @@ def valid_reporter(scores, losses, epoch, model, optim):
             scores, # assume scores will have 'mape' and 'loss' keys
             checkpoint=checkpoint)
 
-def eval_on_config(config, valid_tester_ref, train_set_ref, model_construct):
+def eval_on_config(config, dset_ref, indices_ref, model_construct):
     model = model_construct(config)
     loss_fn = MSELoss()
     # op = Adam(model.parameters(), lr=config['lr'])
     op = Lion(model.parameters(), lr=config['lr'])
-    train_set = ray.get(train_set_ref)
-    valid_tester = ray.get(valid_tester_ref)
+    # train_set = ray.get(train_set_ref)
+    # valid_tester = ray.get(valid_tester_ref)
+    dset = ray.get(dset_ref)
+    indices = ray.get(indices_ref)
+    subset = BDESubset(dset, indices)
+    _, valid_tester, train_set = get_sets(subset)
 
     checkpoint = session.get_checkpoint()
 
@@ -64,7 +68,7 @@ def eval_on_config(config, valid_tester_ref, train_set_ref, model_construct):
                     )
     trainer(model)
     
-def get_dataset(dset):
+def get_sets(dset):
     # dset = from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=line_cap, start_line=1)
     all_indices = list(range(len(dset)))
     random.shuffle(all_indices)
@@ -79,16 +83,18 @@ def get_dataset(dset):
     train_loader = RxnDataLoader(train_set, batch_size=32, shuffle=True)
     return train_loader, valid_tester, train_set
 
-def tweak_model_on_config(model_construct, config, num_samples=3, dset=None):
+def tweak_model_on_config(model_construct, config, indices, num_samples=3, dset=None):
     if dset == None:
         dset = from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=800, start_line=1)
-    _, valid_tester, train_set = get_dataset(dset)
-    tester_ref = ray.put(valid_tester)
-    train_set_ref = ray.put(train_set)
+    # _, valid_tester, train_set = get_dataset(dset)
+    # tester_ref = ray.put(valid_tester)
+    # train_set_ref = ray.put(train_set)
+    indices_ref = ray.put(indices)
+    dset_ref = ray.put(dset)
 
     scheduler = AsyncHyperBandScheduler(time_attr='training_iteration', max_t=300, metric='loss', mode='min', reduction_factor=2)
     result = tune.run(
-                lambda config: eval_on_config(config, tester_ref, train_set_ref, model_construct), 
+                lambda config: eval_on_config(config, dset_ref, indices_ref, model_construct), 
                 config=config, 
                 num_samples=num_samples, 
                 scheduler=scheduler
