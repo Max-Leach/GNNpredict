@@ -56,7 +56,7 @@ class BDEDataset(Dataset):
         # print(dset.feats)
         new_set.feats = {nt : [dset.feats[nt][gi] for gi in g_idxs] for nt in dset.feats}
         new_set.r_p_graph_ref = [[[orig_to_new[rp] for rp in rpsub] for rpsub in rplist] for rplist in r_p_graph_ref]
-        new_set.rxn_feat_gens = [dset.rxn_feat_gens[gi] for gi in g_idxs]
+        new_set.rxn_feat_gens = [dset.rxn_feat_gens[i] for i in indices]
         new_set.load_graphs = dset.load_graphs
         new_set.std_data = dset.std_data
         new_set._std_setup()
