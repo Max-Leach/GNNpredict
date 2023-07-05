@@ -51,10 +51,15 @@ def kfold():
     total = sum([item[1] for item in test['mape']])
     sum_test = sum([item[0] * item[1] for item in test['mape']])
     print('total score mape', sum_test / total, 'total elements k fold', total)
+
 def train_select():
-    # dset = from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=2500, start_line=1)
-    dset = BDEDataset.load('dset')
-    _, valid_tester, train_set = hp_op.get_dataset(dset)
+    dset = from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=800, start_line=1)
+    # subset = BDESubset(dset, tuple(range(800)))
+    # newset = BDEDataset.from_subset(subset)
+    # dset = newset
+
+    # dset = BDEDataset.load('dset')
+    _, valid_tester, train_set = hp_op.get_sets(dset)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -117,5 +122,5 @@ def save_full_dataset():
 
 if __name__ == '__main__':
     # save_full_dataset()
-    tweaker()
-    # train_select()
+    # tweaker()
+    train_select()

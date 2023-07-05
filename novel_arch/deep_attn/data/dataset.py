@@ -41,6 +41,30 @@ class BDEDataset(Dataset):
         return dset
     
     @staticmethod
+    def from_subset(subset):
+        indices = subset.indices
+        dset = subset.dataset
+
+        r_p_graph_ref = [dset.r_p_graph_ref[i] for i in indices]
+        g_idxs = {gi for rplist in r_p_graph_ref for gilist in rplist for gi in gilist}
+        g_idxs = tuple(g_idxs)
+        orig_to_new = {gi : i for i, gi in enumerate(g_idxs)}
+
+        new_set = BDEDataset()
+        new_set.values = [dset.values[i] for i in indices]
+        new_set.dgl = [dset.dgl[gi] for gi in g_idxs]
+        # print(dset.feats)
+        new_set.feats = {nt : [dset.feats[nt][gi] for gi in g_idxs] for nt in dset.feats}
+        new_set.r_p_graph_ref = [[[orig_to_new[rp] for rp in rpsub] for rpsub in rplist] for rplist in r_p_graph_ref]
+        new_set.rxn_feat_gens = [dset.rxn_feat_gens[gi] for gi in g_idxs]
+        new_set.load_graphs = dset.load_graphs
+        new_set.std_data = dset.std_data
+        new_set._std_setup()
+        new_set._value_mean_stdev()
+
+        return new_set
+    
+    @staticmethod
     def load(path):
         dset = BDEDataset()
         dset.dgl, _ = dgl.load_graphs(opath.join(path, 'dgl'))
@@ -136,6 +160,7 @@ class BDEDataset(Dataset):
         if self.load_graphs:
             graph_refs = [rp for rplist in self.r_p_graph_ref[idx] for rp in rplist]
             graphs = [self.dgl[i] for i in graph_refs]
+            # VVVV this may be wrong!
             feats = {nt : self.transform[nt](self.feats[nt][idx]) for nt in self.feats}
             self.rxn_feat_gens[idx].reacs, self.rxn_feat_gens[idx].prods = [0], [1, 2] # doesn't change due to fixed way graphs are aggregated above
         else:
