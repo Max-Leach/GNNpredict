@@ -89,9 +89,13 @@ class AtomEdgeReducer(nn.Module):
     aggregate incoming node and bond features for nodes via attention
 
     atm, it uses gatv2 style attention
+
+    sum_like - mimic "injective" property proposed in GIN by multiplying softmax by no. of elements
+    so instead of softmax acting like a weighted mean, it behaves like a "weighted sum"
+    >GIN argument was that sum provided more information than other reduction methods for aggregation
 '''
 class AttnNodeEdgeAggreg(nn.Module):
-    def __init__(self, feat_size, internal_attn_size, include_attn_edges=True, include_edges=True):
+    def __init__(self, feat_size, internal_attn_size, include_attn_edges=True, include_edges=True, sum_like=False):
         super().__init__()
 
         activ_in_size = 2*feat_size
@@ -102,6 +106,7 @@ class AttnNodeEdgeAggreg(nn.Module):
         self.attn_scalar_map = nn.Linear(internal_attn_size, 1)
         self.softmax = nn.Softmax(dim=-2)
         self.include_edges = include_edges
+        self.sum_like = sum_like
 
     def forward(self, incoming_node_fts, incoming_edge_fts, nodes):
         self_feats_per_incoming = nodes.data['ft'].unsqueeze(1).repeat_interleave(incoming_node_fts.size(1), dim=1)
@@ -110,6 +115,9 @@ class AttnNodeEdgeAggreg(nn.Module):
         activ_ins = self.activ(self.activ_in_map(combined_attn_in))
         pre_attn = self.attn_scalar_map(activ_ins)
         attn_weights = self.softmax(pre_attn)
+        if self.sum_like:
+            num_nodes = pre_attn.size(-2)
+            attn_weights = attn_weights * num_nodes
 
         incoming = incoming_node_fts
         if self.include_edges:

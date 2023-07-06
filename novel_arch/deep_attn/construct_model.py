@@ -24,11 +24,12 @@ def get_attn_model(
         fc_readout_sizes=[128]+[64]*4, 
         graph_inner_layer_sizes=[[128]*5]*3, 
         graph_hidden_size=64,
-        internal_attn_size=32):
+        internal_attn_size=32,
+        sum_like=False):
     graph_layers = len(graph_inner_layer_sizes)
-    attn_aggregs = [AtomEdgeReducer(AttnNodeEdgeAggreg(graph_hidden_size, internal_attn_size))] * graph_layers
-    a2g_aggregs = [A2GReducer(AttnNodeEdgeAggreg(graph_hidden_size, internal_attn_size, include_attn_edges=False))] * graph_layers
-    b2g_aggregs = [B2GReducer(AttnNodeEdgeAggreg(graph_hidden_size, internal_attn_size, include_attn_edges=False))] * graph_layers
+    attn_aggregs = [AtomEdgeReducer(AttnNodeEdgeAggreg(graph_hidden_size, internal_attn_size, sum_like=sum_like))] * graph_layers
+    a2g_aggregs = [A2GReducer(AttnNodeEdgeAggreg(graph_hidden_size, internal_attn_size, include_attn_edges=False, sum_like=sum_like))] * graph_layers
+    b2g_aggregs = [B2GReducer(AttnNodeEdgeAggreg(graph_hidden_size, internal_attn_size, include_attn_edges=False, sum_like=sum_like))] * graph_layers
     model = get_std_model(
         graph_inner_layer_sizes=graph_inner_layer_sizes,
         fc_readout_sizes=fc_readout_sizes,
