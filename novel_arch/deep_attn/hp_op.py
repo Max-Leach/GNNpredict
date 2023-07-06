@@ -92,7 +92,7 @@ def tweak_model_on_config(model_construct, config, indices, num_samples=3, dset=
     indices_ref = ray.put(indices)
     dset_ref = ray.put(dset)
 
-    scheduler = AsyncHyperBandScheduler(time_attr='training_iteration', max_t=300, metric='loss', mode='min', reduction_factor=2)
+    scheduler = AsyncHyperBandScheduler(time_attr='training_iteration', max_t=1000, grace_period=13, metric='loss', mode='min', reduction_factor=2)
     result = tune.run(
                 lambda config: eval_on_config(config, dset_ref, indices_ref, model_construct), 
                 config=config, 
