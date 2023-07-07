@@ -17,6 +17,7 @@ from train.test.test_on_set import TestonSet
 from novel_arch.deep_attn.data.dset_generate import from_csv
 from novel_arch.deep_attn.data.dataloader import RxnDataLoader
 from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset
+from novel_arch.deep_attn import construct_model
 
 from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error
 import random
@@ -28,7 +29,6 @@ import os
 def tweaker(hyper_setting, dset, indices, num_samples):
     config = get_config(hyper_setting)
     def model_on_config(config: dict):
-        construct_model.get_attn_model()
         return construct_model.get_attn_model(
             fc_readout_sizes=[128]+[64]*config['fc_excess_layers'], 
             graph_inner_layer_sizes=[[config['graph_inner_width']]*config['graph_inner_depth']]*config['graph_layer_count'], 
