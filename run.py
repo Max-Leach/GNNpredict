@@ -89,5 +89,12 @@ def save_full_dataset():
 if __name__ == '__main__':
     torch.multiprocessing.set_sharing_strategy('file_system')
     # save_full_dataset()
-    hp_op.tweaker('initial')
+
+    # dset = from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=64, start_line=1)
+    paff = '/home/pmistry/Documents/research/data/dset'
+    dset = BDEDataset.load(paff)
+    all_indices = list(range(len(dset)))
+    indices = all_indices[:]
+    hp_op.tweaker('conservative', dset, indices, num_samples=10)
+
     # train_select()

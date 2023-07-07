@@ -11,3 +11,13 @@ initial:
   epochs: ['range', [50, 80]]
   batch_size: ['', [64, 84, 94, 128]]
 
+conservative:
+  graph_hidden_size: ['range2', [3, 6]]
+  graph_layer_count: ['range', [3, 6]]
+  graph_inner_width: ['range2', [4, 7]]
+  graph_inner_depth: ['range', [2, 5]]
+  fc_excess_layers: ['range', [2, 5]]
+  internal_attn_size: ['range2', [3, 6]]
+  lr : ['uni', [0.9e-4, 4.0e-4]]
+  epochs: ['range', [90, 100]]
+  batch_size: ['', [64, 84, 94, 128]]
