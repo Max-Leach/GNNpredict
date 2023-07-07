@@ -26,7 +26,7 @@ import yaml
 import os
 
 # param_setting references key in yaml file
-def tweaker(hyper_setting, dset, indices, num_samples):
+def tweaker(hyper_setting, dset, indices):
     config = get_config(hyper_setting)
     def model_on_config(config: dict):
         return construct_model.get_attn_model(
@@ -35,7 +35,7 @@ def tweaker(hyper_setting, dset, indices, num_samples):
             graph_hidden_size=config['graph_hidden_size'],
             internal_attn_size=config['internal_attn_size'],
             sum_like=True)
-    tweak_model_on_config(model_on_config, config, num_samples=num_samples, dset=dset, indices=indices)
+    tweak_model_on_config(model_on_config, config, num_samples=config['num_samples'], dset=dset, indices=indices)
 
 # retrieve hyperparam config via yaml file
 def get_config(key):
@@ -52,8 +52,11 @@ def get_config(key):
             '' : lambda d: tune.choice(d),
         }
         for k, dat in config.items():
-            dtype, raw = dat
-            config[k] = parse[dtype](raw)
+            if type(dat) is tuple or type(dat) is list:
+                dtype, raw = dat
+                config[k] = parse[dtype](raw)
+            else:
+                config[k] = dat
         return config
 
 def valid_reporter(scores, losses, epoch, model, optim):
@@ -119,7 +122,7 @@ def tweak_model_on_config(model_construct, config, indices, num_samples=3, dset=
     indices_ref = ray.put(indices)
     dset_ref = ray.put(dset)
 
-    scheduler = AsyncHyperBandScheduler(time_attr='training_iteration', max_t=1000, grace_period=8, metric='loss', mode='min', reduction_factor=2)
+    scheduler = AsyncHyperBandScheduler(time_attr='training_iteration', max_t=1000, grace_period=16, metric='loss', mode='min', reduction_factor=2)
     result = tune.run(
                 lambda config: eval_on_config(config, dset_ref, indices_ref, model_construct), 
                 config=config, 
