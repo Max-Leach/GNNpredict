@@ -1,0 +1,13 @@
+# data is stored as pair, first item is how data should be processed, second is info on process
+
+initial:
+  graph_hidden_size: ['range2', [3, 8]]
+  graph_layer_count: ['range', [2, 7]]
+  graph_inner_width: ['range2', [4, 9]]
+  graph_inner_depth: ['range', [1, 7]]
+  fc_excess_layers: ['range', [1, 6]]
+  internal_attn_size: ['range2', [3, 7]]
+  lr: ['loguni', [0.9e-4, 2.3e-3]]
+  epochs: ['range', [50, 80]]
+  batch_size: ['', [64, 84, 94, 128]]
+

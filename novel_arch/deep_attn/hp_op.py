@@ -21,7 +21,58 @@ from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset
 from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error
 import random
 
-import csv
+import yaml
+
+# param_setting references key in yaml file
+def tweaker(hyper_setting):
+    config = get_config(hyper_setting)
+    def model_on_config(config: dict):
+        construct_model.get_attn_model()
+        return construct_model.get_attn_model(
+            fc_readout_sizes=[128]+[64]*config['fc_excess_layers'], 
+            graph_inner_layer_sizes=[[config['graph_inner_width']]*config['graph_inner_depth']]*config['graph_layer_count'], 
+            graph_hidden_size=config['graph_hidden_size'],
+            internal_attn_size=config['internal_attn_size'],
+            sum_like=True)
+    paff = '/home/pmistry/Documents/research/data/dset'
+    dset = BDEDataset.load(paff)
+    # dset = from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=64, start_line=1)
+    all_indices = list(range(len(dset)))
+    # random.shuffle(all_indices)
+    # indices = all_indices[:5000]
+    indices = all_indices[:]
+    # subset = BDESubset(dset, split)
+    tweak_model_on_config(model_on_config, config, num_samples=10, dset=dset, indices=indices)
+
+    # config = {
+    #     "graph_hidden_size": tune.choice([2**i for i in range(3, 8)]),
+    #     "graph_layer_count": tune.choice([i for i in range(2, 7)]),
+    #     "graph_inner_width": tune.choice([2**i for i in range(4,9)]),
+    #     "graph_inner_depth": tune.choice(tuple(range(1,7))),
+    #     "fc_excess_layers": tune.choice(tuple(range(1,6))),
+    #     "internal_attn_size": tune.choice([2**i for i in range(3, 7)]),
+
+    #     "lr": tune.loguniform(0.9e-4, 2.3e-3),
+    #     "epochs": tune.choice(tuple(range(50, 80))),
+    #     "batch_size": tune.choice([64, 84, 94, 128]),
+    # }
+
+# retrieve hyperparam config via yaml file
+def get_config(key):
+    with open('novel_arch/deep_attn/hyperparams.yaml', 'r') as yml_f:
+        yml = yaml.safe_load(yml_f)
+        config = yml[key]
+        parse = {
+            'range' : lambda d: tune.choice(range(d[0], d[1])),
+            'range2' : lambda d: tune.choice([2**i for i in range(d[0], d[1])]),
+            'loguni' : lambda d: tune.loguniform(d[0], d[1]),
+            'uni' : lambda d: tune.uniform(d[0], d[1]),
+            '' : lambda d: tune.choice(d),
+        }
+        for k, dat in config.items():
+            dtype, raw = dat
+            config[k] = parse[dtype](raw)
+        return config
 
 def valid_reporter(scores, losses, epoch, model, optim):
     checkpoint_data = {
@@ -69,7 +120,6 @@ def eval_on_config(config, dset_ref, indices_ref, model_construct):
     trainer(model)
     
 def get_sets(dset):
-    # dset = from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=line_cap, start_line=1)
     all_indices = list(range(len(dset)))
     random.shuffle(all_indices)
     split = int(0.9 * len(all_indices))
@@ -92,7 +142,7 @@ def tweak_model_on_config(model_construct, config, indices, num_samples=3, dset=
     indices_ref = ray.put(indices)
     dset_ref = ray.put(dset)
 
-    scheduler = AsyncHyperBandScheduler(time_attr='training_iteration', max_t=1000, grace_period=13, metric='loss', mode='min', reduction_factor=2)
+    scheduler = AsyncHyperBandScheduler(time_attr='training_iteration', max_t=1000, grace_period=8, metric='loss', mode='min', reduction_factor=2)
     result = tune.run(
                 lambda config: eval_on_config(config, dset_ref, indices_ref, model_construct), 
                 config=config, 
