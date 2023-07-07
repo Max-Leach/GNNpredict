@@ -22,6 +22,7 @@ from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error
 import random
 
 import yaml
+import os
 
 # param_setting references key in yaml file
 def tweaker(hyper_setting, dset, indices, num_samples):
@@ -38,7 +39,9 @@ def tweaker(hyper_setting, dset, indices, num_samples):
 
 # retrieve hyperparam config via yaml file
 def get_config(key):
-    with open('novel_arch/deep_attn/hyperparams.yaml', 'r') as yml_f:
+    dirname = os.path.dirname(__file__)
+    path = os.path.join(dirname, 'hyperparams.yaml')
+    with open(path, 'r') as yml_f:
         yml = yaml.safe_load(yml_f)
         config = yml[key]
         parse = {
