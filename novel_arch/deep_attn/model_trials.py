@@ -85,7 +85,7 @@ def std_model_sum():
     print('begin test result', begin_test)
     print('end test result', valid_tester(model))
 
-def std_model_sum():
+def std_model_sum_full():
     dset = BDEDataset.load('/home/preet/data/dset')
     _, valid_tester, train_set = hp_op.get_sets(dset)
     loss_fn = MSELoss()
