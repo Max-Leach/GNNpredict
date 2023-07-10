@@ -5,8 +5,8 @@ def get_std_model(
         atom_aggregators=concat_sum_atom_edge_feat, 
         b2g_aggregators=bond_mean(), a2g_aggregators=atom_mean(), 
         fc_readout_sizes=[128]+[64]*4, 
-        graph_inner_layer_sizes=[[128]*5]*3, 
-        graph_hidden_size=64):
+        graph_inner_layer_sizes=[[64]*3]*4, 
+        graph_hidden_size=32):
     model = DeepAttn(
             atom_aggregators=atom_aggregators,
             b2g_aggregators=b2g_aggregators,
@@ -19,6 +19,9 @@ def get_std_model(
             fc_readout_sizes=fc_readout_sizes
         )
     return model
+
+def get_std_sum(b2g_aggregators=bond_sum(), a2g_aggregators=atom_sum(), **kwargs):
+    return get_std_model(b2g_aggregators, a2g_aggregators, **kwargs)
 
 def get_attn_model(
         fc_readout_sizes=[128]+[64]*4, 
