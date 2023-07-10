@@ -7,6 +7,7 @@ from train.test.eval_metrics import deep_attn_item_handle
 from novel_arch.deep_attn import construct_model
 # from novel_arch.deep_attn.model import DeepAttn
 # from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, aggreg_atom_edge_no_repeat, AttnNodeEdgeAggreg, AtomEdgeReducer, bond_mean, atom_mean, bond_sum, atom_sum, A2GReducer, B2GReducer
+from novel_arch.deep_attn.model_trials import run_model_trial
 
 from lion_pytorch import Lion
 from torch.optim import Adam
@@ -17,10 +18,12 @@ from train.trainer import Trainer
 from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error
 
 import random
+import csv
 import logging
 logging.basicConfig(format='%(message)s', level=logging.DEBUG)
 from novel_arch.deep_attn import hp_op
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+import sys
 
 def kfold():
     dset = from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=64, start_line=1)
@@ -52,49 +55,30 @@ def kfold():
     sum_test = sum([item[0] * item[1] for item in test['mape']])
     print('total score mape', sum_test / total, 'total elements k fold', total)
 
-def train_select():
-    dset = from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=800, start_line=1)
-    # subset = BDESubset(dset, tuple(range(800)))
-    # newset = BDEDataset.from_subset(subset)
-    # dset = newset
-
-    # dset = BDEDataset.load('dset')
-    _, valid_tester, train_set = hp_op.get_sets(dset)
-    loss_fn = MSELoss()
-    metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
-
-    # model = construct_model.get_std_model()
-    model = construct_model.get_attn_model()
-    begin_test = valid_tester(model)
-    loss_fn = MSELoss()
-    # op = Adam(model.parameters(), lr=0.001)
-    optim = Lion(model.parameters(), lr=0.0001)
-
-    lr_sched = ReduceLROnPlateau(optim, factor=0.5, patience=30, threshold=3)
-    trainer = Trainer(4, lambda p: optim, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
-        RxnDataLoader(train_set, batch_size=65, shuffle=True), 
-        deep_attn_item_handle, 
-        epoch_fn=lambda scores, epoch: lr_sched.step(scores['loss']))
-    trainer(model)
-
-    print('begin test result', begin_test)
-    print('end test result', valid_tester(model))
-
 import pickle
 def save_full_dataset():
     dset = from_csv('acp_updated_NoDupes.csv', start_line=1)
     with open('converted.pkl', 'wb') as dset_file:
         pickle.dump(dset, dset_file)
 
-if __name__ == '__main__':
-    torch.multiprocessing.set_sharing_strategy('file_system')
-    # save_full_dataset()
-
-    # dset = from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=64, start_line=1)
-    paff = '/home/pmistry/Documents/research/data/dset'
+def hp_trash(name):
+    paff = '/home/preet/data/8000/dset'
     dset = BDEDataset.load(paff)
     all_indices = list(range(len(dset)))
     indices = all_indices[:]
-    hp_op.tweaker('conservative', dset, indices, num_samples=10)
+    hp_op.tweaker(name, dset, indices)
 
-    # train_select()
+if __name__ == '__main__':
+    torch.multiprocessing.set_sharing_strategy('file_system')
+
+    opers = {
+        'hp_trash' : lambda arg : hp_trash(arg),
+        'trial' : lambda arg : run_model_trial(arg),
+    }
+
+    selector = sys.argv[1]
+    try:
+        arg = sys.argv[2]
+    except IndexError:
+        arg = None
+    opers[selector](arg)
