@@ -5,6 +5,7 @@
 #incorrect molecules in the incorrect directory
 #cmp file containing structural matches between input and output
 #inch_diff file containing inchi checks between output molecule and input SMILES
+#struc_diff file containing incorrect structural matches
 
 mkdir incorrect
 mkdir sdfs
@@ -18,7 +19,7 @@ done
 
 for i in molecules/*.log;do
         pre=${i#molecules/};
-        python2.7 gooutcoord.py $i;done
+        python2.7 gooutcoord.py $i;
         obabel -i xyz $i -o sdf -O sdfs/${pre%.xyz}_o.sdf;
 done
 rm *.xyz
