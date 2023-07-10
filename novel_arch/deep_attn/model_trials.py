@@ -70,7 +70,6 @@ def std_model_sum():
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
-    model = construct_model.get_std_model()
     model = construct_model.get_std_sum()
     begin_test = valid_tester(model)
     loss_fn = MSELoss()
@@ -86,10 +85,32 @@ def std_model_sum():
     print('begin test result', begin_test)
     print('end test result', valid_tester(model))
 
+def std_model_sum():
+    dset = BDEDataset.load('/home/preet/data/dset')
+    _, valid_tester, train_set = hp_op.get_sets(dset)
+    loss_fn = MSELoss()
+    metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
+
+    model = construct_model.get_std_sum_full()
+    begin_test = valid_tester(model)
+    loss_fn = MSELoss()
+    optim = Lion(model.parameters(), lr=0.0002)
+
+    lr_sched = ReduceLROnPlateau(optim, factor=0.5, patience=30)
+    trainer = Trainer(180, lambda p: optim, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
+        RxnDataLoader(train_set, batch_size=100, shuffle=True), 
+        deep_attn_item_handle, 
+        epoch_fn=lambda scores, epoch: lr_sched.step(scores['loss']))
+    trainer(model)
+
+    print('begin test result', begin_test)
+    print('end test result', valid_tester(model))
+
 def run_model_trial(arg):
     models = {
         'attn_sum' : attn_sum,
         'std_model_no_sum' : std_model_no_sum,
         'std_model_sum' : std_model_sum,
+        'std_model_sum_full' : std_model_sum_full,
     }
     models[arg]()
