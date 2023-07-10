@@ -3,8 +3,7 @@ from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, a
 
 def get_std_model(
         atom_aggregators=concat_sum_atom_edge_feat, 
-        # b2g_aggregators=bond_mean(), a2g_aggregators=atom_mean(),
-        b2g_aggregators=bond_sum(), a2g_aggregators=bond_sum(),  
+        b2g_aggregators=bond_mean(), a2g_aggregators=atom_mean(),
         fc_readout_sizes=[128]+[64]*4, 
         graph_inner_layer_sizes=[[64]*3]*4, 
         graph_hidden_size=32):
