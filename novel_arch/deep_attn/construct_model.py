@@ -23,6 +23,17 @@ def get_std_model(
 def get_std_sum(b2g_aggregators=bond_sum(), a2g_aggregators=atom_sum(), **kwargs):
     return get_std_model(b2g_aggregators=b2g_aggregators, a2g_aggregators=a2g_aggregators, **kwargs)
 
+def get_std_sum_full(b2g_aggregators=bond_sum(), a2g_aggregators=atom_sum(), 
+                graph_inner_layer_sizes=[[128]*4]*5, 
+                graph_hidden_size=64, 
+                fc_readout_sizes=[256]+[128]*3, 
+                **kwargs):
+    return get_std_model(graph_hidden_size=graph_hidden_size, 
+                        fc_readout_sizes=fc_readout_sizes,
+                        graph_inner_layer_sizes=graph_inner_layer_sizes, 
+                        b2g_aggregators=b2g_aggregators, a2g_aggregators=a2g_aggregators, 
+                        **kwargs)
+
 def get_attn_model(sum_like=False,
             internal_attn_size=16, 
             graph_hidden_size=32,
