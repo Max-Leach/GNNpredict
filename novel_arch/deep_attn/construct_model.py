@@ -23,12 +23,7 @@ def get_std_model(
 def get_std_sum(b2g_aggregators=bond_sum(), a2g_aggregators=atom_sum(), **kwargs):
     return get_std_model(b2g_aggregators, a2g_aggregators, **kwargs)
 
-def get_attn_model(
-        fc_readout_sizes=[128]+[64]*4, 
-        graph_inner_layer_sizes=[[128]*5]*3, 
-        graph_hidden_size=64,
-        internal_attn_size=32,
-        sum_like=False):
+def get_attn_model(sum_like=False, **kwargs):
     graph_layers = len(graph_inner_layer_sizes)
     attn_aggregs = [AtomEdgeReducer(AttnNodeEdgeAggreg(graph_hidden_size, internal_attn_size, sum_like=sum_like))] * graph_layers
     a2g_aggregs = [A2GReducer(AttnNodeEdgeAggreg(graph_hidden_size, internal_attn_size, include_attn_edges=False, sum_like=sum_like))] * graph_layers
