@@ -29,12 +29,17 @@ import os
 def tweaker(hyper_setting, dset, indices):
     config = get_config(hyper_setting)
     def model_on_config(config: dict):
-        return construct_model.get_attn_model(
+        # return construct_model.get_attn_model(
+        #     fc_readout_sizes=[128]+[64]*config['fc_excess_layers'], 
+        #     graph_inner_layer_sizes=[[config['graph_inner_width']]*config['graph_inner_depth']]*config['graph_layer_count'], 
+        #     graph_hidden_size=config['graph_hidden_size'],
+        #     internal_attn_size=config['internal_attn_size'],
+        #     sum_like=True)
+        return construct_model.get_std_sum(
             fc_readout_sizes=[128]+[64]*config['fc_excess_layers'], 
             graph_inner_layer_sizes=[[config['graph_inner_width']]*config['graph_inner_depth']]*config['graph_layer_count'], 
             graph_hidden_size=config['graph_hidden_size'],
-            internal_attn_size=config['internal_attn_size'],
-            sum_like=True)
+            dropout=config['dropout'])
     tweak_model_on_config(model_on_config, config, num_samples=config['num_samples'], dset=dset, indices=indices)
 
 # retrieve hyperparam config via yaml file
