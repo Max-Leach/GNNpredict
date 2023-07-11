@@ -9,12 +9,12 @@ class EdgeNeighborUpdate(nn.Module):
     ''' 
         MLP update of bond, atom, global features
     '''
-    def __init__(self, in_feat_sizes, out_size, inner_layer_sizes=[], residual=False, bias=False):
+    def __init__(self, in_feat_sizes, out_size, inner_layer_sizes=[], residual=False, bias=False, dropout=0.0):
         super().__init__()
 
         self.residual = residual
         in_mlp_size = sum(in_feat_sizes.values())
-        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias, batch_norm=True, dropout=True)
+        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias, batch_norm=True, dropout=dropout)
 
     def forward(self, feats, graph): # features are assumed to be loaded in before this fn
         g = graph.local_var()
@@ -41,7 +41,7 @@ class AtomAggregUpdate(nn.Module):
     '''
         custom aggregation of node features (especially bonds)
     '''
-    def __init__(self, atom_edge_feat_aggreg, in_feat_sizes, out_size, inner_layer_sizes=[], residual=False, bias=False, include_edges=True):
+    def __init__(self, atom_edge_feat_aggreg, in_feat_sizes, out_size, inner_layer_sizes=[], residual=False, bias=False, include_edges=True, dropout=0.0):
         super().__init__()
 
         self.atom_edge_feat_aggreg = atom_edge_feat_aggreg
@@ -49,7 +49,7 @@ class AtomAggregUpdate(nn.Module):
         in_mlp_size = 2*in_feat_sizes['atom'] + in_feat_sizes['global']
         if include_edges:
             in_mlp_size += in_feat_sizes['bond']
-        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias, batch_norm=True, dropout=True)
+        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias, batch_norm=True, dropout=dropout)
         self.include_edges = include_edges
 
     def forward(self, feats, graph):
@@ -145,14 +145,14 @@ def aggreg_atom_edge_no_repeat(nodes, aggreg):
     return {'a_b_aggreg' : aggregated}
 
 class GlobalAggregUpdate(nn.Module):
-    def __init__(self, edge_aggreg, atom_aggreg, in_feat_sizes, out_size, inner_layer_sizes=[], residual=False, bias=False):
+    def __init__(self, edge_aggreg, atom_aggreg, in_feat_sizes, out_size, inner_layer_sizes=[], residual=False, bias=False, dropout=0.0):
         super().__init__()
 
         self.atom_aggreg = atom_aggreg
         self.edge_aggreg = edge_aggreg
         self.residual = residual
         in_mlp_size = sum(in_feat_sizes.values())
-        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias, batch_norm=True, dropout=True)
+        self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias, batch_norm=True, dropout=dropout)
 
     def forward(self, feats, graph):
         g = graph.local_var()
