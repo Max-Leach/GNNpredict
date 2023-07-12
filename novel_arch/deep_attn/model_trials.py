@@ -94,7 +94,7 @@ def std_model_sum_full():
     model = construct_model.get_std_sum_full()
     begin_test = valid_tester(model)
     loss_fn = MSELoss()
-    optim = Lion(model.parameters(), lr=0.0002)
+    optim = Lion(model.parameters(), lr=0.00013)
 
     lr_sched = ReduceLROnPlateau(optim, factor=0.5, patience=30)
     trainer = Trainer(1000, lambda p: optim, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
@@ -106,7 +106,7 @@ def std_model_sum_full():
     print('begin test result', begin_test)
     print('end test result', valid_tester(model))
 
-def std_model_sum_full_dropout():
+def std_model_sum_fuller_dropout():
     dset = BDEDataset.load('/home/preet/data/dset')
     _, valid_tester, train_set = hp_op.get_sets(dset)
     loss_fn = MSELoss()
@@ -119,7 +119,7 @@ def std_model_sum_full_dropout():
                         dropout=0.1)
     begin_test = valid_tester(model)
     loss_fn = MSELoss()
-    optim = Lion(model.parameters(), lr=0.0002)
+    optim = Lion(model.parameters(), lr=0.0001)
 
     lr_sched = ReduceLROnPlateau(optim, factor=0.5, patience=30)
     trainer = Trainer(1000, lambda p: optim, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
@@ -144,7 +144,7 @@ def std_model_sum_fuller():
                         dropout=0.1)
     begin_test = valid_tester(model)
     loss_fn = MSELoss()
-    optim = Lion(model.parameters(), lr=0.0002)
+    optim = Lion(model.parameters(), lr=0.0001)
 
     lr_sched = ReduceLROnPlateau(optim, factor=0.5, patience=30)
     trainer = Trainer(1000, lambda p: optim, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
@@ -162,7 +162,7 @@ def run_model_trial(arg):
         'std_model_no_sum' : std_model_no_sum,
         'std_model_sum' : std_model_sum,
         'std_model_sum_full' : std_model_sum_full,
-        'std_model_sum_full_dropout' : std_model_sum_full_dropout,
+        'std_model_sum_fuller_dropout' : std_model_sum_fuller_dropout,
         'std_model_sum_fuller' : std_model_sum_fuller,
     }
     models[arg]()
