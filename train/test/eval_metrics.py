@@ -1,6 +1,14 @@
 # handle items from deep_attn dataloader
-def deep_attn_item_handle(items):
+def deep_attn_item_handle(items, device=None):
     dat, val = items
+    
+    if device != None:
+        dat = list(dat[:3])
+        dat[0] = dat[0].to(device)
+        for n in dat[1].keys():
+            dat[1][n] = dat[1][n].to(device)
+        for bd in dat[2]:
+            bd._final_graph = bd._final_graph.to(device)
     return dat[:3], val # just omit the idxs entry
 
 ## handle items - take raw output from loader, return value and valid model inputs

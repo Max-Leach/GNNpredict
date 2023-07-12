@@ -107,7 +107,7 @@ def eval_on_config(config, dset_ref, indices_ref, model_construct):
                     )
     trainer(model)
     
-def get_sets(dset):
+def get_sets(dset, device=None):
     all_indices = list(range(len(dset)))
     random.shuffle(all_indices)
     split = int(0.9 * len(all_indices))
@@ -117,7 +117,11 @@ def get_sets(dset):
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
-    valid_tester = TestonSet(RxnDataLoader(test_set, batch_size=100), metric_fns, handle_mod_out=lambda x: (x * test_set.val_stdev) + test_set.val_mean)
+    if device == None:
+        handle_mod_out=lambda x: (x * test_set.val_stdev) + test_set.val_mean
+    else:
+        handle_mod_out=lambda x: (x.to(device) * test_set.val_stdev) + test_set.val_mean
+    valid_tester = TestonSet(RxnDataLoader(test_set, batch_size=100), metric_fns, handle_mod_out=handle_mod_out)
     train_loader = RxnDataLoader(train_set, batch_size=32, shuffle=True)
     return train_loader, valid_tester, train_set
 
