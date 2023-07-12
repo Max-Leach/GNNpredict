@@ -18,11 +18,37 @@ from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error
 
 import random
 import csv
+import pickle
+import os
+import math
 import logging
 from novel_arch.deep_attn import hp_op
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-def attn_sum():
+# standard reporter for every training iteration
+def iter_reporter(loss, model, epoch, iter, loss_list, path):
+    loss_list.append(loss)
+    with open(os.path.join(path, 'iter_losses'), 'wb+') as f:
+        pickle.dump(loss_list, f)
+
+def valid_reporter(valid_score, losses, e, model, val_list, path):
+    with open(os.path.join(path, 'last_model'), 'wb+') as m:
+        torch.save(model, m)
+    val_list.append(valid_score)
+    with open(os.path.join(path, 'epoch_vals'), 'wb+') as f:
+        pickle.dump(val_list, f)
+    try:
+        with open(os.path.join(path, 'best_model_vals'), 'rb') as f:
+            _epoch, vals = pickle.load(f)
+    except (FileNotFoundError, EOFError):
+        _epoch, vals = 0, {'mae': math.inf}
+    if vals['mae'] > valid_score['mae']: # lower is better
+        with open(os.path.join(path, 'best_model'), 'wb+') as m:
+            torch.save(model, m)
+        with open(os.path.join(path, 'best_model_vals'), 'wb+') as f:
+            pickle.dump((e, valid_score), f)
+
+def attn_sum(args):
     dset = BDEDataset.load('/home/preet/data/20000/dset')
     _, valid_tester, train_set = hp_op.get_sets(dset)
     loss_fn = MSELoss()
@@ -32,18 +58,24 @@ def attn_sum():
     begin_test = valid_tester(model)
     loss_fn = MSELoss()
     optim = Lion(model.parameters(), lr=0.0002)
+    losses = []
+    vals = []
 
     lr_sched = ReduceLROnPlateau(optim, factor=0.5, patience=30)
     trainer = Trainer(180, lambda p: optim, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
         RxnDataLoader(train_set, batch_size=84, shuffle=True), 
         deep_attn_item_handle, 
+        valid_reporter=lambda valid_score, losses, e, model, optim: valid_reporter(valid_score, losses, e, model, vals, path),
+        iter_reporter=lambda loss, model, e, i: iter_reporter(loss, model, e, i, losses, path), 
         epoch_fn=lambda scores, epoch: lr_sched.step(scores['loss']))
     trainer(model)
 
     print('begin test result', begin_test)
     print('end test result', valid_tester(model))
 
-def std_model_no_sum():
+def std_model_no_sum(args):
+    path = args[0]
+
     dset = BDEDataset.load('/home/preet/data/20000/dset')
     _, valid_tester, train_set = hp_op.get_sets(dset)
     loss_fn = MSELoss()
@@ -53,18 +85,24 @@ def std_model_no_sum():
     begin_test = valid_tester(model)
     loss_fn = MSELoss()
     optim = Lion(model.parameters(), lr=0.0002)
+    losses = []
+    vals = []
 
     lr_sched = ReduceLROnPlateau(optim, factor=0.5, patience=30)
     trainer = Trainer(180, lambda p: optim, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
         RxnDataLoader(train_set, batch_size=84, shuffle=True), 
         deep_attn_item_handle, 
+        valid_reporter=lambda valid_score, losses, e, model, optim: valid_reporter(valid_score, losses, e, model, vals, path),
+        iter_reporter=lambda loss, model, e, i: iter_reporter(loss, model, e, i, losses, path), 
         epoch_fn=lambda scores, epoch: lr_sched.step(scores['loss']))
     trainer(model)
 
     print('begin test result', begin_test)
     print('end test result', valid_tester(model))
 
-def std_model_sum():
+def std_model_sum(args):
+    path = args[0]
+
     dset = BDEDataset.load('/home/preet/data/20000/dset')
     _, valid_tester, train_set = hp_op.get_sets(dset)
     loss_fn = MSELoss()
@@ -74,18 +112,24 @@ def std_model_sum():
     begin_test = valid_tester(model)
     loss_fn = MSELoss()
     optim = Lion(model.parameters(), lr=0.0002)
+    losses = []
+    vals = []
 
     lr_sched = ReduceLROnPlateau(optim, factor=0.5, patience=30)
     trainer = Trainer(180, lambda p: optim, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
         RxnDataLoader(train_set, batch_size=84, shuffle=True), 
         deep_attn_item_handle, 
+        valid_reporter=lambda valid_score, losses, e, model, optim: valid_reporter(valid_score, losses, e, model, vals, path),
+        iter_reporter=lambda loss, model, e, i: iter_reporter(loss, model, e, i, losses, path), 
         epoch_fn=lambda scores, epoch: lr_sched.step(scores['loss']))
     trainer(model)
 
     print('begin test result', begin_test)
     print('end test result', valid_tester(model))
 
-def std_model_sum_full():
+def std_model_sum_full(args):
+    path = args[0]
+
     dset = BDEDataset.load('/home/preet/data/dset')
     _, valid_tester, train_set = hp_op.get_sets(dset)
     loss_fn = MSELoss()
@@ -95,18 +139,24 @@ def std_model_sum_full():
     begin_test = valid_tester(model)
     loss_fn = MSELoss()
     optim = Lion(model.parameters(), lr=0.00013)
+    losses = []
+    vals = []
 
     lr_sched = ReduceLROnPlateau(optim, factor=0.5, patience=30)
     trainer = Trainer(1000, lambda p: optim, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
         RxnDataLoader(train_set, batch_size=100, shuffle=True), 
         deep_attn_item_handle, 
+        valid_reporter=lambda valid_score, losses, e, model, optim: valid_reporter(valid_score, losses, e, model, vals, path),
+        iter_reporter=lambda loss, model, e, i: iter_reporter(loss, model, e, i, losses, path), 
         epoch_fn=lambda scores, epoch: lr_sched.step(scores['loss']))
     trainer(model)
 
     print('begin test result', begin_test)
     print('end test result', valid_tester(model))
 
-def std_model_sum_fuller_dropout():
+def std_model_sum_fuller_dropout(args):
+    path = args[0]
+
     dset = BDEDataset.load('/home/preet/data/dset')
     _, valid_tester, train_set = hp_op.get_sets(dset)
     loss_fn = MSELoss()
@@ -120,18 +170,24 @@ def std_model_sum_fuller_dropout():
     begin_test = valid_tester(model)
     loss_fn = MSELoss()
     optim = Lion(model.parameters(), lr=0.0001)
+    losses = []
+    vals = []
 
     lr_sched = ReduceLROnPlateau(optim, factor=0.5, patience=30)
     trainer = Trainer(1000, lambda p: optim, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
         RxnDataLoader(train_set, batch_size=128, shuffle=True), 
         deep_attn_item_handle, 
+        valid_reporter=lambda valid_score, losses, e, model, optim: valid_reporter(valid_score, losses, e, model, vals, path),
+        iter_reporter=lambda loss, model, e, i: iter_reporter(loss, model, e, i, losses, path), 
         epoch_fn=lambda scores, epoch: lr_sched.step(scores['loss']))
     trainer(model)
 
     print('begin test result', begin_test)
     print('end test result', valid_tester(model))
 
-def std_model_sum_fuller():
+def std_model_sum_fuller(args):
+    path = args[0]
+
     dset = BDEDataset.load('/home/preet/data/dset')
     _, valid_tester, train_set = hp_op.get_sets(dset)
     loss_fn = MSELoss()
@@ -145,18 +201,22 @@ def std_model_sum_fuller():
     begin_test = valid_tester(model)
     loss_fn = MSELoss()
     optim = Lion(model.parameters(), lr=0.0001)
+    losses = []
+    vals = []
 
     lr_sched = ReduceLROnPlateau(optim, factor=0.5, patience=30)
     trainer = Trainer(1000, lambda p: optim, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
         RxnDataLoader(train_set, batch_size=128, shuffle=True), 
         deep_attn_item_handle, 
+        valid_reporter=lambda valid_score, losses, e, model, optim: valid_reporter(valid_score, losses, e, model, vals, path),
+        iter_reporter=lambda loss, model, e, i: iter_reporter(loss, model, e, i, losses, path), 
         epoch_fn=lambda scores, epoch: lr_sched.step(scores['loss']))
     trainer(model)
 
     print('begin test result', begin_test)
     print('end test result', valid_tester(model))
 
-def run_model_trial(arg):
+def run_model_trial(arg, remain_args):
     models = {
         'attn_sum' : attn_sum,
         'std_model_no_sum' : std_model_no_sum,
@@ -165,4 +225,4 @@ def run_model_trial(arg):
         'std_model_sum_fuller_dropout' : std_model_sum_fuller_dropout,
         'std_model_sum_fuller' : std_model_sum_fuller,
     }
-    models[arg]()
+    models[arg](remain_args)

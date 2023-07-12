@@ -72,8 +72,8 @@ if __name__ == '__main__':
     torch.multiprocessing.set_sharing_strategy('file_system')
 
     opers = {
-        'hp_trash' : lambda arg : hp_trash(arg),
-        'trial' : lambda arg : run_model_trial(arg),
+        'hp_trash' : lambda arg, remain_args : hp_trash(arg),
+        'trial' : lambda arg, remain_args : run_model_trial(arg, remain_args),
     }
 
     selector = sys.argv[1]
@@ -81,4 +81,8 @@ if __name__ == '__main__':
         arg = sys.argv[2]
     except IndexError:
         arg = None
-    opers[selector](arg)
+    try:
+        remain_args = sys.argv[3:]
+    except IndexError:
+        remain_args = []
+    opers[selector](arg, remain_args)

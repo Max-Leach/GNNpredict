@@ -2,10 +2,11 @@ import logging
 
 ## train inputted model same way each time
 class Trainer:
-    def __init__(self, epochs, optim_construct, loss_fn, validator, train_loader, load_handle, valid_reporter=lambda scores, losses, epoch, model, optim: None, epoch_fn=lambda scores, epoch: None):
+    def __init__(self, epochs, optim_construct, loss_fn, validator, train_loader, load_handle, iter_reporter=lambda loss, model, e, i: None, valid_reporter=lambda scores, losses, epoch, model, optim: None, epoch_fn=lambda scores, epoch: None):
         self.optim_construct = optim_construct # construct optimizer on model
         self.loss_fn = loss_fn # can customize to reshape outputs properly
         self.validator = validator # tester type of class
+        self.iter_reporter = iter_reporter # run at every iteration of training
         self.valid_reporter = valid_reporter # this will run on valid scores from validator above
         self.train_loader = train_loader
         self.epochs = epochs
@@ -28,6 +29,7 @@ class Trainer:
                 optim.zero_grad()
                 loss.backward()
                 optim.step()
+                self.iter_reporter(loss.detach().item(), model, e, i)
                 losses[-1].append(loss.detach().item())
             valid_score = self.validator(model)
             self.epoch_fn(valid_score, e)
