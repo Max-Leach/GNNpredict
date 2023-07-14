@@ -121,7 +121,7 @@ def get_sets(dset, device=None):
         handle_mod_out=lambda x: (x * test_set.val_stdev) + test_set.val_mean
     else:
         handle_mod_out=lambda x: (x.to(device) * test_set.val_stdev) + test_set.val_mean
-    valid_tester = TestonSet(RxnDataLoader(test_set, batch_size=100), metric_fns, handle_mod_out=handle_mod_out)
+    valid_tester = TestonSet(RxnDataLoader(test_set, batch_size=100), metric_fns, handle_items=lambda items: deep_attn_item_handle(items, device=device), handle_mod_out=handle_mod_out)
     train_loader = RxnDataLoader(train_set, batch_size=32, shuffle=True)
     return train_loader, valid_tester, train_set
 
