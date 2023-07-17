@@ -142,7 +142,7 @@ def std_model_sum_full(args, device):
     model = model.to(device)
     begin_test = valid_tester(model)
     loss_fn = MSELoss()
-    optim = Lion(model.parameters(), lr=0.00013)
+    optim = Lion(model.parameters(), lr=0.00008)
     losses = []
     vals = []
 
@@ -174,7 +174,7 @@ def std_model_sum_fuller_dropout(args, device):
     model = model.to(device)
     begin_test = valid_tester(model)
     loss_fn = MSELoss()
-    optim = Lion(model.parameters(), lr=0.0001)
+    optim = Lion(model.parameters(), lr=0.00003)
     losses = []
     vals = []
 
@@ -206,7 +206,7 @@ def std_model_sum_fuller(args, device):
     model = model.to(device)
     begin_test = valid_tester(model)
     loss_fn = MSELoss()
-    optim = Lion(model.parameters(), lr=0.0001)
+    optim = Lion(model.parameters(), lr=0.00003)
     losses = []
     vals = []
 
