@@ -158,6 +158,62 @@ def std_model_sum_full(args, device):
     print('begin test result', begin_test)
     print('end test result', valid_tester(model))
 
+def std_model_sum_full_attn(args, device):
+    path = args[0]
+
+    dset = BDEDataset.load('/home/preet/data/dset')
+    _, valid_tester, train_set = hp_op.get_sets(dset, device)
+    loss_fn = MSELoss()
+    metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
+
+    model = construct_model.get_std_sum_full_attn()
+    model = model.to(device)
+    begin_test = valid_tester(model)
+    loss_fn = MSELoss()
+    optim = Lion(model.parameters(), lr=0.00005)
+    losses = []
+    vals = []
+
+    lr_sched = ReduceLROnPlateau(optim, factor=0.5, patience=30)
+    trainer = Trainer(1000, lambda p: optim, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
+        RxnDataLoader(train_set, batch_size=100, shuffle=True), 
+        lambda items: deep_attn_item_handle(items, device=device), 
+        valid_reporter=lambda valid_score, losses, e, model, optim: valid_reporter(valid_score, losses, e, model, vals, path),
+        iter_reporter=lambda loss, model, e, i: iter_reporter(loss, model, e, i, losses, path), 
+        epoch_fn=lambda scores, epoch: lr_sched.step(scores['loss']))
+    trainer(model)
+
+    print('begin test result', begin_test)
+    print('end test result', valid_tester(model))
+
+def std_model_sum_full_deeper(args, device):
+    path = args[0]
+
+    dset = BDEDataset.load('/home/preet/data/dset')
+    _, valid_tester, train_set = hp_op.get_sets(dset, device)
+    loss_fn = MSELoss()
+    metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
+
+    model = construct_model.get_std_sum_full_deeper()
+    model = model.to(device)
+    begin_test = valid_tester(model)
+    loss_fn = MSELoss()
+    optim = Lion(model.parameters(), lr=0.00005)
+    losses = []
+    vals = []
+
+    lr_sched = ReduceLROnPlateau(optim, factor=0.5, patience=30)
+    trainer = Trainer(1000, lambda p: optim, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
+        RxnDataLoader(train_set, batch_size=100, shuffle=True), 
+        lambda items: deep_attn_item_handle(items, device=device), 
+        valid_reporter=lambda valid_score, losses, e, model, optim: valid_reporter(valid_score, losses, e, model, vals, path),
+        iter_reporter=lambda loss, model, e, i: iter_reporter(loss, model, e, i, losses, path), 
+        epoch_fn=lambda scores, epoch: lr_sched.step(scores['loss']))
+    trainer(model)
+
+    print('begin test result', begin_test)
+    print('end test result', valid_tester(model))
+
 def std_model_sum_fuller_dropout(args, device):
     path = args[0]
 
@@ -231,8 +287,11 @@ def run_model_trial(arg, remain_args):
         'attn_sum' : attn_sum,
         'std_model_no_sum' : std_model_no_sum,
         'std_model_sum' : std_model_sum,
-        'std_model_sum_full' : std_model_sum_full,
         'std_model_sum_fuller_dropout' : std_model_sum_fuller_dropout,
         'std_model_sum_fuller' : std_model_sum_fuller,
+        
+        'std_model_sum_full' : std_model_sum_full,
+        'std_model_sum_full_deeper' : std_model_sum_full_deeper,
+        'std_model_sum_full_attn' : std_model_sum_full_attn,
     }
     models[arg](remain_args, device=dev)
