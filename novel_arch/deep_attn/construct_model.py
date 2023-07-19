@@ -53,9 +53,9 @@ def get_std_sum_full_attn(sum_like=True,
             graph_inner_layer_sizes=[[128]*4]*5,
             attn_layers=1, **kwargs):
     graph_layers = len(graph_inner_layer_sizes)
-    aggregs = [concat_sum_atom_edge_feat] * (5 - attn_layers) + [AtomEdgeReducer(AttnNodeEdgeAggreg(graph_hidden_size, internal_attn_size, sum_like=sum_like))] * attn_layers
-    a2g_aggregs = [atom_sum()] * (5 - attn_layers) + [A2GReducer(AttnNodeEdgeAggreg(graph_hidden_size, internal_attn_size, include_attn_edges=False, sum_like=sum_like))] * attn_layers
-    b2g_aggregs = [bond_sum()] * (5 - attn_layers) + [B2GReducer(AttnNodeEdgeAggreg(graph_hidden_size, internal_attn_size, include_attn_edges=False, sum_like=sum_like))] * attn_layers
+    aggregs = [concat_sum_atom_edge_feat] * (graph_layers - attn_layers) + [AtomEdgeReducer(AttnNodeEdgeAggreg(graph_hidden_size, internal_attn_size, sum_like=sum_like))] * attn_layers
+    a2g_aggregs = [atom_sum()] * (graph_layers - attn_layers) + [A2GReducer(AttnNodeEdgeAggreg(graph_hidden_size, internal_attn_size, include_attn_edges=False, sum_like=sum_like))] * attn_layers
+    b2g_aggregs = [bond_sum()] * (graph_layers - attn_layers) + [B2GReducer(AttnNodeEdgeAggreg(graph_hidden_size, internal_attn_size, include_attn_edges=False, sum_like=sum_like))] * attn_layers
     model = get_std_model(
         graph_inner_layer_sizes=graph_inner_layer_sizes,
         fc_readout_sizes=[256]+[128]*3,
