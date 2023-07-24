@@ -7,7 +7,8 @@ def get_std_model(
         fc_readout_sizes=[128]+[64]*4, 
         graph_inner_layer_sizes=[[64]*3]*4, 
         graph_hidden_size=32,
-        dropout=0.0):
+        dropout=0.0,
+        **kwargs):
     model = DeepAttn(
             atom_aggregators=atom_aggregators,
             b2g_aggregators=b2g_aggregators,
@@ -18,7 +19,8 @@ def get_std_model(
             graph_inner_layer_sizes=graph_inner_layer_sizes,
             residual=True,
             fc_readout_sizes=fc_readout_sizes,
-            dropout=dropout
+            dropout=dropout,
+            **kwargs,
         )
     return model
 
