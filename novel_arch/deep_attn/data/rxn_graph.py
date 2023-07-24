@@ -50,8 +50,8 @@ class BondDissociate(RxnFeatGenerator):
 
         return final_feats
 
-# own batch to single reaction graph
-def bde_batch_to_feats(batched_graph, batched_feats, rxns):
+# keep reaction graph tensors seperate
+def get_rxn_feat_list(batched_graph, batched_feats, rxns):
     for nt in batched_feats:
         batched_graph.nodes[nt].data.update({'ft': batched_feats[nt]})
     
@@ -59,13 +59,16 @@ def bde_batch_to_feats(batched_graph, batched_feats, rxns):
     graph_feats = [{nt: g.nodes[nt].data['ft'] for nt in batched_feats} for g in graphs]
     rxn_in_feats = [{'reac' : [graph_feats[r] for r in rxn.reacs], 'prod' : [graph_feats[p] for p in rxn.prods]} for rxn in rxns]
     rxn_feat_gens = rxns
-    rxns_feats_list = [gen.get_g_fts(rxn_in_feat['reac'], rxn_in_feat['prod']) for gen, rxn_in_feat in zip(rxn_feat_gens, rxn_in_feats)]
+    return [gen.get_g_fts(rxn_in_feat['reac'], rxn_in_feat['prod']) for gen, rxn_in_feat in zip(rxn_feat_gens, rxn_in_feats)]
 
+# own batch to single reaction graph
+def bde_batch_to_feats(batched_graph, batched_feats, rxns):
+    rxns_feats_list = get_rxn_feat_list(batched_graph, batched_feats, rxns)
     rxns_feats = {}
     for nt in batched_feats.keys():
         rxns_feats[nt] = torch.cat([ft[nt] for ft in rxns_feats_list])
 
-    batched_graph = dgl.batch([gen.get_rxn_graph() for gen in rxn_feat_gens])
+    batched_graph = dgl.batch([gen.get_rxn_graph() for gen in rxns])
 
     return rxns_feats, batched_graph
 
