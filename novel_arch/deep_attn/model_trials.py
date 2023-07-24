@@ -1,5 +1,5 @@
 import torch
-import model_trial_fns
+from novel_arch.deep_attn import model_trial_fns
 
 def run_model_trial(arg, remain_args):
     if torch.cuda.is_available():
