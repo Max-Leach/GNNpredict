@@ -229,7 +229,7 @@ def std_model_sum_full_dropout(args, device):
     model = model.to(device)
     begin_test = valid_tester(model)
     loss_fn = MSELoss()
-    optim = Lion(model.parameters(), lr=0.000007)
+    optim = Lion(model.parameters(), lr=0.000002)
     losses = []
     vals = []
 
@@ -290,7 +290,7 @@ def std_model_sum_full_injective_adam(args, device):
     losses = []
     vals = []
 
-    lr_sched = ReduceLROnPlateau(optim, factor=0.5, patience=30)
+    lr_sched = ReduceLROnPlateau(optim, factor=0.8, patience=5, threshold=1e-2)
     trainer = Trainer(1000, lambda p: optim, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
         RxnDataLoader(train_set, batch_size=100, shuffle=True), 
         lambda items: deep_attn_item_handle(items, device=device), 
