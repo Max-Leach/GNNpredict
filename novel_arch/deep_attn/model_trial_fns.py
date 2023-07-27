@@ -142,7 +142,8 @@ def std_model_sum_full(args, device):
     model = model.to(device)
     begin_test = valid_tester(model)
     loss_fn = MSELoss()
-    optim = Lion(model.parameters(), lr=0.00002)
+    # optim = Lion(model.parameters(), lr=0.00001)
+    optim = Lion(model.parameters(), lr=0.000008)
     losses = []
     vals = []
 
