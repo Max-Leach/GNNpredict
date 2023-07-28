@@ -187,7 +187,7 @@ def std_model_sum_full_attn(args, device):
     print('begin test result', begin_test)
     print('end test result', valid_tester(model))
 
-def std_model_sum_full_deeper(args, device):
+def sum_full_deeper(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
@@ -200,11 +200,11 @@ def std_model_sum_full_deeper(args, device):
     begin_test = valid_tester(model)
     loss_fn = MSELoss()
     # optim = Lion(model.parameters(), lr=0.00001)
-    optim = Adam(model.parameters(), lr=0.001)
+    optim = Adam(model.parameters(), lr=0.0001)
     losses = []
     vals = []
 
-    lr_sched = ReduceLROnPlateau(optim, factor=0.8, patience=5, threshold=1e-2)
+    lr_sched = ReduceLROnPlateau(optim, factor=0.8, patience=8, threshold=1e-2)
     trainer = Trainer(1000, lambda p: optim, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
         RxnDataLoader(train_set, batch_size=100, shuffle=True), 
         lambda items: deep_attn_item_handle(items, device=device), 
@@ -216,7 +216,7 @@ def std_model_sum_full_deeper(args, device):
     print('begin test result', begin_test)
     print('end test result', valid_tester(model))
 
-def std_model_sum_full_dropout(args, device):
+def sum_full_dropout(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
@@ -225,13 +225,14 @@ def std_model_sum_full_dropout(args, device):
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
     model = construct_model.get_std_sum_full_deeper(dropout=0.1,
-                                        graph_inner_layer_sizes=[[184]*9]*7, 
-                                        graph_hidden_size=64, 
-                                        fc_readout_sizes=[256]+[164]*8, )
+                                        graph_inner_layer_sizes=[[256]*7]*7, 
+                                        graph_hidden_size=128, 
+                                        fc_readout_sizes=[512]+[256]*8, )
     model = model.to(device)
     begin_test = valid_tester(model)
     loss_fn = MSELoss()
-    optim = Lion(model.parameters(), lr=0.000002)
+    # optim = Lion(model.parameters(), lr=0.000002)
+    optim = Adam(model.parameters(), lr=0.00005)
     losses = []
     vals = []
 
@@ -247,7 +248,7 @@ def std_model_sum_full_dropout(args, device):
     print('begin test result', begin_test)
     print('end test result', valid_tester(model))
 
-def std_model_sum_full_injective(args, device):
+def sum_full_injective(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
@@ -275,7 +276,7 @@ def std_model_sum_full_injective(args, device):
     print('begin test result', begin_test)
     print('end test result', valid_tester(model))
 
-def std_model_sum_full_injective_adam(args, device):
+def sum_full_injective_adam(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
@@ -289,6 +290,39 @@ def std_model_sum_full_injective_adam(args, device):
     loss_fn = MSELoss()
     # optim = Lion(model.parameters(), lr=0.000015)
     optim = Adam(model.parameters(), lr=0.001)
+    losses = []
+    vals = []
+
+    lr_sched = ReduceLROnPlateau(optim, factor=0.8, patience=5, threshold=1e-2)
+    trainer = Trainer(1000, lambda p: optim, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
+        RxnDataLoader(train_set, batch_size=100, shuffle=True), 
+        lambda items: deep_attn_item_handle(items, device=device), 
+        valid_reporter=lambda valid_score, losses, e, model, optim: valid_reporter(valid_score, losses, e, model, vals, path),
+        iter_reporter=lambda loss, model, e, i: iter_reporter(loss, model, e, i, losses, path), 
+        epoch_fn=lambda scores, epoch: lr_sched.step(scores['loss']))
+    trainer(model)
+
+    print('begin test result', begin_test)
+    print('end test result', valid_tester(model))
+
+def sum_full_injective_deep_adam(args, device):
+    path = args[0]
+
+    dset = BDEDataset.load('/home/preet/data/dset')
+    _, valid_tester, train_set = hp_op.get_sets(dset, device)
+    loss_fn = MSELoss()
+    metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
+
+    model = construct_model.get_std_sum_full(
+                        injective_readout=True,
+                        graph_inner_layer_sizes=[[128]*5]*6, 
+                        graph_hidden_size=64, 
+                        fc_readout_sizes=[256]+[128]*5, )
+    model = model.to(device)
+    begin_test = valid_tester(model)
+    loss_fn = MSELoss()
+    # optim = Lion(model.parameters(), lr=0.000015)
+    optim = Adam(model.parameters(), lr=0.0005)
     losses = []
     vals = []
 
