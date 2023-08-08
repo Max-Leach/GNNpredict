@@ -24,6 +24,11 @@ import math
 import logging
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
+# save indices for train, test split
+def save_train_test(splits, path):
+    with open(os.path.join(path, 'index_splits'), 'wb+') as f:
+        pickle.dump(splits, f)
+
 # standard reporter for every training iteration
 def iter_reporter(loss, model, epoch, iter, loss_list, path):
     loss_list.append(loss)
@@ -49,7 +54,8 @@ def valid_reporter(valid_score, losses, e, model, val_list, path):
 
 def attn_sum(args, device):
     dset = BDEDataset.load('/home/preet/data/20000/dset')
-    valid_tester, train_set, _ = train_test_split(dset, device)
+    valid_tester, train_set, splits = train_test_split(dset, device)
+    save_train_test(splits, path)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -77,7 +83,8 @@ def std_model_no_sum(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/20000/dset')
-    valid_tester, train_set, _ = train_test_split(dset, device)
+    valid_tester, train_set, splits = train_test_split(dset, device)
+    save_train_test(splits, path)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -105,7 +112,8 @@ def std_model_sum(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/20000/dset')
-    valid_tester, train_set, _ = train_test_split(dset, device)
+    valid_tester, train_set, splits = train_test_split(dset, device)
+    save_train_test(splits, path)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -133,7 +141,8 @@ def std_model_sum_full(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
-    valid_tester, train_set, _ = train_test_split(dset, device)
+    valid_tester, train_set, splits = train_test_split(dset, device)
+    save_train_test(splits, path)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -162,7 +171,8 @@ def std_model_sum_full_attn(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
-    valid_tester, train_set, _ = train_test_split(dset, device)
+    valid_tester, train_set, splits = train_test_split(dset, device)
+    save_train_test(splits, path)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -190,7 +200,8 @@ def sum_full_deeper(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
-    valid_tester, train_set, _ = train_test_split(dset, device)
+    valid_tester, train_set, splits = train_test_split(dset, device)
+    save_train_test(splits, path)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -219,7 +230,8 @@ def sum_full_dropout(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
-    valid_tester, train_set, _ = train_test_split(dset, device)
+    valid_tester, train_set, splits = train_test_split(dset, device)
+    save_train_test(splits, path)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -251,7 +263,8 @@ def sum_full_injective(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
-    valid_tester, train_set, _ = train_test_split(dset, device)
+    valid_tester, train_set, splits = train_test_split(dset, device)
+    save_train_test(splits, path)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -279,7 +292,8 @@ def sum_full_injective_batch(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
-    valid_tester, train_set, _ = train_test_split(dset, device)
+    valid_tester, train_set, splits = train_test_split(dset, device)
+    save_train_test(splits, path)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -307,7 +321,8 @@ def sum_full_injective_adam(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
-    valid_tester, train_set, _ = train_test_split(dset, device)
+    valid_tester, train_set, splits = train_test_split(dset, device)
+    save_train_test(splits, path)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -336,7 +351,8 @@ def sum_full_injective_deep_batch(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
-    valid_tester, train_set, _ = train_test_split(dset, device)
+    valid_tester, train_set, splits = train_test_split(dset, device)
+    save_train_test(splits, path)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -368,7 +384,8 @@ def sum_full_injective_deep_adam(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
-    valid_tester, train_set, _ = train_test_split(dset, device)
+    valid_tester, train_set, splits = train_test_split(dset, device)
+    save_train_test(splits, path)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -401,7 +418,8 @@ def sum_full_injective_deep_adam_batch(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
-    valid_tester, train_set, _ = train_test_split(dset, device)
+    valid_tester, train_set, splits = train_test_split(dset, device)
+    save_train_test(splits, path)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
