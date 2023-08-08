@@ -1,6 +1,6 @@
 from novel_arch.deep_attn.data.dset_generate import from_csv
 from novel_arch.deep_attn.data.dataloader import RxnDataLoader
-from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset
+from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset, train_test_split
 
 from train.test.test_on_set import TestonSet
 from train.test.eval_metrics import deep_attn_item_handle
@@ -22,7 +22,6 @@ import pickle
 import os
 import math
 import logging
-from novel_arch.deep_attn import hp_op
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 # standard reporter for every training iteration
@@ -50,7 +49,7 @@ def valid_reporter(valid_score, losses, e, model, val_list, path):
 
 def attn_sum(args, device):
     dset = BDEDataset.load('/home/preet/data/20000/dset')
-    _, valid_tester, train_set = hp_op.get_sets(dset, device)
+    valid_tester, train_set, _ = train_test_split(dset, device)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -78,7 +77,7 @@ def std_model_no_sum(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/20000/dset')
-    _, valid_tester, train_set = hp_op.get_sets(dset, device)
+    valid_tester, train_set, _ = train_test_split(dset, device)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -106,7 +105,7 @@ def std_model_sum(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/20000/dset')
-    _, valid_tester, train_set = hp_op.get_sets(dset, device)
+    valid_tester, train_set, _ = train_test_split(dset, device)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -134,7 +133,7 @@ def std_model_sum_full(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
-    _, valid_tester, train_set = hp_op.get_sets(dset, device)
+    valid_tester, train_set, _ = train_test_split(dset, device)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -163,7 +162,7 @@ def std_model_sum_full_attn(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
-    _, valid_tester, train_set = hp_op.get_sets(dset, device)
+    valid_tester, train_set, _ = train_test_split(dset, device)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -191,7 +190,7 @@ def sum_full_deeper(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
-    _, valid_tester, train_set = hp_op.get_sets(dset, device)
+    valid_tester, train_set, _ = train_test_split(dset, device)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -220,7 +219,7 @@ def sum_full_dropout(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
-    _, valid_tester, train_set = hp_op.get_sets(dset, device)
+    valid_tester, train_set, _ = train_test_split(dset, device)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -252,7 +251,7 @@ def sum_full_injective(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
-    _, valid_tester, train_set = hp_op.get_sets(dset, device)
+    valid_tester, train_set, _ = train_test_split(dset, device)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -280,7 +279,7 @@ def sum_full_injective_batch(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
-    _, valid_tester, train_set = hp_op.get_sets(dset, device)
+    valid_tester, train_set, _ = train_test_split(dset, device)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -308,7 +307,7 @@ def sum_full_injective_adam(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
-    _, valid_tester, train_set = hp_op.get_sets(dset, device)
+    valid_tester, train_set, _ = train_test_split(dset, device)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -337,7 +336,7 @@ def sum_full_injective_deep_batch(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
-    _, valid_tester, train_set = hp_op.get_sets(dset, device)
+    valid_tester, train_set, _ = train_test_split(dset, device)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -369,7 +368,7 @@ def sum_full_injective_deep_adam(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
-    _, valid_tester, train_set = hp_op.get_sets(dset, device)
+    valid_tester, train_set, _ = train_test_split(dset, device)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
@@ -402,7 +401,7 @@ def sum_full_injective_deep_adam_batch(args, device):
     path = args[0]
 
     dset = BDEDataset.load('/home/preet/data/dset')
-    _, valid_tester, train_set = hp_op.get_sets(dset, device)
+    valid_tester, train_set, _ = train_test_split(dset, device)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 

@@ -13,14 +13,10 @@ import torch
 
 from train.trainer import Trainer
 from train.test.eval_metrics import deep_attn_item_handle
-from train.test.test_on_set import TestonSet
 from novel_arch.deep_attn.data.dset_generate import from_csv
 from novel_arch.deep_attn.data.dataloader import RxnDataLoader
-from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset
+from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset, train_test_split
 from novel_arch.deep_attn import construct_model
-
-from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error
-import random
 
 import yaml
 import os
@@ -84,7 +80,7 @@ def eval_on_config(config, dset_ref, indices_ref, model_construct):
     dset = ray.get(dset_ref)
     indices = ray.get(indices_ref)
     subset = BDESubset(dset, indices)
-    _, valid_tester, train_set = get_sets(subset)
+    valid_tester, train_set, _ = train_test_split(subset)
 
     checkpoint = session.get_checkpoint()
 
@@ -106,24 +102,6 @@ def eval_on_config(config, dset_ref, indices_ref, model_construct):
                     valid_reporter=valid_reporter
                     )
     trainer(model)
-    
-def get_sets(dset, device=None):
-    all_indices = list(range(len(dset)))
-    random.shuffle(all_indices)
-    split = int(0.9 * len(all_indices))
-    train_set = BDESubset(dset, all_indices[:split])
-    test_set = BDESubset(dset, all_indices[split:])
-
-    loss_fn = MSELoss()
-    metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
-
-    if device == None:
-        handle_mod_out=lambda x: (x * test_set.val_stdev) + test_set.val_mean
-    else:
-        handle_mod_out=lambda x: (x.to(device) * test_set.val_stdev) + test_set.val_mean
-    valid_tester = TestonSet(RxnDataLoader(test_set, batch_size=100), metric_fns, handle_items=lambda items: deep_attn_item_handle(items, device=device), handle_mod_out=handle_mod_out)
-    train_loader = RxnDataLoader(train_set, batch_size=32, shuffle=True)
-    return train_loader, valid_tester, train_set
 
 def tweak_model_on_config(model_construct, config, indices, num_samples=3, dset=None):
     if dset == None:
