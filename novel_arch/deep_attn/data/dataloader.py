@@ -17,9 +17,9 @@ class RxnDataLoader(DataLoader):
             for refs in r_p_ref:
                 for ref in refs:
                     if ref not in ref_to_dgl:
-                        ref_to_dgl[ref] = self.dataset.dgl[ref]
+                        ref_to_dgl[ref] = self.dataset.get_dgl(ref)
                         for nt in ref_to_feats.keys():
-                            ref_to_feats[nt][ref] = self.dataset.feats[nt][ref]
+                            ref_to_feats[nt][ref] = self.dataset.get_feats(nt, ref)
         # graphs and their feat loading
         graphs = tuple(ref_to_dgl.values())
         for nt in ref_to_feats:
