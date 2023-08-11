@@ -93,7 +93,7 @@ class BDEDataset(Dataset):
                     ) = block
             if not as_lazy:
                 dset.feats = feats
-            dset._populate_reac_graph()
+                dset._populate_reac_graph()
         return dset
 
     def save(self, path, as_lazy=False):
