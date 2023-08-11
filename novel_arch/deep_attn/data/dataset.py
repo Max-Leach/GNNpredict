@@ -156,9 +156,16 @@ class BDEDataset(Dataset):
         self.rxn_feat_gens = [BondDissociate(am, bm, p_has_bs, final_g) for am, bm, p_has_bs, final_g in bdegen_properties]
     
     def _populate_reac_graph(self):
-        reac_graphs = [self.get_dgl(rs[0]) for rs, _ in self.r_p_graph_ref]
-        for rg, feat_gen in zip(reac_graphs, self.rxn_feat_gens):
-            feat_gen._final_graph = rg
+        # reac_graphs = [self.get_dgl(rs[0]) for rs, _ in self.r_p_graph_ref]
+        # for rg, feat_gen in zip(reac_graphs, self.rxn_feat_gens):
+        #     feat_gen._final_graph = rg
+        reac_graphs = [self._get_complete_rxn_feat_gen(i) for i in range(len(self.rxn_feat_gens))]
+    
+    def _get_complete_rxn_feat_gen(self, idx):
+        rxn_feat_gen = self.rxn_feat_gens[idx]
+        rs, _ = self.r_p_graph_ref[idx]
+        rxn_feat_gen._final_graph = self.get_dgl(rs[0])
+        return rxn_feat_gen
 
     def _value_mean_stdev(self):
         self.val_mean = mean(self.values)
@@ -190,7 +197,7 @@ class BDEDataset(Dataset):
     
     def get_dgl(self, i):
         try:
-            gpath = opath.join(self.path, 'dgl_dir', str(i))
+            gpath = opath.join(self.path, 'dgl_dir', str(i)) # do this first to check if this is lazy loaded
             return dgl.load_graphs(gpath)[0][0]
         except AttributeError:
             return self.dgl[i]
@@ -214,7 +221,7 @@ class BDEDataset(Dataset):
         else:
             graphs = None
             feats = None
-        return (graphs, feats, self.rxn_feat_gens[idx], idx), self.values[idx]
+        return (graphs, feats, self._get_complete_rxn_feat_gen(idx), idx), self.values[idx]
     
     def __len__(self):
         return len(self.r_p_graph_ref)
