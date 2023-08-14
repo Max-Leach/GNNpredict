@@ -7,6 +7,8 @@ from os import path as opath
 import os
 import pickle
 import random
+import time
+import heapq
 from torch.nn import MSELoss
 import torch
 
@@ -76,6 +78,10 @@ class BDEDataset(Dataset):
         dset = BDEDataset()
         if as_lazy:
             dset.path = path
+            dset.dgl_cache = dict()
+            dset.dgl_access_time = dict()
+            dset.feat_cache = dict()
+            dset.feat_access_time = dict ()
         else:
             dset.dgl, _ = dgl.load_graphs(opath.join(path, 'dgl'))
         with open(opath.join(path, 'picklable'), 'rb') as f:
@@ -194,21 +200,41 @@ class BDEDataset(Dataset):
 
     def get_r_p_graph_ref(self, idx):
         return self.r_p_graph_ref[idx]
-    
+
+    def _cache_access(self, cache, access_time, cant_find_item_fn, k):
+        if len(cache) > 5000:
+            new_time = {e : access_time[e] for e in heapq.nlargest(1000, cache.keys(), key=lambda e: access_time[e])}
+            new_cache = {e : cache[e] for e in new_time.keys()}
+            cache = new_cache
+            access_time = new_time
+        
+        if k not in cache:
+            cache[k] = cant_find_item_fn(k)
+        access_time[k] = time.perf_counter()
+
+        return cache[k], cache, access_time
+
     def get_dgl(self, i):
         try:
-            gpath = opath.join(self.path, 'dgl_dir', str(i)) # do this first to check if this is lazy loaded
-            return dgl.load_graphs(gpath)[0][0]
-        except AttributeError:
-            return self.dgl[i]
+            def open_dgl(i): # this throws attributeerror if no lazy loading
+                gpath = opath.join(self.path, 'dgl_dir', str(i)) # do this first to check if this is lazy loaded
+                return dgl.load_graphs(gpath)[0][0]
+            g, self.dgl_cache, self.dgl_access_time = self._cache_access(self.dgl_cache, self.dgl_access_time, open_dgl, i)
+        except AttributeError: # see above on check
+            g = self.dgl[i]
+        return g
     
     def get_feats(self, nt, i):
         try:
-            fpath = opath.join(self.path, 'feat_dir', nt, str(i))
-            with open(fpath, 'rb') as f:
-                return torch.load(f)
-        except AttributeError:
-            return self.feats[nt][i]
+            def open_feat(k): # this throws attributeerror if no lazy loading
+                nt, i = k
+                fpath = opath.join(self.path, 'feat_dir', nt, str(i))
+                with open(fpath, 'rb') as f:
+                    return torch.load(f)
+            f, self.feat_cache, self.feat_access_time = self._cache_access(self.feat_cache, self.feat_access_time, open_feat, (nt, i))
+        except AttributeError: # see above on check
+            f = self.feats[nt][i]
+        return f
 
     def __getitem__(self, idx):
         # may change graph aggregation st graphs are pulled from the full graph list and ref idxs are generated on the fly
