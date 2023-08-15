@@ -69,7 +69,7 @@ def hp_trash(name):
     hp_op.tweaker(name, dset, indices)
 
 if __name__ == '__main__':
-    torch.multiprocessing.set_sharing_strategy('file_system')
+    # torch.multiprocessing.set_sharing_strategy('file_system')
 
     opers = {
         'hp_trash' : lambda arg, remain_args : hp_trash(arg),

@@ -33,4 +33,6 @@ class RxnDataLoader(DataLoader):
         for rxn_gen, r_p in zip(rxn_feat_gens, r_p_graph_refs):
             r_p = [[ref_to_local_idx[ref] for ref in reac_side] for reac_side in r_p]
             rxn_gen.reacs, rxn_gen.prods = r_p
+        for r, ref in zip(rxn_feat_gens, r_p_graph_refs):
+            r._final_graph = ref_to_local_idx[ref[0][0]]
         return (batched_graph, feats, rxn_feat_gens, idxs), torch.tensor(values)
