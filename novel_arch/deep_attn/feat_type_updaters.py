@@ -95,15 +95,17 @@ class AtomEdgeReducer(nn.Module):
     >GIN argument was that sum provided more information than other reduction methods for aggregation
 '''
 class AttnNodeEdgeAggreg(nn.Module):
-    def __init__(self, feat_size, internal_attn_size, include_attn_edges=True, include_edges=True, sum_like=False):
+    def __init__(self, feat_size, internal_attn_size, include_attn_edges=True, include_edges=True, zero_scalar_map=False, sum_like=False):
         super().__init__()
 
         activ_in_size = 2*feat_size
         if include_attn_edges:
             activ_in_size += feat_size
-        self.activ_in_map = nn.Linear(activ_in_size, internal_attn_size)
+        self.activ_in_map = nn.Linear(activ_in_size, internal_attn_size, bias=False)
         self.activ = nn.LeakyReLU()
-        self.attn_scalar_map = nn.Linear(internal_attn_size, 1)
+        self.attn_scalar_map = nn.Linear(internal_attn_size, 1, bias=False)
+        if zero_scalar_map:
+            self.attn_scalar_map.weight.data.fill_(0.0)
         self.softmax = nn.Softmax(dim=-2)
         self.include_edges = include_edges
         self.sum_like = sum_like

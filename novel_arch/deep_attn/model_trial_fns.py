@@ -317,6 +317,35 @@ def sum_full_injective_batch(args, device):
     print('begin test result', begin_test)
     print('end test result', valid_tester(model))
 
+def sum_full_injective_batch_attn(args, device):
+    path = args[0]
+
+    dset = BDEDataset.load('/home/preet/data/dset')
+    valid_tester, train_set, splits = train_test_split(dset, device)
+    save_train_test(splits, path)
+    loss_fn = MSELoss()
+    metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
+
+    model = construct_model.get_std_sum_full_attn(injective_readout=True, zero_attn_scalar_map=True)
+    model = model.to(device)
+    begin_test = valid_tester(model)
+    loss_fn = MSELoss()
+    optim = Lion(model.parameters(), lr=0.000015)
+    losses = []
+    vals = []
+
+    lr_sched = ReduceLROnPlateau(optim, factor=0.8, patience=15, threshold=1e-2)
+    trainer = Trainer(1000, lambda p: optim, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
+        RxnDataLoader(train_set, batch_size=200, shuffle=True), 
+        lambda items: deep_attn_item_handle(items, device=device), 
+        valid_reporter=lambda valid_score, losses, e, model, optim: valid_reporter(valid_score, losses, e, model, vals, path),
+        iter_reporter=lambda loss, model, e, i: iter_reporter(loss, model, e, i, losses, path), 
+        epoch_fn=lambda scores, epoch: lr_sched.step(scores['loss']))
+    trainer(model)
+
+    print('begin test result', begin_test)
+    print('end test result', valid_tester(model))
+
 def sum_full_injective_adam(args, device):
     path = args[0]
 
