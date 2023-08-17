@@ -3,45 +3,38 @@ from ray.tune.schedulers import AsyncHyperBandScheduler
 from ray.air import session, Checkpoint
 import ray
 
-from novel_arch.deep_attn.model import DeepAttn
-from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, aggreg_atom_edge_no_repeat, AttnNodeEdgeAggreg, AtomEdgeReducer, bond_mean, atom_mean, bond_sum, atom_sum, A2GReducer, B2GReducer
-
 from lion_pytorch import Lion
 from torch.optim import Adam
 from torch.nn import MSELoss
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch
 
 from train.trainer import Trainer
 from train.test.eval_metrics import deep_attn_item_handle
-from novel_arch.deep_attn.data.dset_generate import from_csv
 from novel_arch.deep_attn.data.dataloader import RxnDataLoader
 from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset, train_test_split
 from novel_arch.deep_attn import construct_model
 
 import yaml
 import os
+import pickle
 
 # param_setting references key in yaml file
-def tweaker(hyper_setting, dset, indices):
+def tweaker(hyper_setting, dset, indices, save_path):
     config = get_config(hyper_setting)
     def model_on_config(config: dict):
-        # return construct_model.get_attn_model(
-        #     fc_readout_sizes=[128]+[64]*config['fc_excess_layers'], 
-        #     graph_inner_layer_sizes=[[config['graph_inner_width']]*config['graph_inner_depth']]*config['graph_layer_count'], 
-        #     graph_hidden_size=config['graph_hidden_size'],
-        #     internal_attn_size=config['internal_attn_size'],
-        #     sum_like=True)
         return construct_model.get_std_sum(
-            fc_readout_sizes=[128]+[64]*config['fc_excess_layers'], 
+            fc_readout_sizes=[256]+[128]*config['fc_excess_layers'], 
             graph_inner_layer_sizes=[[config['graph_inner_width']]*config['graph_inner_depth']]*config['graph_layer_count'], 
             graph_hidden_size=config['graph_hidden_size'],
-            dropout=config['dropout'])
-    tweak_model_on_config(model_on_config, config, num_samples=config['num_samples'], dset=dset, indices=indices)
+            # dropout=config['dropout']
+        )
+    tweak_model_on_config(model_on_config, config, save_path=save_path, num_samples=config['num_samples'], dset=dset, indices=indices)
 
 # retrieve hyperparam config via yaml file
 def get_config(key):
     dirname = os.path.dirname(__file__)
-    path = os.path.join(dirname, 'hyperparams.yaml')
+    path = os.path.join(dirname, 'hypers', 'main.yaml')
     with open(path, 'r') as yml_f:
         yml = yaml.safe_load(yml_f)
         config = yml[key]
@@ -75,12 +68,15 @@ def valid_reporter(scores, losses, epoch, model, optim):
 def eval_on_config(config, dset_ref, indices_ref, model_construct):
     model = model_construct(config)
     loss_fn = MSELoss()
-    # op = Adam(model.parameters(), lr=config['lr'])
-    op = Lion(model.parameters(), lr=config['lr'])
+    optim = {
+        'adam': lambda lr: Adam(model.parameters(), lr=lr*10), # <---!!!! adam does better with higher lr
+        'lion': lambda lr: Lion(model.parameters(), lr=lr),
+    }
+    op = optim[config['optim']](lr=config['lr'])
     dset = ray.get(dset_ref)
     indices = ray.get(indices_ref)
     subset = BDESubset(dset, indices)
-    valid_tester, train_set, _ = train_test_split(subset)
+    valid_tester, train_set, _ = train_test_split(subset, test_batch_size=400, num_workers=5)
 
     checkpoint = session.get_checkpoint()
 
@@ -91,38 +87,44 @@ def eval_on_config(config, dset_ref, indices_ref, model_construct):
         optimizer.load_state_dict(checkpoint_state["optimizer_state_dict"])
     else:
         start_epoch = 0
+    
+    lr_sched = ReduceLROnPlateau(op, factor=config['lrs_factor'], patience=config['lrs_patience'], threshold=config['lrs_threshold'])
 
-    train_loader = RxnDataLoader(train_set, batch_size=config['batch_size'], shuffle=True)
+    train_loader = RxnDataLoader(train_set, batch_size=config['batch_size'], shuffle=True, num_workers=5)
     trainer = Trainer(epochs=config['epochs'], 
                     optim_construct=lambda params: op, 
                     loss_fn=lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), 
                     validator=valid_tester,
                     train_loader=train_loader,
                     load_handle=deep_attn_item_handle,
-                    valid_reporter=valid_reporter
+                    valid_reporter=valid_reporter,
+                    epoch_fn=lambda scores, epoch: lr_sched.step(scores['loss']),
                     )
     trainer(model)
 
-def tweak_model_on_config(model_construct, config, indices, num_samples=3, dset=None):
-    if dset == None:
-        dset = from_csv('/home/pmistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv', max_lines=800, start_line=1)
+def tweak_model_on_config(model_construct, config, save_path, indices, num_samples=3, dset=None):
     indices_ref = ray.put(indices)
     dset_ref = ray.put(dset)
 
-    scheduler = AsyncHyperBandScheduler(time_attr='training_iteration', max_t=1000, grace_period=16, metric='loss', mode='min', reduction_factor=2)
+    scheduler = AsyncHyperBandScheduler(time_attr='training_iteration', max_t=1000, grace_period=8, metric='loss', mode='min', reduction_factor=2)
     result = tune.run(
                 lambda config: eval_on_config(config, dset_ref, indices_ref, model_construct), 
                 config=config, 
                 num_samples=num_samples, 
                 scheduler=scheduler
                 )
+    with open(os.path.join(save_path, 'results'), 'wb+') as f:
+        pickle.dump(result, f)
 
-    best_trial = result.get_best_trial("mae", "min", "last")
-    print('Final Results')
-    print('best trial', best_trial.config)
-    for m_n in ['loss', 'mape', 'mae']:
-        print('final {} in trial'.format(m_n), best_trial.last_result[m_n])
+    # best_trial = result.get_best_trial("mae", "min", "last")
+    # print('Final Results')
+    # print('best trial', best_trial.config)
+    # for m_n in ['loss', 'mape', 'mae']:
+    #     print('final {} in trial'.format(m_n), best_trial.last_result[m_n])
 
-    with open('best_results.csv', 'w') as f:
-        writer = csv.writer(f)
-        writer.writerow([str({n : best_trial.last_result[n] for n in ['loss', 'mae', 'mape']}), str(best_trial.config)])
+def run_optim(arg, remain_args):
+    dset = BDEDataset.load('/home/preet/data/dset_lazy/dset')
+    all_indices = list(range(len(dset)))
+    indices = all_indices[:]
+    save_path = remain_args[0]
+    tweaker(arg, dset, indices, save_path)

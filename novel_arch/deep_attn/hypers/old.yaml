@@ -59,7 +59,6 @@ full_set_initial:
   graph_inner_width: ['range2', [6, 8]]
   graph_inner_depth: ['range', [3, 5]]
   fc_excess_layers: ['range', [4, 5]]
-  # internal_attn_size: ['range2', [1, 5]]
   lr : ['', [2.0e-4]]
   epochs: ['', [100]]
   batch_size: ['', [128]]
