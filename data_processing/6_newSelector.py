@@ -61,7 +61,7 @@ def random_selection(filename, arguments, rangearr, distancearr, binsize):
         #Load n lines into array in numpy
         #Select from distribution of diversities
         df = pd.read_csv(filename,skiprows=rangearr[index],nrows=distancearr[index], header=None)
-        df.columns = ['Serial','Parentid','Parent','Frag1','Frag2','BDE','BondType','Heavy','Diversity']
+        df.columns = ['Serial','Parentid','Parent','Frag1','Frag2','BDE','BDH','BondIndex','BondType','Heavy','Diversity']
 
         df2 = sample_by_cluster(df, df.loc[:, 'Diversity'].mean(), df.loc[:, 'Diversity'].std(), n_clusters=15,Target_size=binsize/sets)
         selection = df2['Serial'].to_numpy()

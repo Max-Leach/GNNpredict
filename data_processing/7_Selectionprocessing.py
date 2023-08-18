@@ -29,9 +29,9 @@ if __name__ == "__main__":
         #inputfile.readline()
         for line in iter(lambda: inputfile.readline(), ''): 
             arr = line.split(',')
-            Index, line = dict_check(parentmoldict, arr[2], line, Index, 1, arr[6])
-            Index, line = dict_check(fragmoldict, arr[3], line, Index, 2, arr[6])
-            Index, line = dict_check(fragmoldict, arr[4], line, Index, 2, arr[6])
+            Index, line = dict_check(parentmoldict, arr[2], line, Index, 1, arr[8])
+            Index, line = dict_check(fragmoldict, arr[3], line, Index, 2, arr[8])
+            Index, line = dict_check(fragmoldict, arr[4], line, Index, 2, arr[8])
             with open('indexed_selection', 'a') as indexfile:
                 indexfile.write(line.rstrip('\n') + '\n')
     end = time.time()

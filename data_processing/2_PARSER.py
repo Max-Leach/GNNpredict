@@ -8,8 +8,8 @@ Criteria includes:
  * Non-Isotopic
  * No formal charges
  * Limited to [C,H,N,O,P,S,Si,Cl,B,F] 
- * Building block* limited via bond types, and bonded atoms to selected cases[]
- * 3 and 4 membered rings involving cases[] removed
+ * Building block* limited via bond types, and bonded atoms to selected *cases
+ * 3 and 4 membered rings involving *cases removed
 
 This program, conducts the criteria search and returns the valid molecules with an associated heavy atom count
 '''

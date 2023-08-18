@@ -2,6 +2,8 @@ from rdkit import Chem
 import sys
 
 '''
+Extra file used to limit allowed substructures, redundant as reimplemented in 2_PARSER.py
+
 [3]B -> 3 single bonds 
 
 [3]P -> 3 single bonds

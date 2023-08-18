@@ -24,7 +24,7 @@ def loadrows(filename, start=0, numrows=steps):
 
 #Outputs bond types to respective csv file
 def writetofile(df):
-    df.columns = ['Serial','Parent', 'Pid', 'Frag1', 'Frag2', 'BDE','BondType', 'Heavy', 'Diversity']
+    df.columns = ['Serial','Parent', 'Pid', 'Frag1', 'Frag2', 'BDE','BDH','BondIndex','BondType', 'Heavy', 'Diversity']
     df = df.drop_duplicates(subset=['Parent', 'Frag1', 'Frag2'], keep='first')
     grp = df.groupby(df.BondType)
     variants = df['BondType'].unique()

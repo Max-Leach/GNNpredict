@@ -6,7 +6,9 @@ import logging
 
 '''
 This program fragments the molecules by breaking single bonds
+dataset header: ['Serial','Parent', 'Pid', 'Frag1', 'Frag2', 'BDE','BDH','BondIndex','BondType', 'Heavy', 'Diversity']
 '''
+
 
 #Stores fragments
 def fragmentall(file1, file2):
@@ -16,8 +18,8 @@ def fragmentall(file1, file2):
         parentcount += 1
         for series in fragment_iterator(linearr[1]):
             if (series['fragment1'] != '') and (series['fragment2'] != ''): 
-                file2.write(str(csvcount) + ',' + str(parentcount) + ',' + linearr[1] + ',' + series['fragment1'] + ',' + series['fragment2'] + ',' + '' + ','  + 
-                            series['bond_type'] + ',' + linearr[2]+ ',' + linearr[3])
+                file2.write(str(csvcount) + ',' + str(parentcount) + ',' + linearr[1] + ',' + series['fragment1'] + ',' + series['fragment2'] + ',' + '' + ','  + ''+ ',' 
+                            + series['bond_index'] + series['bond_type'] + ',' + linearr[2]+ ',' + linearr[3])
                 csvcount += 1
                 if ((csvcount % 1000000) == 0): print(f"Fragmentpairs: {csvcount}, Parents: {parentcount}")
 

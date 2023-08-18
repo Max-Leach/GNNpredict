@@ -4,6 +4,8 @@ import rdkit
 import pandas as pd
 import re
 
+''' Added bond indices, redundant as is present in 4_fragmentgen.py'''
+
 def ld_points(line):
     split = line.split(',')
     return [split[2], split[3], split[4]]
