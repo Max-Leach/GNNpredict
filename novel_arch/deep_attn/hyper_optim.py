@@ -1,5 +1,6 @@
 from ray import tune
-from ray.tune.schedulers import AsyncHyperBandScheduler
+from ray.tune.search.bohb import TuneBOHB
+from ray.tune.schedulers import HyperBandForBOHB
 from ray.air import session, Checkpoint
 import ray
 
@@ -68,11 +69,11 @@ def valid_reporter(scores, losses, epoch, model, optim):
 def eval_on_config(config, dset_ref, indices_ref, model_construct):
     model = model_construct(config)
     loss_fn = MSELoss()
-    optim = {
+    optim_select = {
         'adam': lambda lr: Adam(model.parameters(), lr=lr*10), # <---!!!! adam does better with higher lr
         'lion': lambda lr: Lion(model.parameters(), lr=lr),
     }
-    op = optim[config['optim']](lr=config['lr'])
+    op = optim_select[config['optim']](lr=config['lr'])
     dset = ray.get(dset_ref)
     indices = ray.get(indices_ref)
     subset = BDESubset(dset, indices)
@@ -84,7 +85,7 @@ def eval_on_config(config, dset_ref, indices_ref, model_construct):
         checkpoint_state = checkpoint.to_dict()
         start_epoch = checkpoint_state["epoch"]
         model.load_state_dict(checkpoint_state["net_state_dict"])
-        optimizer.load_state_dict(checkpoint_state["optimizer_state_dict"])
+        op.load_state_dict(checkpoint_state["optimizer_state_dict"])
     else:
         start_epoch = 0
     
@@ -106,21 +107,24 @@ def tweak_model_on_config(model_construct, config, save_path, indices, num_sampl
     indices_ref = ray.put(indices)
     dset_ref = ray.put(dset)
 
-    scheduler = AsyncHyperBandScheduler(time_attr='training_iteration', max_t=1000, grace_period=8, metric='loss', mode='min', reduction_factor=2)
+    # scheduler = AsyncHyperBandScheduler(time_attr='training_iteration', max_t=1000, grace_period=8, metric='loss', mode='min', reduction_factor=2)
+    # result = tune.run(
+    #             lambda config: eval_on_config(config, dset_ref, indices_ref, model_construct), 
+    #             config=config, 
+    #             num_samples=num_samples, 
+    #             scheduler=scheduler
+    #             )
+    alg = TuneBOHB(metric='loss', mode='min', max_concurrent=56)
+    sched = HyperBandForBOHB(time_attr='training_iteration', metric='loss', mode='min', max_t=1000)
     result = tune.run(
                 lambda config: eval_on_config(config, dset_ref, indices_ref, model_construct), 
                 config=config, 
                 num_samples=num_samples, 
-                scheduler=scheduler
+                scheduler=sched,
+                search_alg=alg,
                 )
     with open(os.path.join(save_path, 'results'), 'wb+') as f:
         pickle.dump(result, f)
-
-    # best_trial = result.get_best_trial("mae", "min", "last")
-    # print('Final Results')
-    # print('best trial', best_trial.config)
-    # for m_n in ['loss', 'mape', 'mae']:
-    #     print('final {} in trial'.format(m_n), best_trial.last_result[m_n])
 
 def run_optim(arg, remain_args):
     dset = BDEDataset.load('/home/preet/data/dset_lazy/dset')
