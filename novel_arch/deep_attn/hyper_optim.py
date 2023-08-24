@@ -77,7 +77,7 @@ def eval_on_config(config, dset_ref, indices_ref, model_construct):
     dset = ray.get(dset_ref)
     indices = ray.get(indices_ref)
     subset = BDESubset(dset, indices)
-    valid_tester, train_set, _ = train_test_split(subset, test_batch_size=400, num_workers=4)
+    valid_tester, train_set, _ = train_test_split(subset, test_batch_size=400, num_workers=1)
 
     checkpoint = session.get_checkpoint()
 
@@ -91,7 +91,7 @@ def eval_on_config(config, dset_ref, indices_ref, model_construct):
     
     lr_sched = ReduceLROnPlateau(op, factor=config['lrs_factor'], patience=config['lrs_patience'], threshold=config['lrs_threshold'])
 
-    train_loader = RxnDataLoader(train_set, batch_size=config['batch_size'], shuffle=True, num_workers=4)
+    train_loader = RxnDataLoader(train_set, batch_size=config['batch_size'], shuffle=True, num_workers=1)
     trainer = Trainer(epochs=config['epochs'], 
                     optim_construct=lambda params: op, 
                     loss_fn=lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), 
@@ -114,14 +114,19 @@ def tweak_model_on_config(model_construct, config, save_path, indices, num_sampl
     #             num_samples=num_samples, 
     #             scheduler=scheduler
     #             )
-    alg = TuneBOHB(metric='loss', mode='min', max_concurrent=20)
-    sched = HyperBandForBOHB(time_attr='training_iteration', metric='loss', mode='min', max_t=1000)
+    # alg = TuneBOHB(metric='loss', mode='min', max_concurrent=20)
+    # sched = HyperBandForBOHB(time_attr='training_iteration', metric='loss', mode='min', max_t=1000)
+    # result = tune.run(
+    #             lambda config: eval_on_config(config, dset_ref, indices_ref, model_construct), 
+    #             config=config, 
+    #             num_samples=num_samples, 
+    #             scheduler=sched,
+    #             search_alg=alg,
+    #             )
     result = tune.run(
                 lambda config: eval_on_config(config, dset_ref, indices_ref, model_construct), 
                 config=config, 
                 num_samples=num_samples, 
-                scheduler=sched,
-                search_alg=alg,
                 )
     with open(os.path.join(save_path, 'results'), 'wb+') as f:
         pickle.dump(result, f)
