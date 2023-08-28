@@ -65,10 +65,11 @@ class KFoldCV:
         random.shuffle(indices)
         self.fold_indices = [indices[slicing[i]:slicing[i+1]] for i in range(len(slicing) - 1)]
 
-    # dont forget about lr scheduler in epoch fn!
+    # model_construct - build new model for each fold
+    # create_epoch_fn - creates a callable entity for use every epoch, takes in a learn rate scheduler
+    # lr_sched_construct - create new learn rate scheduler with a given optimizer
+    # path - where to save results
     def run_on_model_construct(self, model_construct, create_epoch_fn, lr_sched_construct, path):
-        # valid_scores = []
-        # test_scores = {mn : [] for mn in self.metric_fns}
         with dask.config.set({"distributed.worker.daemon": False}):
             cluster = LocalCluster(processes=True)
             client = Client(cluster)
@@ -102,10 +103,6 @@ class KFoldCV:
                     tester = TestonSet(test_loader, self.metric_fns, handle_mod_out=self.test_handle_mod_out)
                     metrics = tester(model)
                     logging.info('>>> fold metrics: {}'.format(metrics))
-                    return (metrics[mn], len(self.fold_indices[test_fold_i])), score, losses, vals
+                    return (metrics, len(self.fold_indices[test_fold_i])), score, losses, vals
                 test_trains = client.submit(fold_i_task)
             return client.gather(test_trains)
-
-# valid_reporter=lambda valid_score, losses, e, model, optim: valid_reporter(valid_score, losses, e, model, vals, path),
-#         iter_reporter=lambda loss, model, e, i: iter_reporter(loss, model, e, i, losses, path), 
-#         epoch_fn=lambda scores, epoch: lr_sched.step(scores['loss'])
