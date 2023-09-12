@@ -1,4 +1,5 @@
 import sys
+import os
 from novel_arch.deep_attn import hyper_optim
 from novel_arch.deep_attn.model_trials import run_model_trial
 from novel_arch.deep_attn.kfold import kfold_trial
@@ -6,8 +7,9 @@ import logging
 import torch
 
 if __name__ == '__main__':
+    os.environ['TUNE_DISABLE_AUTO_CALLBACK_LOGGERS'] = '1'
+
     logging.basicConfig(format='%(message)s', level=logging.DEBUG)
-    # torch.multiprocessing.set_sharing_strategy('file_system')
     torch.multiprocessing.set_forkserver_preload(["torch"])
 
     opers = {

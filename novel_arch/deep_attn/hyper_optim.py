@@ -1,7 +1,7 @@
 from ray import tune
 from ray.tune.search.bohb import TuneBOHB
 from ray.tune.schedulers import HyperBandForBOHB
-from ray.air import session, Checkpoint
+from ray.air import session, Checkpoint, RunConfig, CheckpointConfig
 import ray
 
 from lion_pytorch import Lion
@@ -57,8 +57,9 @@ def get_config(key):
 def valid_reporter(scores, losses, epoch, model, optim):
     checkpoint_data = {
         "epoch": epoch,
-        "net_state_dict": model.state_dict(),
-        "optimizer_state_dict": optim.state_dict(),
+        # these two below take up so much space jesus
+        # "net_state_dict": model.state_dict(),
+        # "optimizer_state_dict": optim.state_dict(),
     }
     checkpoint = Checkpoint.from_dict(checkpoint_data)
 
@@ -106,28 +107,22 @@ def eval_on_config(config, dset_ref, indices_ref, model_construct):
 def tweak_model_on_config(model_construct, config, save_path, indices, num_samples=3, dset=None):
     indices_ref = ray.put(indices)
     dset_ref = ray.put(dset)
-
-    # scheduler = AsyncHyperBandScheduler(time_attr='training_iteration', max_t=1000, grace_period=8, metric='loss', mode='min', reduction_factor=2)
-    # result = tune.run(
-    #             lambda config: eval_on_config(config, dset_ref, indices_ref, model_construct), 
-    #             config=config, 
-    #             num_samples=num_samples, 
-    #             scheduler=scheduler
-    #             )
-    # alg = TuneBOHB(metric='loss', mode='min', max_concurrent=20)
-    # sched = HyperBandForBOHB(time_attr='training_iteration', metric='loss', mode='min', max_t=1000)
-    # result = tune.run(
-    #             lambda config: eval_on_config(config, dset_ref, indices_ref, model_construct), 
-    #             config=config, 
-    #             num_samples=num_samples, 
-    #             scheduler=sched,
-    #             search_alg=alg,
-    #             )
-    result = tune.run(
-                lambda config: eval_on_config(config, dset_ref, indices_ref, model_construct), 
-                config=config, 
-                num_samples=num_samples, 
-                )
+    ray_dump = os.environ['SLURM_TMPDIR']
+    tuner = tune.Tuner(
+        lambda config: eval_on_config(config, dset_ref, indices_ref, model_construct), 
+        param_space=config,
+        tune_config=tune.TuneConfig(
+            num_samples=num_samples,
+        ),
+        run_config=RunConfig(
+            storage_path=os.path.join(ray_dump, 'ray_garbage'),
+            # checkpoint_config=CheckpointConfig(
+            #     num_to_keep=1,
+            #     checkpoint_frequency=0,
+            # )
+        )
+    )
+    result = tuner.fit()
     with open(os.path.join(save_path, 'results'), 'wb+') as f:
         pickle.dump(result, f)
 
