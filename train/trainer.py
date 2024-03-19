@@ -1,5 +1,6 @@
 import logging
 import torch
+import os
 
 ## train inputted model same way each time
 class Trainer:
@@ -79,7 +80,7 @@ class Trainer:
                 logging.info('>> validation after epoch {} : {}'.format(self.epochs_current, valid_score))
             self.epochs_current += 1
             if self.save_dir != None:
-                with open(self.save_dir, 'wb') as f:
+                with open(os.path.join(self.save_dir, 'train_state'), 'wb') as f:
                     torch.save(
                         {
                             'optim': self.optim.state_dict(), 
@@ -91,8 +92,8 @@ class Trainer:
                         f)
         return self.losses
 
-    def restore(self, path):
-        with open(path, 'rb') as f:
+    def restore(self, save_dir):
+        with open(os.path.join(self.save_dir, 'train_state'), 'rb') as f:
             items = torch.load(f)
             # self.optim = items['optim']
             self.model = items['model']
