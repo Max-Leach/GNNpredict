@@ -3,6 +3,8 @@ import torch
 import os
 
 ## train inputted model same way each time
+# restart from previously saved if save_dir is not none and a training state is found
+# assumes model, opt, and lr sched are all same type
 class Trainer:
     def __init__(self, epochs, optim_construct, loss_fn, validator, train_loader, load_handle, iter_reporter=lambda loss, model, e, i: None, valid_reporter=lambda scores, losses, epoch, model, optim: None, epoch_fn=lambda scores, epoch: None, save_dir=None, lr_sched_construct=None, model=None):
         self.optim_construct = optim_construct # construct optimizer on model
@@ -22,7 +24,7 @@ class Trainer:
         self.lr_sched = None
 
     def __call__(self):
-        if os.path.exists(os.path.join(self.save_dir, 'train_state')):
+        if self.save_dir != None and os.path.exists(os.path.join(self.save_dir, 'train_state')):
             self._restore()
             logging.info('---- restarting train cycle from epoch {} ----'.format(self.epochs_current))
         else:
@@ -32,34 +34,8 @@ class Trainer:
             self.losses = []
             logging.info('---- initiating train cycle ----')
         return self._resume_train()
-        # while self.epochs_completed < self.total_epochs:
-        #     losses.append([])
-        #     logging.info('---- on epoch {} ----'.format(self.epochs_completed))
-        #     for i, dat in enumerate(self.train_loader):
-        #         mod_in, targ = self.load_handle(dat)
-        #         model.train()
-        #         pred = model(*mod_in)
-        #         loss = self.loss_fn(pred, targ)
-        #         logging.info('{} - loss {}'.format(i, loss.detach().item()))
-        #         optim.zero_grad()
-        #         loss.backward()
-        #         optim.step()
-        #         self.iter_reporter(loss.detach().item(), model, self.epochs_completed, i)
-        #         losses[-1].append(loss.detach().item())
-        #     valid_score = self.validator(model)
-        #     self.epoch_fn(valid_score, self.epochs_completed)
-        #     self.valid_reporter(valid_score, losses, self.epochs_completed, model, optim)
-        #     if valid_score != None:
-        #         logging.info('>> validation after epoch {} : {}'.format(self.epochs_completed, valid_score))
-        #     self.epochs_completed += 1
-        # return losses
 
     def _resume_train(self):
-        # assert self.model != None, "nothing to resume"
-        # logging.info('---- training cycle from epoch {} ----'.format(self.epochs_current))
-        # self.optim = self.optim_construct(model.parameters())
-        # self.model = model
-        # self.losses = []
         while self.epochs_current < self.total_epochs:
             self.losses.append([])
             logging.info('---- on epoch {} ----'.format(self.epochs_current))
