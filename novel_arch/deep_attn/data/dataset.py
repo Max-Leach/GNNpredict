@@ -242,8 +242,9 @@ class BDEDataset(Dataset):
             graph_refs = [rp for rplist in self.r_p_graph_ref[idx] for rp in rplist]
             graphs = [self.get_dgl(i) for i in graph_refs]
             # VVVV this may be wrong!
-            feats = {nt : self.transform[nt](self.get_feats(nt, idx)) for nt in self.feats}
-            self.rxn_feat_gens[i].reacs, self.rxn_feat_gens[i].prods = [0], [1, 2] # doesn't change due to fixed way graphs are aggregated above
+            # feats = {nt : self.transform[nt](self.get_feats(nt, idx)) for nt in self.feats}
+            feats = {nt : self.transform[nt](torch.cat([self.get_feats(nt, r) for r in graph_refs])) for nt in ['bond', 'atom', 'global']}
+            self.rxn_feat_gens[idx].reacs, self.rxn_feat_gens[idx].prods = [0], [1, 2] # doesn't change due to fixed way graphs are aggregated above
         else:
             graphs = None
             feats = None

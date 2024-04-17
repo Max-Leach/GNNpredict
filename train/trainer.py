@@ -4,7 +4,7 @@ import os
 
 ## train inputted model same way each time
 class Trainer:
-    def __init__(self, epochs, optim_construct, loss_fn, validator, train_loader, load_handle, iter_reporter=lambda loss, model, e, i: None, valid_reporter=lambda scores, losses, epoch, model, optim: None, epoch_fn=lambda scores, epoch: None, save_dir=None, lr_sched_construct=None):
+    def __init__(self, epochs, optim_construct, loss_fn, validator, train_loader, load_handle, iter_reporter=lambda loss, model, e, i: None, valid_reporter=lambda scores, losses, epoch, model, optim: None, epoch_fn=lambda scores, epoch: None, save_dir=None, lr_sched_construct=None, model=None):
         self.optim_construct = optim_construct # construct optimizer on model
         self.loss_fn = loss_fn # can customize to reshape outputs properly
         self.validator = validator # tester type of class
@@ -16,20 +16,22 @@ class Trainer:
         self.epoch_fn = epoch_fn # runs at end of each epoch
         self.save_dir = save_dir
         self.lr_sched_construct = lr_sched_construct
+        self.model = model
         self.epochs_current = None
         self.optim = None
         self.lr_sched = None
-        self.model = None
 
-    def __call__(self, model):
-        assert self.model == None, "looks like this Trainer object is already being used"
-        logging.info('---- initiating train cycle ----')
-        self.optim = self.optim_construct(model.parameters())
-        self.epochs_current = 0
-        self.model = model
-        self.lr_sched = self.lr_sched_construct(self.optim)
-        self.losses = []
-        return self.resume_train()
+    def __call__(self):
+        if os.path.exists(os.path.join(self.save_dir, 'train_state')):
+            self._restore()
+            logging.info('---- restarting train cycle from epoch {} ----'.format(self.epochs_current))
+        else:
+            self.optim = self.optim_construct(self.model.parameters())
+            self.epochs_current = 0
+            self.lr_sched = self.lr_sched_construct(self.optim)
+            self.losses = []
+            logging.info('---- initiating train cycle ----')
+        return self._resume_train()
         # while self.epochs_completed < self.total_epochs:
         #     losses.append([])
         #     logging.info('---- on epoch {} ----'.format(self.epochs_completed))
@@ -52,9 +54,9 @@ class Trainer:
         #     self.epochs_completed += 1
         # return losses
 
-    def resume_train(self):
-        assert self.model != None, "nothing to resume"
-        logging.info('---- training cycle from epoch {} ----'.format(self.epochs_current))
+    def _resume_train(self):
+        # assert self.model != None, "nothing to resume"
+        # logging.info('---- training cycle from epoch {} ----'.format(self.epochs_current))
         # self.optim = self.optim_construct(model.parameters())
         # self.model = model
         # self.losses = []
@@ -85,18 +87,17 @@ class Trainer:
                         {
                             'optim': self.optim.state_dict(), 
                             'lr_sched': self.lr_sched.state_dict(),
-                            'model': self.model, 
+                            'model': self.model.state_dict(), 
                             'epochs_current': self.epochs_current, 
                             'losses': self.losses
                         }, 
                         f)
         return self.losses
 
-    def restore(self, save_dir):
+    def _restore(self):
         with open(os.path.join(self.save_dir, 'train_state'), 'rb') as f:
             items = torch.load(f)
-            # self.optim = items['optim']
-            self.model = items['model']
+            self.model.load_state_dict(items['model'])
             self.optim = self.optim_construct(self.model.parameters())
             self.optim.load_state_dict(items['optim'])
             self.lr_sched = self.lr_sched_construct(self.optim)
