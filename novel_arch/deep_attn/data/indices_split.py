@@ -55,20 +55,3 @@ def split_by_bts(bt_to_indices, set_sizes):
             idxs = idxs[:-pop_len]
     
     return set_indices
-
-    # set_lens = [set_sizes[0]]
-    # for s in set_sizes[1:]:
-    #     set_lens.append(s + set_lens[-1])
-    # set_indices = [{}] * len(set_sizes)
-    # # sums of ratios are above for splitting indices
-    # for bt in bt_to_indices.keys():
-    #     for i in range(len(set_indices)):
-    #         set_indices[i][bt] = 
-
-    #     all_indices = list(range(len(dset)))
-    # random.shuffle(all_indices)
-    # split = int(0.9 * len(all_indices))
-    # train_split = all_indices[:split]
-    # test_split = all_indices[split:]
-    # train_set = BDESubset(dset, train_split)
-    # test_set = BDESubset(dset, test_split)
