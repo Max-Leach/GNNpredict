@@ -54,6 +54,15 @@ def valid_reporter(valid_score, losses, e, model, val_list, path):
         with open(os.path.join(path, 'best_model_vals'), 'wb+') as f:
             pickle.dump((e, valid_score), f)
 
+def should_stop_if_no_mae_decrease(epochs_current, valid_scores, min_epochs, num_epochs_of_no_drop):
+    if epochs_current < min_epochs or epochs_current < num_epochs_of_no_drop:
+        return False
+    thres = valid_scores[-num_epochs_of_no_drop]['mae']
+    for vs in valid_scores[-num_epochs_of_no_drop:]:
+        if vs['mae'] < thres:
+            return False
+    return True
+
 def run_trial(args):
     #refer to sum_injective_deep_batch for starting point
     main_dset = BDEDataset.load(args.dset_path)
@@ -92,14 +101,6 @@ def run_trial(args):
     losses = []
     vals = []
 
-    # lr_sched = ReduceLROnPlateau(optim, factor=args.reducelr_factor, patience=args.reducelr_patience, threshold=args.reducelr_threshold)
-    # trainer = Trainer(args.epochs, lambda p: optim, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
-    #     RxnDataLoader(train_set, batch_size=args.batch_size, shuffle=True), 
-    #     lambda items: deep_attn_item_handle(items, device=device), 
-    #     valid_reporter=lambda valid_score, losses, e, model, optim: valid_reporter(valid_score, losses, e, model, vals, args.path),
-    #     iter_reporter=lambda loss, model, e, i: iter_reporter(loss, model, e, i, losses, args.path), 
-    #     epoch_fn=lambda scores, epoch: lr_sched.step(scores['loss']))
-
     optim_construct = lambda params: Lion(params, lr=args.learn_rate)
     lr_sched_construct = lambda o: ReduceLROnPlateau(optim, factor=args.reducelr_factor, patience=args.reducelr_patience, threshold=args.reducelr_threshold)
     trainer = Trainer(args.epochs, optim_construct, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
@@ -110,6 +111,7 @@ def run_trial(args):
         lr_sched_construct=lr_sched_construct,
         # epoch_fn=lambda scores, epoch: lr_sched.step(scores['loss']),
         save_dir=args.path,
+        should_stop=lambda epochs_current, valid_scores: should_stop_if_no_mae_decrease(epochs_current, valid_scores, args.min_epochs, args.epochs_of_no_mae_drop_before_stop),
         model=model,
         )
     trainer()
@@ -136,6 +138,9 @@ if __name__ == "__main__":
     parser.add_argument('--reducelr_patience', type=int, required=True)
     parser.add_argument('--reducelr_threshold', type=float, required=True)
     parser.add_argument('--device', type=str, required=False)
+    
+    parser.add_argument('--min_epochs', type=int, required=True)
+    parser.add_argument('--epochs_of_no_mae_drop_before_stop', type=int, required=True)
 
     args = parser.parse_args()
     # if train_state exists, check arg signature to see if matches current one

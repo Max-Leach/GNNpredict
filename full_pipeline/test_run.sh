@@ -22,3 +22,6 @@ python $RUN_PATH \
         --reducelr_factor 0.8 \
         --reducelr_patience 15 \
         --reducelr_threshold 0.01 \
+        \
+        --min_epochs 5 \
+        --epochs_of_no_mae_drop_before_stop 10 \

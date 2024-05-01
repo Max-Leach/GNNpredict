@@ -1,12 +1,13 @@
 import logging
 import torch
+import pickle
 import os
 
 ## train inputted model same way each time
 # restart from previously saved if save_dir is not none and a training state is found
 # assumes model, opt, and lr sched are all same type
 class Trainer:
-    def __init__(self, epochs, optim_construct, loss_fn, validator, train_loader, load_handle, iter_reporter=lambda loss, model, e, i: None, valid_reporter=lambda scores, losses, epoch, model, optim: None, epoch_fn=lambda scores, epoch: None, save_dir=None, lr_sched_construct=None, model=None):
+    def __init__(self, epochs, optim_construct, loss_fn, validator, train_loader, load_handle, iter_reporter=lambda loss, model, e, i: None, valid_reporter=lambda scores, losses, epoch, model, optim: None, epoch_fn=lambda scores, epoch: None, save_dir=None, lr_sched_construct=None, should_stop=None, model=None):
         self.optim_construct = optim_construct # construct optimizer on model
         self.loss_fn = loss_fn # can customize to reshape outputs properly
         self.validator = validator # tester type of class
@@ -22,6 +23,7 @@ class Trainer:
         self.epochs_current = None
         self.optim = None
         self.lr_sched = None
+        self.should_stop = should_stop
 
     def __call__(self):
         if self.save_dir != None and os.path.exists(os.path.join(self.save_dir, 'train_state')):
@@ -32,6 +34,7 @@ class Trainer:
             self.epochs_current = 0
             self.lr_sched = self.lr_sched_construct(self.optim)
             self.losses = []
+            self.valid_scores = []
             logging.info('---- initiating train cycle ----')
         return self._resume_train()
 
@@ -51,6 +54,7 @@ class Trainer:
                 self.iter_reporter(loss.detach().item(), self.model, self.epochs_current, i)
                 self.losses[-1].append(loss.detach().item())
             valid_score = self.validator(self.model)
+            self.valid_scores.append(valid_score)
             self.epoch_fn(valid_score, self.epochs_current)
             self.lr_sched.step(valid_score['loss'])
             self.valid_reporter(valid_score, self.losses, self.epochs_current, self.model, self.optim)
@@ -65,9 +69,14 @@ class Trainer:
                             'lr_sched': self.lr_sched.state_dict(),
                             'model': self.model.state_dict(), 
                             'epochs_current': self.epochs_current, 
-                            'losses': self.losses
+                            'losses': self.losses,
+                            'valid_scores': self.valid_scores
                         }, 
                         f)
+            if self.should_stop(self.epochs_current, self.valid_scores):
+                with open(os.path.join(self.save_dir, 'early_stopped'), 'wb+') as f:
+                    pickle.dump('epoch {}'.format(self.epochs_current), f)
+                break
         return self.losses
 
     def _restore(self):
@@ -80,3 +89,4 @@ class Trainer:
             self.lr_sched.load_state_dict(items['lr_sched'])
             self.epochs_current = items['epochs_current']
             self.losses = items['losses']
+            self.valid_scores = items['valid_scores']
