@@ -4,9 +4,8 @@ from itertools import chain
 import os
 import pickle
 
-def test():
-    root = '/home/moistry/Documents/research/data/dry_run/'
-    dpath = '/home/moistry/Documents/research/data/ALFABET_data/acp_updated_NoDupes.csv'
+def do(save_dir, dpath):
+    root = save_dir
     max_lines = 2000
 
     dset = from_csv(dpath, max_lines=max_lines, start_line=1)
