@@ -4,17 +4,20 @@ from itertools import chain
 import os
 import pickle
 
-def do(save_dir, dpath):
+# save dir - path for saving dset
+# csv_path - csv source location
+# split - list of fractions to split indices, must sum to 1
+def do(save_dir, csv_path, split):
     root = save_dir
-    max_lines = 2000
+    dpath = csv_path
 
-    dset = from_csv(dpath, max_lines=max_lines, start_line=1)
+    dset = from_csv(dpath, start_line=1)
     dset_path = os.path.join(root, 'fake_dset')
     dset.save(dset_path, as_lazy=True)
 
-    bt2indices = compile_indices(dpath, max_lines=max_lines)
+    bt2indices = compile_indices(dpath)
     rev_bt = reverse_bt_to_indices(bt2indices)
-    train, test, valid = split_by_bts(bt2indices, [0.8, 0.1, 0.1])
+    train, test, valid = split_by_bts(bt2indices, split)
     with open(os.path.join(root, 'train_indices_d'), 'wb+') as f:
         pickle.dump(train, f)
     with open(os.path.join(root, 'valid_indices_d'), 'wb+') as f:
