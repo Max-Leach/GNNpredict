@@ -7,7 +7,7 @@ def deep_attn_item_handle(items, device=None):
         dat[0] = dat[0].to(device)
         for n in dat[1].keys():
             dat[1][n] = dat[1][n].to(device)
-    return dat[:3], val # just omit the idxs entry
+    return dat[:3], val.to(device) # just omit the idxs entry
 
 ## handle items - take raw output from loader, return value and valid model inputs
 def eval_metrics_over_loader(model, loader, metric_fns: dict, handle_items=deep_attn_item_handle, handle_mod_out=lambda x: x):
