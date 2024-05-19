@@ -56,7 +56,7 @@ class AtomAggregUpdate(nn.Module):
         g = graph.local_var()
 
         # store atom indices
-        g.nodes['atom'].data.update({'i' : torch.arange(g.num_nodes('atom')).float()})
+        g.nodes['atom'].data.update({'i' : torch.arange(g.num_nodes('atom'), device=g.device).float()})
         # atom features to bond transfer for edge + atom agggregation
         g.update_all(fn.copy_u("ft", "ft_a"), copy_mailbox_feat_repeat_if_single('ft_a'), etype="a2b")
         g.update_all(fn.copy_u("i", "i_a"), copy_mailbox_feat_repeat_if_single('i_a'), etype="a2b")
