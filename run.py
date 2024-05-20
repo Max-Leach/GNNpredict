@@ -145,11 +145,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
     # if train_state exists, check arg signature to see if matches current one
     # otherwise it is a bad restart
+    args_d = vars(args).copy()
+    args_d.pop('device', None) # this is so device can be changed with same hyperparameters
     if os.path.exists(os.path.join(args.path, 'train_state')):
         with open(os.path.join(args.path, 'arg_signature'), 'rb') as arg_f:
             arg_sig = pickle.load(arg_f)
-            assert arg_sig == vars(args), 'Pre-existing save but arguments do not match!'
+            assert arg_sig == args_d, 'Pre-existing save but arguments do not match!'
     else:
         with open(os.path.join(args.path, 'arg_signature'), 'wb+') as arg_f:
-            pickle.dump(vars(args), arg_f)
+            pickle.dump(args_d, arg_f)
     run_trial(args)
