@@ -15,7 +15,7 @@ def compile_indices(path, bondtype_col=6, start_line=1, max_lines=None):
         bt_to_indices = {}
         for i, rxn_line in enumerate(csv_list[start_line:max_lines]):
             e = rxn_line[bondtype_col]
-            bt = tuple(sorted(e.replace('-','').upper()))
+            bt = e
             if bt not in bt_to_indices:
                 bt_to_indices[bt] = []
             bt_to_indices[bt].append(i)
