@@ -147,6 +147,9 @@ if __name__ == "__main__":
     # otherwise it is a bad restart
     args_d = vars(args).copy()
     args_d.pop('device', None) # this is so device can be changed with same hyperparameters
+    if os.path.exists(os.path.join(args.path, 'early_stopped')):
+        print('Trial has already been early stopped!')
+        exit()
     if os.path.exists(os.path.join(args.path, 'train_state')):
         with open(os.path.join(args.path, 'arg_signature'), 'rb') as arg_f:
             arg_sig = pickle.load(arg_f)
