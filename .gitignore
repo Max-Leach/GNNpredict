@@ -160,6 +160,5 @@ cython_debug/
 #.idea/
 
 
-bondnet_smpl
 *.pkl
 alf_smpl.csv
