@@ -6,15 +6,14 @@ from novel_arch.deep_attn.feat_evolve import OrderedGraphFeatUpdate
 from novel_arch.deep_attn.feat_type_updaters import EdgeNeighborUpdate, AtomAggregUpdate, GlobalAggregUpdate
 from novel_arch.deep_attn.feat_type_updaters import atom_mean, bond_mean
 from novel_arch.deep_attn.readout import Set2Set
-from novel_arch.deep_attn.data.rxn_graph import bde_batch_to_feats, bondnet_batch_to_own, get_rxn_feat_list
+from novel_arch.deep_attn.data.rxn_graph import bde_batch_to_feats, get_rxn_feat_list
 
 class DeepAttn(nn.Module):
     ''' deeper state evolution, just add nearby atoms + edges for atom feat update '''
     ''' graph_inner_layer_sizes - how wide individual layers in gnn portion will be, is independent of graph_layers count '''
-    def __init__(self, atom_aggregators, b2g_aggregators, a2g_aggregators, in_feat_sizes, graph_hidden_size, graph_layers, graph_inner_layer_sizes=[], residual=True, fc_readout_sizes=[128, 64], set2set_iters=6, set2set_layers=3, dropout=0.0, atom_include_edges=True, injective_readout=False, use_bondnet_data=False):
+    def __init__(self, atom_aggregators, b2g_aggregators, a2g_aggregators, in_feat_sizes, graph_hidden_size, graph_layers, graph_inner_layer_sizes=[], residual=True, fc_readout_sizes=[128, 64], set2set_iters=6, set2set_layers=3, dropout=0.0, atom_include_edges=True, injective_readout=False):
         super().__init__()
 
-        self.use_bondnet_data = use_bondnet_data
         embedding_size = graph_hidden_size
         self.embedders = nn.ModuleDict({k : nn.Linear(in_feat_sizes[k], embedding_size) for k in in_feat_sizes})
         self.assemble_gnn(
@@ -109,15 +108,12 @@ class DeepAttn(nn.Module):
         ## reaction graph construction via difference of component graphs
         ## difference of reactant and product features to get reaction graph features
         ''' reaction graph construction via own method '''
-        if self.use_bondnet_data:
-            feats, graph = bondnet_batch_to_own(graph, feats, rxns)
+        if self.injective_readout:
+            feats = {nt : torch.cat([gf[nt] for gf in graph_feats], dim=-1) for nt in self.concat_order}
+            indiv_feats = get_rxn_feat_list(graph, feats, rxns)
         else:
-            if self.injective_readout:
-                feats = {nt : torch.cat([gf[nt] for gf in graph_feats], dim=-1) for nt in self.concat_order}
-                indiv_feats = get_rxn_feat_list(graph, feats, rxns)
-            else:
-                feats, graph = bde_batch_to_feats(graph, feats, rxns)  
-            # feats, graph = bde_batch_to_feats(graph, feats, rxns)
+            feats, graph = bde_batch_to_feats(graph, feats, rxns)  
+        # feats, graph = bde_batch_to_feats(graph, feats, rxns)
 
         if self.injective_readout: # sum and concat across all graph layers
             encoded_feats = [{fn : torch.sum(ftd[fn], dim=0) for fn in ftd} for ftd in indiv_feats]
@@ -129,8 +125,6 @@ class DeepAttn(nn.Module):
             encoded_feats.update(direct_feats)
         ## concat -> MLP to scalar
         feats = torch.cat([encoded_feats[nt] for nt in self.concat_order], dim=-1)
-
-        # feats = self.readout(graph, feats)
 
         for fc in self.fc_to_scalar:
             feats = fc(feats)

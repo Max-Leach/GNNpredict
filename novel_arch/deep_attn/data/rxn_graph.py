@@ -73,27 +73,3 @@ def bde_batch_to_feats(batched_graph, batched_feats, rxns):
     batched_graph = dgl.batch([gen.get_rxn_graph() for gen in rxns])
 
     return rxns_feats, batched_graph
-
-# bondnet-style reaction list + all features to single reaction graph
-# precursor to both: reaction graph production in actual model; preprocessing the dataset
-def bondnet_batch_to_own(batched_graph, batched_feats, reactions):
-    for nt in batched_feats:
-        batched_graph.nodes[nt].data.update({'ft': batched_feats[nt]})
-    # print('nombre d\'atom', batched_graph.num_nodes('atom'))
-    
-    graphs = dgl.unbatch(batched_graph)
-    graph_feats = [{nt: g.nodes[nt].data['ft'] for nt in batched_feats} for g in graphs]
-    rxn_in_feats = [{'reac' : [graph_feats[r] for r in rxn.reactants], 'prod' : [graph_feats[p] for p in rxn.products]} for rxn in reactions]
-    rxn_feat_gens = [BondDissociate(rxn.atom_mapping_as_list, rxn.bond_mapping_as_list, tuple(map(lambda m: len(m) > 0, rxn.bond_mapping)), graphs[rxn.reactants[0]]) for rxn in reactions]
-    
-    # arond this point will be where reactions processing will remain same for our set
-
-    rxns_feats_list = [gen.get_g_fts(rxn_in_feat['reac'], rxn_in_feat['prod']) for gen, rxn_in_feat in zip(rxn_feat_gens, rxn_in_feats)]
-
-    rxns_feats = {}
-    for nt in batched_feats.keys():
-        rxns_feats[nt] = torch.cat([ft[nt] for ft in rxns_feats_list])
-
-    batched_graph = dgl.batch([gen.get_rxn_graph() for gen in rxn_feat_gens])
-
-    return rxns_feats, batched_graph
