@@ -21,4 +21,5 @@ def eval_metrics_over_loader(model, loader, metric_fns: dict, handle_items=deep_
         for m_name, m_fn in metric_fns.items():
             metrics[m_name].append(m_fn(vals.flatten().detach().cpu(), preds.flatten().detach().cpu()) * item_count)
         tot_count += item_count
+        del mod_in, preds, vals
     return {m_name : sum(met) / tot_count for m_name, met in metrics.items()}
