@@ -17,7 +17,8 @@ class EdgeNeighborUpdate(nn.Module):
         self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias, batch_norm=True, dropout=dropout)
 
     def forward(self, feats, graph): # features are assumed to be loaded in before this fn
-        g = graph.local_var()
+        # g = graph.local_var()
+        g = graph
 
         g.multi_update_all(
             {
@@ -53,7 +54,8 @@ class AtomAggregUpdate(nn.Module):
         self.include_edges = include_edges
 
     def forward(self, feats, graph):
-        g = graph.local_var()
+        # g = graph.local_var()
+        g = graph
 
         # store atom indices
         g.nodes['atom'].data.update({'i' : torch.arange(g.num_nodes('atom'), device=g.device).float()})
@@ -157,7 +159,8 @@ class GlobalAggregUpdate(nn.Module):
         self.fc = mlp_from_sizes(in_mlp_size, out_size, inner_layer_sizes, bias=bias, batch_norm=True, dropout=dropout)
 
     def forward(self, feats, graph):
-        g = graph.local_var()
+        # g = graph.local_var()
+        g = graph
 
         g.update_all(fn.copy_u('ft', 'm'), self.atom_aggreg, etype='a2g')
         g.update_all(fn.copy_u('ft', 'm'), self.edge_aggreg, etype='b2g')

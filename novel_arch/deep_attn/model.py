@@ -99,7 +99,7 @@ class DeepAttn(nn.Module):
         graph_feats = [feats]
         for gl in self.graph_net:
             # feats = gl(feats, graph)
-            graph_feats.append(gl(graph_feats[-1], graph))
+            graph_feats.append(gl(graph_feats[-1], g))
         if self.injective_readout:
             graph_feats = graph_feats[1:]
         else:
@@ -110,9 +110,9 @@ class DeepAttn(nn.Module):
         ''' reaction graph construction via own method '''
         if self.injective_readout:
             feats = {nt : torch.cat([gf[nt] for gf in graph_feats], dim=-1) for nt in self.concat_order}
-            indiv_feats = get_rxn_feat_list(graph, feats, rxns)
+            indiv_feats = get_rxn_feat_list(g, feats, rxns)
         else:
-            feats, graph = bde_batch_to_feats(graph, feats, rxns)  
+            feats, g = bde_batch_to_feats(g, feats, rxns)  
         # feats, graph = bde_batch_to_feats(graph, feats, rxns)
 
         if self.injective_readout: # sum and concat across all graph layers
@@ -120,7 +120,7 @@ class DeepAttn(nn.Module):
             encoded_feats = {nt : torch.stack([f[nt] for f in encoded_feats], dim=0) for nt in self.concat_order}
         else:
             ## set2set to get 1 feature vector for each node type
-            encoded_feats = {nt : self.set2set_extract[nt](graph, feats[nt]) for nt in self.set2set_extract}
+            encoded_feats = {nt : self.set2set_extract[nt](g, feats[nt]) for nt in self.set2set_extract}
             direct_feats = {nt : feats[nt] for nt in self.direct_concat}
             encoded_feats.update(direct_feats)
         ## concat -> MLP to scalar
