@@ -58,8 +58,8 @@ def get_rxn_feat_list(batched_graph, batched_feats, rxns):
     graphs = dgl.unbatch(batched_graph)
     graph_feats = [{nt: g.nodes[nt].data['ft'] for nt in batched_feats} for g in graphs]
     rxn_in_feats = [{'reac' : [graph_feats[r] for r in rxn.reacs], 'prod' : [graph_feats[p] for p in rxn.prods]} for rxn in rxns]
-    for r in rxns:
-        r._final_graph = graphs[r._final_graph]
+    # for r in rxns:
+    #     r._final_graph = graphs[r._final_graph]
     rxn_feat_gens = rxns
     return [gen.get_g_fts(rxn_in_feat['reac'], rxn_in_feat['prod']) for gen, rxn_in_feat in zip(rxn_feat_gens, rxn_in_feats)]
 

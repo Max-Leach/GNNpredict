@@ -81,7 +81,7 @@ def run_trial(args):
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
     test_batch_size = 100 # should not affect any result, just time required to test
-    num_workers = 0
+    num_workers = 4
     if device == None:
         handle_mod_out=lambda x: (x * main_dset.val_stdev) + main_dset.val_mean
     else:
@@ -95,7 +95,7 @@ def run_trial(args):
                         graph_hidden_size=args.graph_hidden_size, 
                         fc_readout_sizes=args.fc_readout_sizes, )
     model = model.to(device)
-    begin_test = valid_tester(model)
+    # begin_test = valid_tester(model)
     loss_fn = MSELoss()
     optim = Lion(model.parameters(), lr=args.learn_rate)
     losses = []
@@ -104,7 +104,7 @@ def run_trial(args):
     optim_construct = lambda params: Lion(params, lr=args.learn_rate)
     lr_sched_construct = lambda o: ReduceLROnPlateau(optim, factor=args.reducelr_factor, patience=args.reducelr_patience, threshold=args.reducelr_threshold)
     trainer = Trainer(args.epochs, optim_construct, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
-        RxnDataLoader(train_set, batch_size=args.batch_size, shuffle=True), 
+        RxnDataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=num_workers), 
         lambda items: deep_attn_item_handle(items, device=device), 
         valid_reporter=lambda valid_score, losses, e, model, optim: valid_reporter(valid_score, losses, e, model, vals, args.path),
         iter_reporter=lambda loss, model, e, i: iter_reporter(loss, model, e, i, losses, args.path), 

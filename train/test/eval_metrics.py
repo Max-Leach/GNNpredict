@@ -9,7 +9,7 @@ def deep_attn_item_handle(items, device=None):
         graphs = graphs.to(device)
         for n in feats.keys():
             feats[n] = feats[n].to(device)
-    rxn_feat_gens = copy.deepcopy(rxn_feat_gens)
+    # rxn_feat_gens = copy.deepcopy(rxn_feat_gens) # to prevent dangling references as rxn_feat_gen gets modified during a forward pass
     return (graphs, feats, rxn_feat_gens), val.to(device) # just omit the idxs entry
 
 ## handle items - take raw output from loader, return value and valid model inputs
