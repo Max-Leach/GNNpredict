@@ -1,13 +1,16 @@
+import copy
+
 # handle items from deep_attn dataloader
 def deep_attn_item_handle(items, device=None):
     dat, val = items
+    graphs, feats, rxn_feat_gens, _ = dat
     
     if device != None:
-        dat = list(dat[:3])
-        dat[0] = dat[0].to(device)
-        for n in dat[1].keys():
-            dat[1][n] = dat[1][n].to(device)
-    return dat[:3], val.to(device) # just omit the idxs entry
+        graphs = graphs.to(device)
+        for n in feats.keys():
+            feats[n] = feats[n].to(device)
+    rxn_feat_gens = copy.deepcopy(rxn_feat_gens)
+    return (graphs, feats, rxn_feat_gens), val.to(device) # just omit the idxs entry
 
 ## handle items - take raw output from loader, return value and valid model inputs
 def eval_metrics_over_loader(model, loader, metric_fns: dict, handle_items=deep_attn_item_handle, handle_mod_out=lambda x: x):
