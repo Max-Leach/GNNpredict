@@ -97,12 +97,12 @@ def run_trial(args):
     model = model.to(device)
     # begin_test = valid_tester(model)
     loss_fn = MSELoss()
-    optim = Lion(model.parameters(), lr=args.learn_rate)
+    # optim = Lion(model.parameters(), lr=args.learn_rate)
     losses = []
     vals = []
 
     optim_construct = lambda params: Lion(params, lr=args.learn_rate)
-    lr_sched_construct = lambda o: ReduceLROnPlateau(optim, factor=args.reducelr_factor, patience=args.reducelr_patience, threshold=args.reducelr_threshold)
+    lr_sched_construct = lambda o: ReduceLROnPlateau(o, factor=args.reducelr_factor, patience=args.reducelr_patience, threshold=args.reducelr_threshold)
     trainer = Trainer(args.epochs, optim_construct, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
         RxnDataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=num_workers), 
         lambda items: deep_attn_item_handle(items, device=device), 
