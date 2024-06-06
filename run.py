@@ -37,7 +37,8 @@ def iter_reporter(loss, model, epoch, iter, loss_list, path):
     with open(os.path.join(path, 'iter_losses'), 'wb+') as f:
         pickle.dump(loss_list, f)
 
-def valid_reporter(valid_score, losses, e, model, val_list, path):
+def valid_reporter(valid_scores, losses, e, model, val_list, path):
+    valid_score = valid_scores[-1]
     with open(os.path.join(path, 'last_model'), 'wb+') as m:
         torch.save(model, m)
     val_list.append(valid_score)
@@ -106,7 +107,7 @@ def run_trial(args):
     trainer = Trainer(args.epochs, optim_construct, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
         RxnDataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=num_workers), 
         lambda items: deep_attn_item_handle(items, device=device), 
-        valid_reporter=lambda valid_score, losses, e, model, optim: valid_reporter(valid_score, losses, e, model, vals, args.path),
+        valid_reporter=lambda valid_score, losses, e, model, optim, lr_sched: valid_reporter(valid_score, losses, e, model, vals, args.path),
         iter_reporter=lambda loss, model, e, i: iter_reporter(loss, model, e, i, losses, args.path), 
         lr_sched_construct=lr_sched_construct,
         # epoch_fn=lambda scores, epoch: lr_sched.step(scores['loss']),
