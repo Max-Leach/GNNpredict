@@ -28,23 +28,6 @@ import tempfile
 from pathlib import Path
 import os
 
-def test_hpo_run():
-    global human_centipede
-    human_centipede = True
-    class Args:
-        pass
-    args = Args()
-    args.cpus_per_trial = 4
-    args.gpus_per_trial = 0
-    args.dset_path = '/home/moistry/Documents/research/data/1000_lazy/dset'
-    args.train_indices_path = '/home/moistry/Documents/research/data/tune_trial/train_indices'
-    args.valid_indices_path = '/home/moistry/Documents/research/data/tune_trial/valid_indices'
-    args.save_path = '/home/moistry/Documents/research/data/tune_trial/'
-    args.epochs = 1000
-    args.num_samples = 1
-
-    tweaker(args)
-
 class TrainArgs:
     def __init__(self, dset_path, train_indices, valid_indices, device):
         self.dset_path = dset_path
@@ -73,39 +56,38 @@ def valid_reporter(valid_scores, losses, epochs_current, model, optim, lr_sched)
         )
 
 def tweaker(args):
-    param_config = {
-        'graph_inner_width': 69,
-        'graph_inner_depth': 3,
-        'graph_layer_count': 3,
-        'graph_hidden_size': 16,
-        'fc_initial_size': 169,
-        'fc_excess_size': 16, 
-        'fc_excess_layers': 5,
+    hyperparams = ['graph_inner_width',
+        'graph_inner_depth',
+        'graph_layer_count',
+        'graph_hidden_size',
+        'fc_initial_size',
+        'fc_excess_width', 
+        'fc_excess_count',
+        'learn_rate',
+        'reducelr_factor', 
+        'reducelr_patience',
+        'reducelr_threshold',
+        'epochs',
+        'batch_size']
+    arg_dict = vars(args)
+    param_config = { h : tune.choice(arg_dict[h]) for h in hyperparams }
 
-        'learn_rate': 0.001,
-        'reducelr_factor': 0.5, 
-        'reducelr_patience': 15,
-        'reducelr_threshold': 0.01,
-        'epochs': args.epochs,
-        'batch_size': 50,
-
-    }
     with open(args.train_indices_path, 'rb') as train_indices_f:
         train_indices = pickle.load(train_indices_f)
         # print(train_indices)
     with open(args.valid_indices_path, 'rb') as valid_indices_f:
         valid_indices = pickle.load(valid_indices_f)
 
-    if not hasattr(args, 'device') or args.device == None:
-        device = torch.device('cpu')
+    if not hasattr(args, 'gpus_per_trial') and args.gpus_per_trial > 0:
+        device = torch.device('cuda')
     else:
-        device = torch.device(args.device)
+        device = torch.device('cpu')
 
     train_args = TrainArgs(args.dset_path, train_indices, valid_indices, device)
 
     scheduler = ASHAScheduler(
-        max_t=args.epochs,
-        grace_period=1,
+        max_t=max(args.epochs),
+        grace_period=args.min_epochs,
         reduction_factor=2)
     
     trainable = tune.with_resources(
@@ -132,7 +114,7 @@ def tweaker(args):
             run_config=train.RunConfig(
                 storage_path=args.save_path,
                 name=store_name,
-                log_to_file=human_centipede,
+                log_to_file=True,
             ),
             param_space=param_config,
         )
@@ -146,7 +128,6 @@ def train_instance(config, train_args):
     train_set = BDESubset(main_dset, train_args.train_indices)
     valid_set = BDESubset(main_dset, train_args.valid_indices)
     
-    # valid_tester, train_set, splits = train_test_split(dset, device)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
     test_batch_size = 100 # should not affect any result, just time required to test
@@ -156,17 +137,14 @@ def train_instance(config, train_args):
     else:
         handle_mod_out=lambda x: (x.to(train_args.device) * main_dset.val_stdev) + main_dset.val_mean
     valid_tester = TestonSet(RxnDataLoader(valid_set, batch_size=test_batch_size, num_workers=num_workers), metric_fns, handle_items=lambda items: deep_attn_item_handle(items, device=train_args.device), handle_mod_out=handle_mod_out)
-    # save_train_test(splits, args.path)
 
     model = construct_model.get_std_sum_full(
                         injective_readout=True,
                         graph_inner_layer_sizes=[[config['graph_inner_width']]*config['graph_inner_depth']]*config['graph_layer_count'], 
                         graph_hidden_size=config['graph_hidden_size'], 
-                        fc_readout_sizes=[config['fc_initial_size']]+[config['fc_excess_layers']]*config['fc_excess_layers'], )
+                        fc_readout_sizes=[config['fc_initial_size']]+[config['fc_excess_width']]*config['fc_excess_count'], )
     model = model.to(train_args.device)
-    # begin_test = valid_tester(model)
     loss_fn = MSELoss()
-    # optim = Lion(model.parameters(), lr=args.learn_rate)
     losses = []
     vals = []
 
@@ -192,41 +170,3 @@ def train_instance(config, train_args):
                 checkpoint_state = pickle.load(fp)
             trainer.restore_from_items(checkpoint_state)
     trainer()
-
-###################### ----------- OLD TRAINABLE FUNCTION --------------- ###############
-def eval_on_config(config, dset_ref, indices_ref, model_construct):
-    model = model_construct(config)
-    loss_fn = MSELoss()
-    optim_select = {
-        'adam': lambda lr: Adam(model.parameters(), lr=lr*10), # <---!!!! adam does better with higher lr
-        'lion': lambda lr: Lion(model.parameters(), lr=lr),
-    }
-    op = optim_select[config['optim']](lr=config['lr'])
-    dset = ray.get(dset_ref)
-    indices = ray.get(indices_ref)
-    subset = BDESubset(dset, indices)
-    valid_tester, train_set, _ = train_test_split(subset, test_batch_size=400, num_workers=1)
-
-    checkpoint = session.get_checkpoint()
-
-    if checkpoint:
-        checkpoint_state = checkpoint.to_dict()
-        start_epoch = checkpoint_state["epoch"]
-        model.load_state_dict(checkpoint_state["net_state_dict"])
-        op.load_state_dict(checkpoint_state["optimizer_state_dict"])
-    else:
-        start_epoch = 0
-    
-    lr_sched = ReduceLROnPlateau(op, factor=config['lrs_factor'], patience=config['lrs_patience'], threshold=config['lrs_threshold'])
-
-    train_loader = RxnDataLoader(train_set, batch_size=config['batch_size'], shuffle=True, num_workers=1)
-    trainer = Trainer(epochs=config['epochs'], 
-                    optim_construct=lambda params: op, 
-                    loss_fn=lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), 
-                    validator=valid_tester,
-                    train_loader=train_loader,
-                    load_handle=deep_attn_item_handle,
-                    valid_reporter=valid_reporter,
-                    epoch_fn=lambda scores, epoch: lr_sched.step(scores['loss']),
-                    )
-    trainer(model)
