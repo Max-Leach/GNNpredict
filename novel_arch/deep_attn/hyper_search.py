@@ -131,7 +131,7 @@ def train_instance(config, train_args):
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
     test_batch_size = 100 # should not affect any result, just time required to test
-    num_workers = 4
+    num_workers = 3
     if train_args.device == None:
         handle_mod_out=lambda x: (x * main_dset.val_stdev) + main_dset.val_mean
     else:
