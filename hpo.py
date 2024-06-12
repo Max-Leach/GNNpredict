@@ -49,6 +49,8 @@ if __name__ == "__main__":
     # otherwise it is a bad restart
     args_d = vars(args).copy()
     arg_ignore_list = ['device', 'path', 'dset_path', 'train_indices_path', 'valid_indices_path']
+    for a in arg_ignore_list:
+        args_d.pop(a, None) # this is so device can be changed with same hyperparameters
     if os.path.exists(os.path.join(args.save_path, 'arg_signature')):
         with open(os.path.join(args.save_path, 'arg_signature'), 'rb') as arg_f:
             arg_sig = pickle.load(arg_f)
