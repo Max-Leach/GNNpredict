@@ -114,7 +114,7 @@ def tweaker(args):
             run_config=train.RunConfig(
                 storage_path=args.save_path,
                 name=store_name,
-                log_to_file=True,
+                log_to_file=False,
             ),
             param_space=param_config,
         )
