@@ -45,7 +45,14 @@ def valid_reporter(valid_scores, losses, epochs_current, model, optim, lr_sched)
         'valid_scores': valid_scores
     }
     with tempfile.TemporaryDirectory() as checkpoint_dir:
-        data_path = Path(checkpoint_dir) / "data.pkl"
+        chonky = ['model', 'optim'] # save separately so not to approach limit on individual file sizes
+        for chonk in chonky:
+            chonk_path = Path(checkpoint_dir) / '{}.pkl'.format(chonk)
+            with open(chonk_path, "wb") as fp:
+                clpickle.dump(checkpoint_data[chonk], fp)
+            del checkpoint_data[chonk]
+        
+        data_path = Path(checkpoint_dir) / 'data.pkl'
         with open(data_path, "wb") as fp:
             clpickle.dump(checkpoint_data, fp)
 
@@ -168,5 +175,15 @@ def train_instance(config, train_args):
             data_path = Path(checkpoint_dir) / "data.pkl"
             with open(data_path, "rb") as fp:
                 checkpoint_state = pickle.load(fp)
+
+            chonky = ['model', 'optim'] # save separately so not to approach limit on individual file sizes
+
+            for chonk in chonky:
+                chonk_path = Path(checkpoint_dir) / '{}.pkl'.format(chonk)
+                with open(chonk_path, "rb") as fp:
+                    chonk_state = clpickle.load(fp)
+                checkpoint_state[chonk] = chonk_state
+                
             trainer.restore_from_items(checkpoint_state)
+
     trainer()
