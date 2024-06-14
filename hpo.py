@@ -39,6 +39,7 @@ if __name__ == "__main__":
     parser.add_argument('--reducelr_threshold', type=json.loads, required=True)
     parser.add_argument('--cpus_per_trial', type=int, required=False)
     parser.add_argument('--gpus_per_trial', type=int, required=False)
+    parser.add_argument('--temp_dir', type=str, required=False)    
     
     parser.add_argument('--min_epochs', type=int, required=True)
     parser.add_argument('--num_samples', type=int, required=True)

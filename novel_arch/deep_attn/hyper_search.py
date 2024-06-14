@@ -27,15 +27,17 @@ import pickle
 import tempfile
 from pathlib import Path
 import os
+from functools import partial
 
 class TrainArgs:
-    def __init__(self, dset_path, train_indices, valid_indices, device):
+    def __init__(self, dset_path, train_indices, valid_indices, device, temp_dir):
         self.dset_path = dset_path
         self.train_indices = train_indices
         self.valid_indices = valid_indices
         self.device = device
+        self.temp_dir = temp_dir
 
-def valid_reporter(valid_scores, losses, epochs_current, model, optim, lr_sched):
+def valid_reporter(valid_scores, losses, epochs_current, model, optim, lr_sched, temp_dir):
     checkpoint_data = {
         "epochs_current": epochs_current,
         "model": model.state_dict(),
@@ -44,7 +46,7 @@ def valid_reporter(valid_scores, losses, epochs_current, model, optim, lr_sched)
         'losses': losses,
         'valid_scores': valid_scores
     }
-    with tempfile.TemporaryDirectory(dir=os.environ['SLURM_TMPDIR']) as checkpoint_dir:
+    with tempfile.TemporaryDirectory(dir=temp_dir) as checkpoint_dir:
         chonky = ['model', 'optim'] # save separately so not to approach limit on individual file sizes
         for chonk in chonky:
             chonk_path = Path(checkpoint_dir) / '{}.pkl'.format(chonk)
@@ -91,7 +93,12 @@ def tweaker(args):
     else:
         device = torch.device('cpu')
 
-    train_args = TrainArgs(args.dset_path, train_indices, valid_indices, device)
+    if hasattr(args, 'temp_dir'):
+        temp_dir = args.temp_dir
+    else:
+        temp_dir = None
+
+    train_args = TrainArgs(args.dset_path, train_indices, valid_indices, device, temp_dir)
 
     scheduler = ASHAScheduler(
         max_t=max(args.epochs),
@@ -162,7 +169,7 @@ def train_instance(config, train_args):
     trainer = Trainer(config['epochs'], optim_construct, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
         RxnDataLoader(train_set, batch_size=config['batch_size'], shuffle=True, num_workers=num_workers), 
         lambda items: deep_attn_item_handle(items, device=train_args.device), 
-        valid_reporter=valid_reporter,
+        valid_reporter=partial(valid_reporter, temp_dir=train_args.temp_dir),
         # iter_reporter=lambda loss, model, e, i: iter_reporter(loss, model, e, i, losses, args.path), 
         lr_sched_construct=lr_sched_construct,
         # epoch_fn=lambda scores, epoch: lr_sched.step(scores['loss']),
