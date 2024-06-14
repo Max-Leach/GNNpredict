@@ -27,6 +27,7 @@ import pickle
 import tempfile
 from pathlib import Path
 import os
+import gzip
 
 class TrainArgs:
     def __init__(self, dset_path, train_indices, valid_indices, device):
@@ -48,7 +49,7 @@ def valid_reporter(valid_scores, losses, epochs_current, model, optim, lr_sched)
         chonky = ['model', 'optim'] # save separately so not to approach limit on individual file sizes
         for chonk in chonky:
             chonk_path = Path(checkpoint_dir) / '{}.pkl'.format(chonk)
-            with open(chonk_path, "wb") as fp:
+            with gzip.open(chonk_path, "wb") as fp:
                 clpickle.dump(checkpoint_data[chonk], fp)
             del checkpoint_data[chonk]
         
@@ -180,7 +181,7 @@ def train_instance(config, train_args):
 
             for chonk in chonky:
                 chonk_path = Path(checkpoint_dir) / '{}.pkl'.format(chonk)
-                with open(chonk_path, "rb") as fp:
+                with gzip.open(chonk_path, "rb") as fp:
                     chonk_state = clpickle.load(fp)
                 checkpoint_state[chonk] = chonk_state
                 
