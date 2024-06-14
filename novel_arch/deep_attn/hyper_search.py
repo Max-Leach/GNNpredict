@@ -44,7 +44,7 @@ def valid_reporter(valid_scores, losses, epochs_current, model, optim, lr_sched)
         'losses': losses,
         'valid_scores': valid_scores
     }
-    with tempfile.TemporaryDirectory() as checkpoint_dir:
+    with tempfile.TemporaryDirectory(dir=os.environ['SLURM_TMPDIR']) as checkpoint_dir:
         chonky = ['model', 'optim'] # save separately so not to approach limit on individual file sizes
         for chonk in chonky:
             chonk_path = Path(checkpoint_dir) / '{}.pkl'.format(chonk)
