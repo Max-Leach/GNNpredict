@@ -1,4 +1,4 @@
-from novel_arch.deep_attn.model import DeepAttn
+from novel_arch.deep_attn.model import DeepBDE
 from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, aggreg_atom_edge_no_repeat, AttnNodeEdgeAggreg, AtomEdgeReducer, bond_mean, atom_mean, bond_sum, atom_sum, A2GReducer, B2GReducer
 
 def get_std_model(
@@ -9,7 +9,7 @@ def get_std_model(
         graph_hidden_size=32,
         dropout=0.0,
         **kwargs):
-    model = DeepAttn(
+    model = DeepBDE(
             atom_aggregators=atom_aggregators,
             b2g_aggregators=b2g_aggregators,
             a2g_aggregators=a2g_aggregators,

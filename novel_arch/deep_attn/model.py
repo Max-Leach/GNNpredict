@@ -8,7 +8,7 @@ from novel_arch.deep_attn.feat_type_updaters import atom_mean, bond_mean
 from novel_arch.deep_attn.readout import Set2Set
 from novel_arch.deep_attn.data.rxn_graph import bde_batch_to_feats, get_rxn_feat_list
 
-class DeepAttn(nn.Module):
+class DeepBDE(nn.Module):
     ''' deeper state evolution, just add nearby atoms + edges for atom feat update '''
     ''' graph_inner_layer_sizes - how wide individual layers in gnn portion will be, is independent of graph_layers count '''
     def __init__(self, atom_aggregators, b2g_aggregators, a2g_aggregators, in_feat_sizes, graph_hidden_size, graph_layers, graph_inner_layer_sizes=[], residual=True, fc_readout_sizes=[128, 64], set2set_iters=6, set2set_layers=3, dropout=0.0, atom_include_edges=True, injective_readout=False):
