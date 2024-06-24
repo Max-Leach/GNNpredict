@@ -107,7 +107,10 @@ def tweaker(args):
     
     trainable = tune.with_resources(
             tune.with_parameters(train_instance, train_args=train_args),
-            resources={"cpu": args.cpus_per_trial, "gpu": args.gpus_per_trial}
+            resources={
+                        "cpu": args.cpus_per_trial, 
+                    #    "gpu": args.gpus_per_trial
+                    }
         )
     store_name = 'hpo_store'
     store_path = Path(args.save_path) / store_name
