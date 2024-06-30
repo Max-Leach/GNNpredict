@@ -180,6 +180,13 @@ def train_instance(config, train_args):
         # should_stop=lambda epochs_current, valid_scores: should_stop_if_no_mae_decrease(epochs_current, valid_scores, args.min_epochs, args.epochs_of_no_mae_drop_before_stop),
         model=model,
         )
+    
+    restore_trainer_from_checkpoint(trainer)
+
+    trainer()
+
+# keep variables out of scope by using separate function to ensure deletion
+def restore_trainer_from_checkpoint(trainer):
     checkpoint = train.get_checkpoint()
     if checkpoint:
         with checkpoint.as_directory() as checkpoint_dir:
@@ -197,5 +204,3 @@ def train_instance(config, train_args):
                 checkpoint_state[chonk] = chonk_state
                 
             trainer.restore_from_items(checkpoint_state)
-
-    trainer()
