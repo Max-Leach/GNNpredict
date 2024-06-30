@@ -82,12 +82,12 @@ def run_trial(args):
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
     test_batch_size = 100 # should not affect any result, just time required to test
-    num_workers = 4
+    # num_workers = 4
     if device == None:
         handle_mod_out=lambda x: (x * main_dset.val_stdev) + main_dset.val_mean
     else:
         handle_mod_out=lambda x: (x.to(device) * main_dset.val_stdev) + main_dset.val_mean
-    valid_tester = TestonSet(RxnDataLoader(valid_set, batch_size=test_batch_size, num_workers=num_workers), metric_fns, handle_items=lambda items: deep_attn_item_handle(items, device=device), handle_mod_out=handle_mod_out)
+    valid_tester = TestonSet(RxnDataLoader(valid_set, batch_size=test_batch_size, num_workers=args.num_workers), metric_fns, handle_items=lambda items: deep_attn_item_handle(items, device=device), handle_mod_out=handle_mod_out)
     # save_train_test(splits, args.path)
 
     model = construct_model.get_std_sum_full(
@@ -105,7 +105,7 @@ def run_trial(args):
     optim_construct = lambda params: Lion(params, lr=args.learn_rate)
     lr_sched_construct = lambda o: ReduceLROnPlateau(o, factor=args.reducelr_factor, patience=args.reducelr_patience, threshold=args.reducelr_threshold)
     trainer = Trainer(args.epochs, optim_construct, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
-        RxnDataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=num_workers), 
+        RxnDataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers), 
         lambda items: deep_attn_item_handle(items, device=device), 
         valid_reporter=lambda valid_score, losses, e, model, optim, lr_sched: valid_reporter(valid_score, losses, e, model, vals, args.path),
         iter_reporter=lambda loss, model, e, i: iter_reporter(loss, model, e, i, losses, args.path), 
@@ -139,6 +139,7 @@ if __name__ == "__main__":
     parser.add_argument('--reducelr_patience', type=int, required=True)
     parser.add_argument('--reducelr_threshold', type=float, required=True)
     parser.add_argument('--device', type=str, required=False)
+    parser.add_argument('--num_workers', type=int, required=True)
     
     parser.add_argument('--min_epochs', type=int, required=True)
     parser.add_argument('--epochs_of_no_mae_drop_before_stop', type=int, required=True)
@@ -147,7 +148,7 @@ if __name__ == "__main__":
     # if train_state exists, check arg signature to see if matches current one
     # otherwise it is a bad restart
     args_d = vars(args).copy()
-    arg_ignore_list = ['device', 'path', 'dset_path', 'train_indices_path', 'valid_indices_path']
+    arg_ignore_list = ['device', 'path', 'dset_path', 'train_indices_path', 'valid_indices_path', 'num_workers']
     for a in arg_ignore_list:
         args_d.pop(a, None) # this is so device can be changed with same hyperparameters
     if os.path.exists(os.path.join(args.path, 'early_stopped')):
