@@ -30,12 +30,13 @@ import os
 from functools import partial
 
 class TrainArgs:
-    def __init__(self, dset_path, train_indices, valid_indices, device, temp_dir):
+    def __init__(self, dset_path, train_indices, valid_indices, device, temp_dir, num_workers):
         self.dset_path = dset_path
         self.train_indices = train_indices
         self.valid_indices = valid_indices
         self.device = device
         self.temp_dir = temp_dir
+        self.num_workers = num_workers
 
 def valid_reporter(valid_scores, losses, epochs_current, model, optim, lr_sched, temp_dir):
     checkpoint_data = {
@@ -98,7 +99,7 @@ def tweaker(args):
     else:
         temp_dir = None
 
-    train_args = TrainArgs(args.dset_path, train_indices, valid_indices, device, temp_dir)
+    train_args = TrainArgs(args.dset_path, train_indices, valid_indices, device, temp_dir, args.num_workers)
 
     scheduler = ASHAScheduler(
         max_t=max(args.epochs),
@@ -149,12 +150,12 @@ def train_instance(config, train_args):
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
     test_batch_size = 100 # should not affect any result, just time required to test
-    num_workers = 3
+    # num_workers = 1
     if train_args.device == None:
         handle_mod_out=lambda x: (x * main_dset.val_stdev) + main_dset.val_mean
     else:
         handle_mod_out=lambda x: (x.to(train_args.device) * main_dset.val_stdev) + main_dset.val_mean
-    valid_tester = TestonSet(RxnDataLoader(valid_set, batch_size=test_batch_size, num_workers=num_workers), metric_fns, handle_items=lambda items: deep_attn_item_handle(items, device=train_args.device), handle_mod_out=handle_mod_out)
+    valid_tester = TestonSet(RxnDataLoader(valid_set, batch_size=test_batch_size, num_workers=train_args.num_workers), metric_fns, handle_items=lambda items: deep_attn_item_handle(items, device=train_args.device), handle_mod_out=handle_mod_out)
 
     model = construct_model.get_std_sum_full(
                         injective_readout=True,
@@ -170,7 +171,7 @@ def train_instance(config, train_args):
     lr_sched_construct = lambda o: ReduceLROnPlateau(o, factor=config['reducelr_factor'], patience=config['reducelr_patience'], threshold=config['reducelr_threshold'])
 
     trainer = Trainer(config['epochs'], optim_construct, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
-        RxnDataLoader(train_set, batch_size=config['batch_size'], shuffle=True, num_workers=num_workers), 
+        RxnDataLoader(train_set, batch_size=config['batch_size'], shuffle=True, num_workers=train_args.num_workers), 
         lambda items: deep_attn_item_handle(items, device=train_args.device), 
         valid_reporter=partial(valid_reporter, temp_dir=train_args.temp_dir),
         # iter_reporter=lambda loss, model, e, i: iter_reporter(loss, model, e, i, losses, args.path), 

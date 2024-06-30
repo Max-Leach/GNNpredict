@@ -39,6 +39,7 @@ if __name__ == "__main__":
     parser.add_argument('--reducelr_threshold', type=json.loads, required=True)
     parser.add_argument('--cpus_per_trial', type=int, required=False)
     parser.add_argument('--gpus_per_trial', type=int, required=False)
+    parser.add_argument('--num_workers', type=int, required=True)
     parser.add_argument('--temp_dir', type=str, required=False)    
     
     parser.add_argument('--min_epochs', type=int, required=True)
@@ -49,7 +50,7 @@ if __name__ == "__main__":
     # if train_state exists, check arg signature to see if matches current one
     # otherwise it is a bad restart
     args_d = vars(args).copy()
-    arg_ignore_list = ['device', 'path', 'dset_path', 'temp_dir', 'train_indices_path', 'valid_indices_path']
+    arg_ignore_list = ['device', 'path', 'dset_path', 'temp_dir', 'train_indices_path', 'valid_indices_path', 'num_workers']
     for a in arg_ignore_list:
         args_d.pop(a, None) # this is so device can be changed with same hyperparameters
     if os.path.exists(os.path.join(args.save_path, 'arg_signature')):
