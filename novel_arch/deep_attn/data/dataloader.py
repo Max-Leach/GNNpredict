@@ -9,10 +9,10 @@ class RxnDataLoader(DataLoader):
     
     def collate_fn(self, samples):
         data, values = [list(sub) for sub in zip(*samples)]
-        _, _, rxn_feat_gens, idxs = [list(sub) for sub in zip(*data)] # clone here - feature generators
-        rxn_feat_gens = deepcopy(rxn_feat_gens)
-        r_p_graph_refs = [self.dataset.get_r_p_graph_ref(i) for i in idxs] # clone here to prevent dset from storing
-        r_p_graph_refs = deepcopy(r_p_graph_refs)
+        _, _, rxn_feat_gens, idxs = [list(sub) for sub in zip(*data)] 
+        # rxn_feat_gens = deepcopy(rxn_feat_gens) # clone here - feature generators
+        r_p_graph_refs = [self.dataset.get_r_p_graph_ref(i) for i in idxs] 
+        # r_p_graph_refs = deepcopy(r_p_graph_refs) # clone here to prevent dset from storing
         # load unique instances of graphs with idx
         ref_to_dgl = dict()
         ref_to_feats = {nt : dict() for nt in ['atom', 'bond', 'global']} # nt -> {ref -> feat}
@@ -24,8 +24,8 @@ class RxnDataLoader(DataLoader):
                         for nt in ref_to_feats.keys():
                             ref_to_feats[nt][ref] = self.dataset.get_feats(nt, ref)
         # graphs and their feat loading
-        graphs = tuple(ref_to_dgl.values()) # clone here to prevent dset graphs from storing features
-        graphs = deepcopy(graphs)
+        graphs = tuple(ref_to_dgl.values()) 
+        # graphs = deepcopy(graphs)# clone here to prevent dset graphs from storing features
         for nt in ref_to_feats:
             for g, ref in zip(graphs, ref_to_feats[nt]):
                 g.nodes[nt].data['ft'] = ref_to_feats[nt][ref]
