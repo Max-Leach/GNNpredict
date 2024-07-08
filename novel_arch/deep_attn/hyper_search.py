@@ -101,10 +101,10 @@ def tweaker(args):
 
     train_args = TrainArgs(args.dset_path, train_indices, valid_indices, device, temp_dir, args.num_workers)
 
-    scheduler = ASHAScheduler(
-        max_t=max(args.epochs),
-        grace_period=args.min_epochs,
-        reduction_factor=2)
+    # scheduler = ASHAScheduler(
+    #     max_t=max(args.epochs),
+    #     grace_period=args.min_epochs,
+    #     reduction_factor=2)
     
     trainable = tune.with_resources(
             tune.with_parameters(train_instance, train_args=train_args),
@@ -127,7 +127,7 @@ def tweaker(args):
             tune_config=tune.TuneConfig(
                 metric="loss",
                 mode="min",
-                scheduler=scheduler,
+                # scheduler=scheduler,
                 num_samples=args.num_samples,
             ),
             run_config=train.RunConfig(
