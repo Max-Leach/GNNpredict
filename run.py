@@ -11,6 +11,7 @@ from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, a
 from lion_pytorch import Lion
 from torch.optim import Adam
 from torch.nn import MSELoss
+from torch import nn
 import torch
 from train.trainer import Trainer
 
@@ -90,11 +91,24 @@ def run_trial(args):
     valid_tester = TestonSet(RxnDataLoader(valid_set, batch_size=test_batch_size, num_workers=args.num_workers), metric_fns, handle_items=lambda items: deep_attn_item_handle(items, device=device), handle_mod_out=handle_mod_out)
     # save_train_test(splits, args.path)
 
+    if hasattr(args, 'activation_fn') and args.activation_fn != None:
+        activfn_repo = {
+            'relu' : nn.ReLU,
+            'elu' : nn.ELU,
+            'silu' : nn.SiLU,
+            'leakyrelu' : nn.LeakyReLU,
+            'tanh' : nn.Tanh,
+        }
+        activation_fn = activfn_repo[args.activation_fn]
+    else:
+        activation_fn = None
+
     model = construct_model.get_std_sum_full(
                         injective_readout=True,
                         graph_inner_layer_sizes=args.graph_inner_layer_sizes, 
                         graph_hidden_size=args.graph_hidden_size, 
-                        fc_readout_sizes=args.fc_readout_sizes, )
+                        fc_readout_sizes=args.fc_readout_sizes, 
+                        activation_fn=activation_fn)
     model = model.to(device)
     # begin_test = valid_tester(model)
     loss_fn = MSELoss()
@@ -134,6 +148,7 @@ if __name__ == "__main__":
     parser.add_argument('--fc_readout_sizes', type=json.loads, required=True)
     parser.add_argument('--graph_hidden_size', type=int, required=True)
     parser.add_argument('--graph_inner_layer_sizes', type=json.loads, required=True)
+    parser.add_argument('--activation_fn', type=str, required=False)
 
     parser.add_argument('--reducelr_factor', type=float, required=True)
     parser.add_argument('--reducelr_patience', type=int, required=True)

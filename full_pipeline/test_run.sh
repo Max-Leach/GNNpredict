@@ -10,12 +10,14 @@ python $RUN_PATH \
         --train_indices_path '/home/moistry/Documents/research/data/dry_run/train_indices' \
         --valid_indices_path '/home/moistry/Documents/research/data/dry_run/test_indices' \
         --device 'cpu' \
+        --num_workers 1 \
+        --activation_fn 'silu' \
         \
         --graph_inner_layer_sizes '[[128, 128, 128, 128, 128], [128, 128, 128, 128, 128], [128, 128, 128, 128, 128], [128, 128, 128, 128, 128], [128, 128, 128, 128, 128]]' \
         --graph_hidden_size 64 \
         --fc_readout_sizes '[256, 128, 128, 128, 128, 128]' \
         \
-        --learn_rate 0.000005 \
+        --learn_rate 0.001 \
         --epochs 1000 \
         --batch_size 200 \
         \
