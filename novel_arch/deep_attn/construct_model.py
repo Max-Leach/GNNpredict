@@ -7,13 +7,14 @@ def get_std_model(
         fc_readout_sizes=[128]+[64]*4, 
         graph_inner_layer_sizes=[[64]*3]*4, 
         graph_hidden_size=32,
+        in_feat_sizes={'atom': 12, 'bond': 7, 'global': 3},
         dropout=0.0,
         **kwargs):
     model = DeepBDE(
             atom_aggregators=atom_aggregators,
             b2g_aggregators=b2g_aggregators,
             a2g_aggregators=a2g_aggregators,
-            in_feat_sizes={'atom': 12, 'bond': 7, 'global': 3},
+            in_feat_sizes=in_feat_sizes,
             graph_hidden_size=graph_hidden_size,
             graph_layers=len(graph_inner_layer_sizes),
             graph_inner_layer_sizes=graph_inner_layer_sizes,

@@ -8,7 +8,6 @@ def from_csv(path, max_lines=None, start_line=None, entry_name_to_col={'reacs': 
     if start_line == None:
         start_line = 0
     atomic_num_list = get_atomic_num_list(path, max_lines, start_line, entry_name_to_col['bondtype'])
-    print(atomic_num_list)
 
     with open(path) as csv_file:
         csv_read = csv.reader(csv_file, delimiter=',')

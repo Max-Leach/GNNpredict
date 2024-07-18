@@ -108,7 +108,9 @@ def run_trial(args):
                         graph_inner_layer_sizes=args.graph_inner_layer_sizes, 
                         graph_hidden_size=args.graph_hidden_size, 
                         fc_readout_sizes=args.fc_readout_sizes, 
-                        activation_fn=activation_fn)
+                        activation_fn=activation_fn,
+                        in_feat_sizes={'atom': 18, 'bond': 7, 'global': 3},
+                        )
     model = model.to(device)
     # begin_test = valid_tester(model)
     loss_fn = MSELoss()
