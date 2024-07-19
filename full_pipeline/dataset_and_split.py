@@ -12,7 +12,7 @@ def do(save_dir, csv_path, split):
     dpath = csv_path
 
     dset = from_csv(dpath, start_line=1)
-    dset_path = os.path.join(root, 'fake_dset')
+    dset_path = os.path.join(root, 'combined_dset')
     dset.save(dset_path, as_lazy=True)
 
     bt2indices = compile_indices(dpath)
