@@ -23,7 +23,7 @@ python $RUN_PATH \
         --fc_excess_width '[256, 128, 64]' \
         --fc_excess_count '[3, 4]' \
         \
-        --learn_rate '[0.002, 0.001, 0.0005, 0.0001]' \
+        --activation_fn '["silu"]' \
         --epochs '[100]' \
         --batch_size '[64, 128, 256, 512]' \
         \

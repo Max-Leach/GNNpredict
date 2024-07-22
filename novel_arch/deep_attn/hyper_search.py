@@ -12,6 +12,7 @@ from lion_pytorch import Lion
 from torch.optim import Adam
 from torch.nn import MSELoss
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch import nn
 import torch
 from train.trainer import Trainer
 
@@ -74,7 +75,8 @@ def tweaker(args):
         'fc_initial_size',
         'fc_excess_width', 
         'fc_excess_count',
-        'learn_rate',
+        # 'learn_rate',
+        'activation_fn',
         'reducelr_factor', 
         'reducelr_patience',
         'reducelr_threshold',
@@ -82,6 +84,7 @@ def tweaker(args):
         'batch_size']
     arg_dict = vars(args)
     param_config = { h : tune.choice(arg_dict[h]) for h in hyperparams }
+    param_config["learn_rate"] = tune.loguniform(1e-4, 1e-1),
 
     with open(args.train_indices_path, 'rb') as train_indices_f:
         train_indices = pickle.load(train_indices_f)
@@ -157,17 +160,29 @@ def train_instance(config, train_args):
         handle_mod_out=lambda x: (x.to(train_args.device) * main_dset.val_stdev) + main_dset.val_mean
     valid_tester = TestonSet(RxnDataLoader(valid_set, batch_size=test_batch_size, num_workers=train_args.num_workers), metric_fns, handle_items=lambda items: deep_attn_item_handle(items, device=train_args.device), handle_mod_out=handle_mod_out)
 
+    activfn_repo = {
+            'relu' : nn.ReLU,
+            'elu' : nn.ELU,
+            'silu' : nn.SiLU,
+            'leakyrelu' : nn.LeakyReLU,
+            'tanh' : nn.Tanh,
+        }
+    activation_fn = activfn_repo[config['activation_fn']]
+
     model = construct_model.get_std_sum_full(
                         injective_readout=True,
                         graph_inner_layer_sizes=[[config['graph_inner_width']]*config['graph_inner_depth']]*config['graph_layer_count'], 
                         graph_hidden_size=config['graph_hidden_size'], 
-                        fc_readout_sizes=[config['fc_initial_size']]+[config['fc_excess_width']]*config['fc_excess_count'], )
+                        fc_readout_sizes=[config['fc_initial_size']]+[config['fc_excess_width']]*config['fc_excess_count'], 
+                        activation_fn=activation_fn,
+                        in_feat_sizes={'atom': 18, 'bond': 7, 'global': 3},
+                        )
     model = model.to(train_args.device)
     loss_fn = MSELoss()
     losses = []
     vals = []
 
-    optim_construct = lambda params: Adam(params, lr=config['learn_rate'])
+    optim_construct = lambda params: Adam(params, lr=config['learn_rate'][0])
     lr_sched_construct = lambda o: ReduceLROnPlateau(o, factor=config['reducelr_factor'], patience=config['reducelr_patience'], threshold=config['reducelr_threshold'])
 
     trainer = Trainer(config['epochs'], optim_construct, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 

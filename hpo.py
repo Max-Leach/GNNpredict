@@ -21,7 +21,8 @@ if __name__ == "__main__":
     parser.add_argument('--train_indices_path', type=str, required=True)
     parser.add_argument('--valid_indices_path', type=str, required=True)
     parser.add_argument('--epochs', type=json.loads, required=True)
-    parser.add_argument('--learn_rate', type=json.loads, required=True)
+    # parser.add_argument('--learn_rate', type=json.loads, required=True)
+    parser.add_argument('--activation_fn', type=json.loads, required=True)
     parser.add_argument('--batch_size', type=json.loads, required=True)
 
     parser.add_argument('--fc_initial_size', type=json.loads, required=True)
