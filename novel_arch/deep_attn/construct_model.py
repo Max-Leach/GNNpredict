@@ -28,7 +28,7 @@ def get_std_model(
 def get_std_sum(b2g_aggregators=bond_sum(), a2g_aggregators=atom_sum(), **kwargs):
     return get_std_model(b2g_aggregators=b2g_aggregators, a2g_aggregators=a2g_aggregators, **kwargs)
 
-def get_std_sum_full(b2g_aggregators=bond_sum(), a2g_aggregators=atom_sum(), 
+def get_std_sum_full(b2g_aggregators=bond_sum(), a2g_aggregators=atom_sum(), # this function is almost always used to construct DeepDBE
                 graph_inner_layer_sizes=[[128]*4]*5, 
                 graph_hidden_size=64, 
                 fc_readout_sizes=[256]+[128]*3, 

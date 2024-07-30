@@ -23,7 +23,6 @@ python $RUN_PATH \
         --fc_excess_width '[256, 128, 64]' \
         --fc_excess_count '[3, 4]' \
         \
-        --activation_fn '["silu"]' \
         --epochs '[100]' \
         --batch_size '[64, 128, 256, 512]' \
         \

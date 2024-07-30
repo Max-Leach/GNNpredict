@@ -22,7 +22,8 @@ if __name__ == "__main__":
     parser.add_argument('--valid_indices_path', type=str, required=True)
     parser.add_argument('--epochs', type=json.loads, required=True)
     # parser.add_argument('--learn_rate', type=json.loads, required=True)
-    parser.add_argument('--activation_fn', type=json.loads, required=True)
+    # parser.add_argument('--activation_fn', type=json.loads, required=True)
+    # above not used atm since list of strings doesnt seem to work too well on submit script
     parser.add_argument('--batch_size', type=json.loads, required=True)
 
     parser.add_argument('--fc_initial_size', type=json.loads, required=True)
@@ -48,6 +49,7 @@ if __name__ == "__main__":
     # parser.add_argument('--epochs_of_no_mae_drop_before_stop', type=int, required=True)
 
     args = parser.parse_args()
+    args.activation_fn = ['silu'] # just use silu for now since most effective
     # if train_state exists, check arg signature to see if matches current one
     # otherwise it is a bad restart
     args_d = vars(args).copy()
