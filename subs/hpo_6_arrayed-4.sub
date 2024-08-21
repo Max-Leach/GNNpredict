@@ -1,0 +1,59 @@
+#!/bin/bash
+#SBATCH --array=4-6
+#SBATCH --job-name=hpo_6
+#SBATCH --mail-user=preet.mistry@mail.utoronto.ca
+#SBATCH --mail-type=ALL
+
+#SBATCH --account=def-jacobsen
+#SBATCH --cpus-per-task=35
+#SBATCH --mem=200G
+#SBATCH --time=2-00:00:00
+#SBATCH --output=%x_%A_%a.out
+
+NAME=$SLURM_JOB_NAME'-'$SLURM_ARRAY_TASK_ID
+
+cd $SLURM_TMPDIR
+cp '/home/mistry/data/compressed_new.tar.gz' .
+tar -xzf compressed_new.tar.gz
+echo 'DONE DATASET EXTRACTION TO LOCAL'
+
+module load apptainer
+
+cp '/home/mistry/condaimage.sif' .
+RUN_PATH='/home/mistry/work/GNNpredict/hpo.py'
+DATA_PATH=$SLURM_TMPDIR'/out_new/combined_dset/dset'
+IDX_PATH=$SLURM_TMPDIR'/out_new'
+SAVE_PATH='/home/mistry/scratch/'$NAME
+mkdir -p $SAVE_PATH
+LOCAL_TMPDIR=$SLURM_TMPDIR'/tmp'
+mkdir -p $LOCAL_TMPDIR
+
+apptainer run -C --nv -B /home/mistry,$SLURM_TMPDIR,$LOCAL_TMDIR:/tmp condaimage.sif /opt/miniconda/bin/python $RUN_PATH \
+        --save_path $SAVE_PATH \
+        --dset_path $DATA_PATH \
+        --train_indices_path $IDX_PATH'/train_indices' \
+        --valid_indices_path $IDX_PATH'/valid_indices' \
+        --cpus_per_trial 3 \
+        --gpus_per_trial 1 \
+	--num_workers 1 \
+	--temp_dir $SLURM_TMPDIR \
+        \
+        --graph_inner_width '[128, 256, 512]' \
+        --graph_inner_depth '[4, 5, 6, 7, 8, 9]' \
+        --graph_layer_count '[2, 3, 4, 5]' \
+        \
+        --graph_hidden_size '[64, 128, 256]' \
+        \
+        --fc_initial_size '[512, 256, 128]' \
+        --fc_excess_width '[128, 64, 32]' \
+        --fc_excess_count '[1, 2, 3, 4, 5, 6, 7, 8, 9]' \
+        \
+        --epochs '[1000]' \
+        --batch_size '[64, 128, 256, 512]' \
+        \
+        --reducelr_factor '[0.8]' \
+        --reducelr_patience '[20]' \
+        --reducelr_threshold '[0.01]' \
+        \
+        --min_epochs 15 \
+        --num_samples 10 \
