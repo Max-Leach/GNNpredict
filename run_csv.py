@@ -50,8 +50,8 @@ def valid_reporter(valid_scores, losses, e, model, val_list, path):
         with open(os.path.join(path, 'best_model_vals'), 'rb') as f:
             _epoch, vals = pickle.load(f)
     except (FileNotFoundError, EOFError):
-        _epoch, vals = 0, {'mae': math.inf}
-    if vals['mae'] > valid_score['mae']: # lower is better
+        _epoch, vals = 0, {'loss': math.inf}
+    if vals['loss'] > valid_score['loss']: # lower is better
         with open(os.path.join(path, 'best_model'), 'wb+') as m:
             torch.save(model, m)
         with open(os.path.join(path, 'best_model_vals'), 'wb+') as f:
