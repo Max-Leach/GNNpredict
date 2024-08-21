@@ -15,7 +15,7 @@ from torch import nn
 import torch
 from train.trainer import Trainer
 
-from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error
+from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error, max_error, root_mean_squared_error, r2_score
 
 import argparse
 import json
@@ -81,7 +81,9 @@ def run_trial(args):
         device = torch.device(args.device)
     # valid_tester, train_set, splits = train_test_split(dset, device)
     loss_fn = MSELoss()
-    metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
+    metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item(),
+        'max_error': max_error, 'rmse': root_mean_squared_error, 'r2_score': r2_score, 'stdev_error': lambda p, t: torch.std(torch.abs(p - t)).detach().item(),
+    }
     test_batch_size = 100 # should not affect any result, just time required to test
     # num_workers = 4
     if device == None:
