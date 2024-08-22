@@ -65,6 +65,9 @@ def should_stop_if_no_mae_decrease(epochs_current, valid_scores, min_epochs, num
             return False
     return True
 
+def wrap_to_numpy(func):
+    return lambda t1, t2: func(t1.numpy(), t2.numpy())
+
 def run_trial(args):
     #refer to sum_injective_deep_batch for starting point
     main_dset = BDEDataset.load(args.dset_path)
@@ -82,7 +85,7 @@ def run_trial(args):
     # valid_tester, train_set, splits = train_test_split(dset, device)
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item(),
-        'max_error': max_error, 'rmse': root_mean_squared_error, 'r2_score': r2_score, 'stdev_error': lambda p, t: torch.std(torch.abs(p - t)).detach().item(),
+        'max_error': wrap_to_numpy(max_error), 'rmse': wrap_to_numpy(root_mean_squared_error), 'r2_score': wrap_to_numpy(r2_score), 'stdev_error': lambda p, t: torch.std(torch.abs(p - t)).detach().item(),
     }
     test_batch_size = 100 # should not affect any result, just time required to test
     # num_workers = 4
