@@ -151,6 +151,7 @@ if __name__ == "__main__":
     parser.add_argument('--epochs', type=int, required=True)
     parser.add_argument('--learn_rate', type=float, required=True)
     parser.add_argument('--batch_size', type=int, required=True)
+    parser.add_argument('--atom_feat_size', type=int, required=False)
 
     parser.add_argument('--fc_readout_sizes', type=json.loads, required=True)
     parser.add_argument('--graph_hidden_size', type=int, required=True)
@@ -167,6 +168,8 @@ if __name__ == "__main__":
     parser.add_argument('--epochs_of_no_mae_drop_before_stop', type=int, required=True)
 
     args = parser.parse_args()
+    if not hasattr(args, 'atom_feat_size'):
+        args.atom_feat_size = 18
     # if train_state exists, check arg signature to see if matches current one
     # otherwise it is a bad restart
     args_d = vars(args).copy()
