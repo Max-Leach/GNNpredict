@@ -15,6 +15,9 @@ def do(save_dir, csv_path, split):
     dset_path = os.path.join(root, 'combined_dset')
     dset.save(dset_path, as_lazy=True)
 
+    do_indices(root, dpath, split)
+
+def do_indices(root, dpath, split):
     bt2indices = compile_indices(dpath)
     rev_bt = reverse_bt_to_indices(bt2indices)
     train, test, valid = split_by_bts(bt2indices, split)
