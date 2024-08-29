@@ -108,7 +108,6 @@ def run_trial(args):
     else:
         activation_fn = None
 
-    print('atom feat size:', args.atom_feat_size)
     model = construct_model.get_std_sum_full(
                         injective_readout=True,
                         graph_inner_layer_sizes=args.graph_inner_layer_sizes, 
