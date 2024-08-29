@@ -108,13 +108,14 @@ def run_trial(args):
     else:
         activation_fn = None
 
+    print('atom feat size:', args.atom_feat_size)
     model = construct_model.get_std_sum_full(
                         injective_readout=True,
                         graph_inner_layer_sizes=args.graph_inner_layer_sizes, 
                         graph_hidden_size=args.graph_hidden_size, 
                         fc_readout_sizes=args.fc_readout_sizes, 
                         activation_fn=activation_fn,
-                        in_feat_sizes={'atom': 18, 'bond': 7, 'global': 3},
+                        in_feat_sizes={'atom': args.atom_feat_size, 'bond': 7, 'global': 3},
                         )
     model = model.to(device)
     # begin_test = valid_tester(model)
@@ -168,8 +169,6 @@ if __name__ == "__main__":
     parser.add_argument('--epochs_of_no_mae_drop_before_stop', type=int, required=True)
 
     args = parser.parse_args()
-    if not hasattr(args, 'atom_feat_size'):
-        args.atom_feat_size = 18
     # if train_state exists, check arg signature to see if matches current one
     # otherwise it is a bad restart
     args_d = vars(args).copy()
@@ -186,4 +185,8 @@ if __name__ == "__main__":
     else:
         with open(os.path.join(args.path, 'arg_signature'), 'wb+') as arg_f:
             pickle.dump(args_d, arg_f)
+
+    if not hasattr(args, 'atom_feat_size') or args.atom_feat_size == None:
+        args.atom_feat_size = 18
+
     run_trial(args)
