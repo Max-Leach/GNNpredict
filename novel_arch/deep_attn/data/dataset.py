@@ -288,22 +288,3 @@ class BDESubset(Dataset):
     @property
     def val_mean(self):
         return self.dataset.val_mean
-
-def train_test_split(dset, device=None, test_batch_size=100, num_workers=0):
-    all_indices = list(range(len(dset)))
-    random.shuffle(all_indices)
-    split = int(0.9 * len(all_indices))
-    train_split = all_indices[:split]
-    test_split = all_indices[split:]
-    train_set = BDESubset(dset, train_split)
-    test_set = BDESubset(dset, test_split)
-
-    loss_fn = MSELoss()
-    metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
-
-    if device == None:
-        handle_mod_out=lambda x: (x * test_set.val_stdev) + test_set.val_mean
-    else:
-        handle_mod_out=lambda x: (x.to(device) * test_set.val_stdev) + test_set.val_mean
-    valid_tester = TestonSet(RxnDataLoader(test_set, batch_size=test_batch_size, num_workers=num_workers), metric_fns, handle_items=lambda items: deep_attn_item_handle(items, device=device), handle_mod_out=handle_mod_out)
-    return valid_tester, train_set, (train_split, test_split)

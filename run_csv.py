@@ -1,6 +1,6 @@
 from novel_arch.deep_attn.data.dset_generate import from_csv
 from novel_arch.deep_attn.data.dataloader import RxnDataLoader
-from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset, train_test_split
+from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset
 
 from train.test.test_on_set import TestonSet
 from train.test.eval_metrics import deep_attn_item_handle
@@ -83,7 +83,7 @@ def run_trial(args):
         device = torch.device('cpu')
     else:
         device = torch.device(args.device)
-    # valid_tester, train_set, splits = train_test_split(dset, device)
+        
     loss_fn = MSELoss()
     metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item(),
         'max_error': wrap_to_numpy(max_error), 'rmse': wrap_to_numpy(root_mean_squared_error), 'r2_score': wrap_to_numpy(r2_score), 'stdev_error': lambda p, t: torch.std(torch.abs(p - t)).detach().item(),

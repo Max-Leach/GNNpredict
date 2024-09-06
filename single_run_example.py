@@ -1,6 +1,6 @@
 from novel_arch.deep_attn.data.dset_generate import from_csv
 from novel_arch.deep_attn.data.dataloader import RxnDataLoader
-from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset, train_test_split
+from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset
 
 from train.test.test_on_set import TestonSet
 from train.test.eval_metrics import deep_attn_item_handle
