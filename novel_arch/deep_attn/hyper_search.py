@@ -170,7 +170,6 @@ def train_instance(config, train_args):
     activation_fn = activfn_repo[config['activation_fn']]
 
     model = construct_model.get_std_sum_full(
-                        injective_readout=True,
                         graph_inner_layer_sizes=[[config['graph_inner_width']]*config['graph_inner_depth']]*config['graph_layer_count'], 
                         graph_hidden_size=config['graph_hidden_size'], 
                         fc_readout_sizes=[config['fc_initial_size']]+[config['fc_excess_width']]*config['fc_excess_count'], 

@@ -109,7 +109,6 @@ def run_trial(args):
         activation_fn = None
 
     model = construct_model.get_std_sum_full(
-                        injective_readout=True,
                         graph_inner_layer_sizes=args.graph_inner_layer_sizes, 
                         graph_hidden_size=args.graph_hidden_size, 
                         fc_readout_sizes=args.fc_readout_sizes, 

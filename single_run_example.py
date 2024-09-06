@@ -45,7 +45,6 @@ if __name__ == '__main__':
     # metric_fns = {'mae': mean_absolute_error, 'mape': mean_absolute_percentage_error, 'loss': lambda p, t: loss_fn(p, t).detach().item()}
 
     model = construct_model.get_std_sum_full(
-                        injective_readout=True,
                         graph_inner_layer_sizes=[[128]*5]*6, 
                         graph_hidden_size=64, 
                         fc_readout_sizes=[256]+[128]*5, )
