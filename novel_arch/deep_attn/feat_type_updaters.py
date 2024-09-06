@@ -79,58 +79,6 @@ class AtomAggregUpdate(nn.Module):
 def concat_sum_atom_edge_feat(nodes):
     return aggreg_atom_edge_no_repeat(nodes, lambda a,b,nodes: torch.sum(torch.cat([a, b], dim=-1), dim=1))
 
-class AtomEdgeReducer(nn.Module):
-    def __init__(self, aggregator):
-        super().__init__()
-        self.aggregator = aggregator
-
-    def forward(self, nodes):
-        return aggreg_atom_edge_no_repeat(nodes, self.aggregator)
-
-''' 
-    aggregate incoming node and bond features for nodes via attention
-
-    atm, it uses gatv2 style attention
-
-    sum_like - mimic "injective" property proposed in GIN by multiplying softmax by no. of elements
-    so instead of softmax acting like a weighted mean, it behaves like a "weighted sum"
-    >GIN argument was that sum provided more information than other reduction methods for aggregation
-'''
-class AttnNodeEdgeAggreg(nn.Module):
-    def __init__(self, feat_size, internal_attn_size, include_attn_edges=True, include_edges=True, zero_scalar_map=False, sum_like=False):
-        super().__init__()
-
-        activ_in_size = 2*feat_size
-        if include_attn_edges:
-            activ_in_size += feat_size
-        self.activ_in_map = nn.Linear(activ_in_size, internal_attn_size, bias=False)
-        self.activ = nn.LeakyReLU()
-        self.attn_scalar_map = nn.Linear(internal_attn_size, 1, bias=False)
-        if zero_scalar_map:
-            self.attn_scalar_map.weight.data.fill_(0.0)
-        self.softmax = nn.Softmax(dim=-2)
-        self.include_edges = include_edges
-        self.sum_like = sum_like
-
-    def forward(self, incoming_node_fts, incoming_edge_fts, nodes):
-        self_feats_per_incoming = nodes.data['ft'].unsqueeze(1).repeat_interleave(incoming_node_fts.size(1), dim=1)
-        
-        combined_attn_in = torch.cat([self_feats_per_incoming, incoming_node_fts, incoming_edge_fts], dim=-1)
-        activ_ins = self.activ(self.activ_in_map(combined_attn_in))
-        pre_attn = self.attn_scalar_map(activ_ins)
-        attn_weights = self.softmax(pre_attn)
-        if self.sum_like:
-            num_nodes = pre_attn.size(-2)
-            attn_weights = attn_weights * num_nodes
-
-        incoming = incoming_node_fts
-        if self.include_edges:
-            incoming = torch.cat([incoming_node_fts, incoming_edge_fts], dim=-1)
-        weighted = torch.mul(attn_weights, incoming)
-        aggregated = torch.sum(weighted, dim=1)
-
-        return aggregated
-
 # aggregate incoming atom feat concat with bond feat that connects them
 # assumes connected atom features, atom indices, bond features already in bond mailbox
 def aggreg_atom_edge_no_repeat(nodes, aggreg):
