@@ -1,19 +1,7 @@
-import copy
-
-# handle items from deep_attn dataloader
-def deep_attn_item_handle(items, device=None):
-    dat, val = items
-    graphs, feats, rxn_feat_gens, _ = dat
-    
-    if device != None:
-        graphs = graphs.to(device)
-        for n in feats.keys():
-            feats[n] = feats[n].to(device)
-    # rxn_feat_gens = copy.deepcopy(rxn_feat_gens) # to prevent dangling references as rxn_feat_gen gets modified during a forward pass
-    return (graphs, feats, rxn_feat_gens), val.to(device) # just omit the idxs entry
+from novel_arch.deep_attn.item_handle import deep_bde_item_handle
 
 ## handle items - take raw output from loader, return value and valid model inputs
-def eval_metrics_over_loader(model, loader, metric_fns: dict, handle_items=deep_attn_item_handle, handle_mod_out=lambda x: x):
+def eval_metrics_over_loader(model, loader, metric_fns: dict, handle_items=deep_bde_item_handle, handle_mod_out=lambda x: x):
     model.eval()
     metrics = {m_name : [] for m_name in metric_fns}
     tot_count = 0

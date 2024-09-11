@@ -2,7 +2,7 @@ from novel_arch.deep_attn.data.dataloader import RxnDataLoader
 from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset
 
 from train.test.test_on_set import TestonSet
-from train.test.eval_metrics import deep_attn_item_handle
+from novel_arch.deep_attn.item_handle import deep_bde_item_handle
 from novel_arch.deep_attn import construct_model
 
 from torch.optim import Adam
@@ -154,7 +154,7 @@ def train_instance(config, train_args):
         handle_mod_out=lambda x: (x * main_dset.val_stdev) + main_dset.val_mean
     else:
         handle_mod_out=lambda x: (x.to(train_args.device) * main_dset.val_stdev) + main_dset.val_mean
-    valid_tester = TestonSet(RxnDataLoader(valid_set, batch_size=test_batch_size, num_workers=train_args.num_workers), metric_fns, handle_items=lambda items: deep_attn_item_handle(items, device=train_args.device), handle_mod_out=handle_mod_out)
+    valid_tester = TestonSet(RxnDataLoader(valid_set, batch_size=test_batch_size, num_workers=train_args.num_workers), metric_fns, handle_items=lambda items: deep_bde_item_handle(items, device=train_args.device), handle_mod_out=handle_mod_out)
 
     activfn_repo = {
             'relu' : nn.ReLU,
@@ -182,7 +182,7 @@ def train_instance(config, train_args):
 
     trainer = Trainer(config['epochs'], optim_construct, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
         RxnDataLoader(train_set, batch_size=config['batch_size'], shuffle=True, num_workers=train_args.num_workers), 
-        lambda items: deep_attn_item_handle(items, device=train_args.device), 
+        lambda items: deep_bde_item_handle(items, device=train_args.device), 
         valid_reporter=partial(valid_reporter, temp_dir=train_args.temp_dir),
         # iter_reporter=lambda loss, model, e, i: iter_reporter(loss, model, e, i, losses, args.path), 
         lr_sched_construct=lr_sched_construct,

@@ -3,7 +3,7 @@ from novel_arch.deep_attn.data.dataloader import RxnDataLoader
 from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset
 
 from train.test.test_on_set import TestonSet
-from train.test.eval_metrics import deep_attn_item_handle
+from novel_arch.deep_attn.item_handle import deep_bde_item_handle
 from novel_arch.deep_attn import construct_model
 from novel_arch.deep_attn.model import DeepBDE
 from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, bond_mean, atom_mean, bond_sum, atom_sum, A2GReducer, B2GReducer

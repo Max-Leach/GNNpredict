@@ -2,7 +2,7 @@ from novel_arch.deep_attn.data.dataloader import RxnDataLoader
 from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset
 
 from train.test.test_on_set import TestonSet
-from train.test.eval_metrics import deep_attn_item_handle
+from novel_arch.deep_attn.item_handle import deep_bde_item_handle
 from novel_arch.deep_attn import construct_model
 
 from torch.optim import Adam
@@ -84,7 +84,7 @@ def run_trial(args):
         handle_mod_out=lambda x: (x * main_dset.val_stdev) + main_dset.val_mean
     else:
         handle_mod_out=lambda x: (x.to(device) * main_dset.val_stdev) + main_dset.val_mean
-    valid_tester = TestonSet(RxnDataLoader(valid_set, batch_size=test_batch_size, num_workers=args.num_workers), metric_fns, handle_items=lambda items: deep_attn_item_handle(items, device=device), handle_mod_out=handle_mod_out)
+    valid_tester = TestonSet(RxnDataLoader(valid_set, batch_size=test_batch_size, num_workers=args.num_workers), metric_fns, handle_items=lambda items: deep_bde_item_handle(items, device=device), handle_mod_out=handle_mod_out)
 
     if hasattr(args, 'activation_fn') and args.activation_fn != None:
         activfn_repo = {
@@ -114,7 +114,7 @@ def run_trial(args):
     lr_sched_construct = lambda o: ReduceLROnPlateau(o, factor=args.reducelr_factor, patience=args.reducelr_patience, threshold=args.reducelr_threshold)
     trainer = Trainer(args.epochs, optim_construct, lambda p,t: loss_fn((p.flatten() * train_set.val_stdev) + train_set.val_mean, t), valid_tester, 
         RxnDataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers), 
-        lambda items: deep_attn_item_handle(items, device=device), 
+        lambda items: deep_bde_item_handle(items, device=device), 
         valid_reporter=lambda valid_score, losses, e, model, optim, lr_sched: valid_reporter(valid_score, losses, e, model, vals, args.path),
         iter_reporter=lambda loss, model, e, i: iter_reporter(loss, model, e, i, losses, args.path), 
         lr_sched_construct=lr_sched_construct,
