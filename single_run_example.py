@@ -55,5 +55,5 @@ if __name__ == '__main__':
     # rxn._final_graph = 0
     f = {nt: torch.tensor(f[nt], dtype=torch.float) for nt in ['bond', 'atom', 'global']}
     p = model(dgl.batch(g), f, [rxn])
-    p = (p * dset.val_stdev) * dset.val_mean
+    p = (p * dset.val_stdev) + dset.val_mean
     print(p)
