@@ -19,8 +19,7 @@ dset.load_graphs = True
 with open(subset_path, 'rb') as valid_indices_f:
     valid_indices_d = pik.load(valid_indices_f)
 
-with open(model_path, 'rb') as sd_f:
-    model = torch.load(model_path, map_location='cpu')
+model = torch.load(model_path, map_location='cpu')
 
 print('Dataset size:', len(dset))
 print('Valid subset sizes:', {bt : len(idxs) for bt, idxs in valid_indices_d.items()})
