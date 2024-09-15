@@ -26,7 +26,7 @@ print('Dataset size:', len(dset))
 print('Valid subset sizes:', {bt : len(idxs) for bt, idxs in valid_indices_d.items()})
 
 def test_on_idxs(idxs):
-    test_batch_size = 1024
+    test_batch_size = 512
     ldr = RxnDataLoader(BDESubset(dset, idxs), batch_size=test_batch_size, num_workers=4)
     model.eval()
     nested_table = [[ts, (model(gs, fs, rxns) * dset.val_stdev + dset.val_mean).detach().squeeze(), torch.tensor(sub_idxs)] for (gs, fs, rxns, sub_idxs), ts in iter(ldr)]
@@ -34,12 +34,22 @@ def test_on_idxs(idxs):
     table = [torch.cat(col) for col in table]
     return torch.stack([torch.tensor(idxs)] + table).transpose(0, 1)
 
-def tensor_to_df(bt):
-    # create pandas dataframe over bond type subset in given dictionary
-    tbl = test_on_idxs(valid_indices_d[bt])
+def df_test_on_idxs(idxs):
+    # create pandas dataframe over given idxs
+    tbl = test_on_idxs(idxs)
     df = pd.DataFrame(tbl, columns=['Dataset Index', 'Reference', 'Model Inference', 'Bond Type Index']) # columns should reflect order in test_on_idxs of items
+    return df
+
+def bt_to_df(bt):
+    # create pandas dataframe over bond type subset in given dictionary
+    df = df_test_on_idxs(valid_indices_d[bt])
     df.insert(1, 'Bond Type', [bt] * len(df))
     return df
 
-df = pd.concat([tensor_to_df(bt) for bt in valid_indices_d.keys()])
+# import time
+# df = pd.concat([bt_to_df(bt) for bt in valid_indices_d.keys()])
+# start = time.perf_counter()
+df = df_test_on_idxs(range(len(dset))) # whole dataset
+# elapsed = time.perf_counter() - start
+# print("elapsed time: {}".format(elapsed))
 df.to_csv(dump_path, index=False)
