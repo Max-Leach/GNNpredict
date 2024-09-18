@@ -6,23 +6,7 @@ from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset
 import pickle as pik
 import torch
 import pandas as pd
-
-subset_path = '/home/moistry/Documents/research/data/286_indices/test_indices_d'
-dump_path = '/home/moistry/Documents/research/data/286 results/model_results.csv'
-trial_path = '/home/moistry/Documents/research/data/286 results/trial_286_retrain.sub'
-dset_path = '/home/moistry/Documents/research/data/old_stuff/dset_lazy/dset'
-
-model_path = trial_path + '/best_model'
-
-dset = BDEDataset.load(dset_path)
-dset.load_graphs = True
-with open(subset_path, 'rb') as valid_indices_f:
-    valid_indices_d = pik.load(valid_indices_f)
-
-model = torch.load(model_path, map_location='cpu')
-
-print('Dataset size:', len(dset))
-print('Valid subset sizes:', {bt : len(idxs) for bt, idxs in valid_indices_d.items()})
+import argparse
 
 def test_on_idxs(idxs):
     test_batch_size = 512
@@ -45,10 +29,35 @@ def bt_to_df(bt):
     df.insert(1, 'Bond Type', [bt] * len(df))
     return df
 
-# import time
-# df = pd.concat([bt_to_df(bt) for bt in valid_indices_d.keys()])
-# start = time.perf_counter()
-df = df_test_on_idxs(range(len(dset))) # whole dataset
-# elapsed = time.perf_counter() - start
-# print("elapsed time: {}".format(elapsed))
-df.to_csv(dump_path, index=False)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--dset_path', type=str, required=True)
+    parser.add_argument('--dump_path', type=str, required=True)
+    parser.add_argument('--model_path', type=str, required=True)
+    # parser.add_argument('--subset_path', type=str, required=True)
+
+    args = parser.parse_args()
+
+    # subset_path = args.subset_path
+    dump_path = args.dump_path
+    dset_path = args.dset_path
+    model_path = args.model_path
+
+    dset = BDEDataset.load(dset_path)
+    dset.load_graphs = True
+    # with open(subset_path, 'rb') as valid_indices_f:
+    #     valid_indices_d = pik.load(valid_indices_f)
+
+    model = torch.load(model_path, map_location='cpu')
+
+    print('Dataset size:', len(dset))
+    # print('Validating subset sizes:', {bt : len(idxs) for bt, idxs in valid_indices_d.items()})
+    # import time
+    # df = pd.concat([bt_to_df(bt) for bt in valid_indices_d.keys()])
+    # start = time.perf_counter()
+    df = df_test_on_idxs(range(len(dset))) # whole dataset
+    # df = df_test_on_idxs(range(100))
+    # elapsed = time.perf_counter() - start
+    # print("elapsed time: {}".format(elapsed))
+    df.to_csv(dump_path, index=False)
