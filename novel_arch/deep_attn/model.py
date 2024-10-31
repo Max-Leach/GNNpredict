@@ -9,7 +9,7 @@ from novel_arch.deep_attn.data.rxn_graph import get_rxn_feat_list
 class DeepBDE(nn.Module):
     ''' deeper state evolution, just add nearby atoms + edges for atom feat update '''
     ''' graph_inner_layer_sizes - how wide individual layers in gnn portion will be, is independent of graph_layers count '''
-    def __init__(self, atom_aggregators, b2g_aggregators, a2g_aggregators, in_feat_sizes, graph_hidden_size, graph_layers, graph_inner_layer_sizes=[], residual=True, fc_readout_sizes=[128, 64], dropout=0.0, atom_include_edges=True, activation_fn=None):
+    def __init__(self, atom_aggregators, b2g_aggregators, a2g_aggregators, in_feat_sizes, graph_hidden_size, graph_layers, graph_inner_layer_sizes=[], residual=True, fc_readout_sizes=[128, 64], dropout=0.0, atom_include_edges=True, activation_fn=None, readout_relu=False):
         super().__init__()
 
         if activation_fn == None:
@@ -33,7 +33,10 @@ class DeepBDE(nn.Module):
             self.fc_to_scalar.append(nn.Linear(in_size, out_size))
             self.fc_to_scalar.append(nn.BatchNorm1d(out_size))
             self.fc_to_scalar.append(nn.Dropout1d(p=0.0))
-            self.fc_to_scalar.append(nn.ReLU()) # maybe droptout before or afer this point pls
+            if readout_relu:
+                self.fc_to_scalar.append(activation_fn)
+            else:
+                self.fc_to_scalar.append(nn.ReLU())
 
             in_size = out_size
         self.fc_to_scalar.append(nn.Linear(in_size, 1))
