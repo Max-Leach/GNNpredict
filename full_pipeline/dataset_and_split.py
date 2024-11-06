@@ -1,5 +1,6 @@
 from novel_arch.deep_attn.data.dset_generate import from_csv
 from novel_arch.deep_attn.data.indices_split import compile_indices, reverse_bt_to_indices, split_by_bts
+from datetime import datetime
 from itertools import chain
 import os
 import pickle
@@ -12,7 +13,7 @@ def do(save_dir, csv_path, split):
     dpath = csv_path
 
     dset = from_csv(dpath, start_line=1)
-    dset_path = os.path.join(root, 'combined_dset')
+    dset_path = os.path.join(root, 'dataset')
     dset.save(dset_path, as_lazy=True)
 
     do_indices(root, dpath, split)
