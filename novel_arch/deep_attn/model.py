@@ -33,10 +33,11 @@ class DeepBDE(nn.Module):
             self.fc_to_scalar.append(nn.Linear(in_size, out_size))
             self.fc_to_scalar.append(nn.BatchNorm1d(out_size))
             self.fc_to_scalar.append(nn.Dropout1d(p=0.0))
+            
             if readout_relu:
-                self.fc_to_scalar.append(activation_fn)
-            else:
                 self.fc_to_scalar.append(nn.ReLU())
+            else:
+                self.fc_to_scalar.append(activation_fn())
 
             in_size = out_size
         self.fc_to_scalar.append(nn.Linear(in_size, 1))
