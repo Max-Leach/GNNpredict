@@ -10,7 +10,7 @@ import argparse
 
 def test_on_idxs(idxs):
     test_batch_size = 512
-    ldr = RxnDataLoader(BDESubset(dset, idxs), batch_size=test_batch_size, num_workers=4)
+    ldr = RxnDataLoader(BDESubset(dset, idxs), batch_size=test_batch_size, num_workers=1)
     model.eval()
     nested_table = [[ts, (model(gs, fs, rxns) * dset.val_stdev + dset.val_mean).detach().squeeze(), torch.tensor(sub_idxs)] for (gs, fs, rxns, sub_idxs), ts in iter(ldr)]
     table = [[item[i] for item in nested_table] for i in range(len(nested_table[0]))]
