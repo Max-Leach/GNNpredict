@@ -41,6 +41,9 @@ def valid_reporter(valid_scores, losses, e, model, val_list, path):
             _epoch, vals = pickle.load(f)
     except (FileNotFoundError, EOFError):
         _epoch, vals = 0, {'loss': math.inf}
+    if (e % 25) == 0: # save model every so epochs
+        with open(os.path.join(path, 'model_epoch-{}'.format(e)), 'wb+') as m:
+            torch.save(model, m)
     if vals['loss'] > valid_score['loss']: # lower is better
         with open(os.path.join(path, 'best_model'), 'wb+') as m:
             torch.save(model, m)
