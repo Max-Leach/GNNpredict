@@ -1,9 +1,9 @@
-from novel_arch.deep_attn.data.dataloader import RxnDataLoader
-from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset
+from architecture.data.dataloader import RxnDataLoader
+from architecture.data.dataset import BDEDataset, BDESubset
 
 from train.test.test_on_set import TestonSet
-from novel_arch.deep_attn.item_handle import deep_bde_item_handle
-from novel_arch.deep_attn import construct_model
+from architecture.item_handle import deep_bde_item_handle
+from architecture import construct_model
 
 from torch.optim import Adam
 from torch.nn import MSELoss

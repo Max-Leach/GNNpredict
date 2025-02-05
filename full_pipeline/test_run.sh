@@ -6,9 +6,9 @@ RUN_PATH='/home/moistry/Documents/research/GNNpredict/run.py'
 
 python $RUN_PATH \
         --path '/home/moistry/Documents/research/data/dry_run/model_run' \
-        --dset_path '/home/moistry/Documents/research/data/dry_run/fake_dset/dset' \
-        --train_indices_path '/home/moistry/Documents/research/data/dry_run/train_indices' \
-        --valid_indices_path '/home/moistry/Documents/research/data/dry_run/valid_indices' \
+        --dset_path '/home/moistry/Documents/research/data/dry_run/fake_dset/dset_new/dataset/dset' \
+        --train_indices_path '/home/moistry/Documents/research/data/dry_run/fake_dset/dset_new/train_indices' \
+        --valid_indices_path '/home/moistry/Documents/research/data/dry_run/fake_dset/dset_new/valid_indices' \
         --device 'cpu' \
         --num_workers 1 \
         --activation_fn 'silu' \

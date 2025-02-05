@@ -9,8 +9,8 @@ import time
 import heapq
 import torch
 
-from novel_arch.deep_attn.data.initial_containers import DirectSmilesRepo, DGLwBDEMappings
-from novel_arch.deep_attn.data.rxn_graph import BondDissociate
+from architecture.data.initial_containers import DirectSmilesRepo, DGLwBDEMappings
+from architecture.data.rxn_graph import BondDissociate
 
 # interpet array of inhomogenous data to normalize across certain column in NP
 # (such as graph features, where node count vary, but you want to normalize across entire dataset for each node feat column)

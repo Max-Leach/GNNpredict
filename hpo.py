@@ -8,7 +8,7 @@ import math
 import logging
 import torch
 
-from novel_arch.deep_attn import hyper_search
+from architecture import hyper_search
 
 if __name__ == "__main__":
     logging.basicConfig(format='%(message)s', level=logging.DEBUG)

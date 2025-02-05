@@ -1,6 +1,6 @@
 from train.test.eval_metrics import eval_metrics_over_loader
-from novel_arch.deep_attn.item_handle import deep_bde_item_handle
-from novel_arch.deep_attn.data.dataloader import RxnDataLoader
+from architecture.item_handle import deep_bde_item_handle
+from architecture.data.dataloader import RxnDataLoader
 
 # test a model with same conditions every time
 class TestonSet:

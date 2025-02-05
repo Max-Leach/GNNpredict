@@ -1,7 +1,7 @@
-from novel_arch.deep_attn.data.featurizers import AtomFeaturize, BondFeaturize, GlobalFeaturize
-from novel_arch.deep_attn.data.single_run_tools import prod_to_reac_atom_map, prod_to_reac_bond_map
-from novel_arch.deep_attn.data.initial_containers import DGLwBDEMappings
-from novel_arch.deep_attn.data.rxn_graph import BondDissociate
+from architecture.data.featurizers import AtomFeaturize, BondFeaturize, GlobalFeaturize
+from architecture.data.single_run_tools import prod_to_reac_atom_map, prod_to_reac_bond_map
+from architecture.data.initial_containers import DGLwBDEMappings
+from architecture.data.rxn_graph import BondDissociate
 from rdkit import Chem
 import pandas as pd
 import numpy as np

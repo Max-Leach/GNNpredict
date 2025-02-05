@@ -1,4 +1,4 @@
-from novel_arch.deep_attn.data.dset_generate import from_csv
+from architecture.data.dset_generate import from_csv
 from statistics import mean, stdev
 
 def print_stats():

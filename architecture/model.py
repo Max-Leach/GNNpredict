@@ -2,9 +2,9 @@ from torch import nn
 import torch
 from itertools import pairwise
 
-from novel_arch.deep_attn.feat_evolve import OrderedGraphFeatUpdate
-from novel_arch.deep_attn.feat_type_updaters import EdgeNeighborUpdate, AtomAggregUpdate, GlobalAggregUpdate
-from novel_arch.deep_attn.data.rxn_graph import get_rxn_feat_list
+from architecture.feat_evolve import OrderedGraphFeatUpdate
+from architecture.feat_type_updaters import EdgeNeighborUpdate, AtomAggregUpdate, GlobalAggregUpdate
+from architecture.data.rxn_graph import get_rxn_feat_list
 
 class DeepBDE(nn.Module):
     ''' deeper state evolution, just add nearby atoms + edges for atom feat update '''

@@ -1,4 +1,4 @@
-from novel_arch.deep_attn.item_handle import deep_bde_item_handle
+from architecture.item_handle import deep_bde_item_handle
 
 ## handle items - take raw output from loader, return value and valid model inputs
 def eval_metrics_over_loader(model, loader, metric_fns: dict, handle_items=deep_bde_item_handle, handle_mod_out=lambda x: x):

@@ -3,7 +3,7 @@ import torch
 from dgl import function as fn
 import dgl
 from itertools import pairwise, chain
-from novel_arch.deep_attn.state_mlp import mlp_from_sizes
+from architecture.state_mlp import mlp_from_sizes
 
 class EdgeNeighborUpdate(nn.Module):
     ''' 

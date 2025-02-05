@@ -1,12 +1,12 @@
-from novel_arch.deep_attn.data.dset_generate import from_csv
-from novel_arch.deep_attn.data.dataloader import RxnDataLoader
-from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset
+from architecture.data.dset_generate import from_csv
+from architecture.data.dataloader import RxnDataLoader
+from architecture.data.dataset import BDEDataset, BDESubset
 
 from train.test.test_on_set import TestonSet
-from novel_arch.deep_attn.item_handle import deep_bde_item_handle
-from novel_arch.deep_attn import construct_model
-from novel_arch.deep_attn.model import DeepBDE
-from novel_arch.deep_attn.feat_type_updaters import concat_sum_atom_edge_feat, bond_mean, atom_mean, bond_sum, atom_sum, A2GReducer, B2GReducer
+from architecture.item_handle import deep_bde_item_handle
+from architecture import construct_model
+from architecture.model import DeepBDE
+from architecture.feat_type_updaters import concat_sum_atom_edge_feat, bond_mean, atom_mean, bond_sum, atom_sum, A2GReducer, B2GReducer
 
 from lion_pytorch import Lion
 from torch.optim import Adam

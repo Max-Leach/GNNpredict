@@ -1,4 +1,4 @@
-from novel_arch.deep_attn.data.initial_containers import DGLwBDEMappings
+from architecture.data.initial_containers import DGLwBDEMappings
 import networkx.algorithms.isomorphism as nx_iso
 from rdkit import Chem
 

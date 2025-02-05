@@ -1,7 +1,7 @@
 ### runs on subset of dataset given dictionary of bond types -> indices
 
-from novel_arch.deep_attn.data.dataloader import RxnDataLoader
-from novel_arch.deep_attn.data.dataset import BDEDataset, BDESubset
+from architecture.data.dataloader import RxnDataLoader
+from architecture.data.dataset import BDEDataset, BDESubset
 
 import pickle as pik
 import torch

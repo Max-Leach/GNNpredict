@@ -1,5 +1,5 @@
-from novel_arch.deep_attn.data.dset_generate import from_csv
-from novel_arch.deep_attn.data.indices_split import compile_indices, reverse_bt_to_indices, split_by_bts
+from architecture.data.dset_generate import from_csv
+from architecture.data.indices_split import compile_indices, reverse_bt_to_indices, split_by_bts
 from datetime import datetime
 from itertools import chain
 import os

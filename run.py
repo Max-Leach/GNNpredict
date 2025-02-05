@@ -1,4 +1,4 @@
-from novel_arch.deep_attn.train import run_trial
+from architecture.train import run_trial
 import argparse
 import json
 import pickle

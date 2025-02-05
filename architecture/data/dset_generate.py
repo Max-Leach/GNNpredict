@@ -1,8 +1,8 @@
 import csv
 
-from novel_arch.deep_attn.data.dataset import BDEDataset
-from novel_arch.deep_attn.data.initial_containers import DirectSmilesRepo, DGLwBDEMappings
-from novel_arch.deep_attn.data.featurizers import AtomFeaturize, BondFeaturize, GlobalFeaturize
+from architecture.data.dataset import BDEDataset
+from architecture.data.initial_containers import DirectSmilesRepo, DGLwBDEMappings
+from architecture.data.featurizers import AtomFeaturize, BondFeaturize, GlobalFeaturize
 
 def from_csv(path, max_lines=None, start_line=None, entry_name_to_col={'reacs': [1], 'prods': [3,4], 'broken_idx': 2, 'bde': 5, 'bondtype': 6}, **kwargs):
     if start_line == None:
