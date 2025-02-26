@@ -46,7 +46,7 @@ if __name__ == "__main__":
     
     # add parameters from the csv file
     df = pd.read_csv(args.csv_path)
-    df = df.drop('Name', axis=1).drop('Loss', axis=1)
+    df = df.drop('Name', axis=1).drop('Loss', axis=1, errors='ignore').drop('Comments', axis=1, errors='ignore').drop('All Comments', axis=1, errors='ignore')
     params = df.iloc[args.param_row]
     def conv(n):
         strs = ['activation_fn']
