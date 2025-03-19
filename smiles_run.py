@@ -12,12 +12,13 @@ reac_sm = 'CC[C@H]1C[C@H](OS(C)(=O)=O)CO1'
 prod_sms = ['CC[C@H]1C[C@H]([O])CO1', 'C[S](=O)=O']
 broken_bond_idx = 5
 
-with open('/home/moistry/Documents/research/data/1.6 results/1.6_scalers/16_output_scale', 'rb') as f:
-    output_scale = pickle.load(f)
-    out_mean, out_stdev = output_scale['mean'], output_scale['stdev']
-with open('/home/moistry/Documents/research/data/1.6 results/1.6_scalers/16_stders', 'rb') as f:
-    stders = pickle.load(f)
-model_path = '/home/moistry/Documents/research/data/1.6 results/selected_trial-1-best'
+with open('/home/moistry/Documents/research/data/02-11 cleaned dset/12_transforms', 'rb') as f:
+    transforms = pickle.load(f)
+
+out_mean, out_stdev = transforms['val_mean'], transforms['val_stdev']
+stders = transforms['transform']
+
+model_path = '/home/moistry/Documents/research/data/02-11 cleaned dset/winner/best_model'
 model = torch.load(model_path, map_location='cpu')
 
 # atomic_num_list = [1, 6, 7, 8]
@@ -39,7 +40,8 @@ r_g = DGLwBDEMappings.dgl_from_mol(r_m)
 p_gs = [DGLwBDEMappings.dgl_from_mol(m) for m in p_ms]
 
 feats = {nt : [featurizers[nt](m) for m in [r_m, *p_ms]] for nt in featurizers}
-feats = {nt : stders[nt].transform(torch.cat(feats[nt])) for nt in ['bond', 'atom', 'global']}
+# feats = {nt : stders[nt].transform(torch.cat(feats[nt])) for nt in ['bond', 'atom', 'global']}
+feats = {nt : stders[nt](torch.cat(feats[nt])) for nt in ['bond', 'atom', 'global']}
 feats = {nt : torch.tensor(feats[nt], dtype=torch.float) for nt in ['bond', 'atom', 'global']}
 
 atom_map_for_rxn = prod_to_reac_atom_map([r_m, p_ms], [broken_bond_idx])
