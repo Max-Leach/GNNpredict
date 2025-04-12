@@ -9,6 +9,9 @@ import pickle
 import torch
 import dgl
 
+
+# NOTE: update for public use and also reduce bloat with the original smiles_run.py!
+
 atomic_num_list = [1, 5, 6, 7, 8, 9, 14, 15, 16, 17] # for 1.6M dataset
 # atomic_num_list = [1, 6, 7, 8]
 aprop = ['atomic_num', 'total_degree', 'total_num_hs', 'ring_of_size', 'is_in_ring']

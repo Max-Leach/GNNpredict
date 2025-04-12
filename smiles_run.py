@@ -8,6 +8,8 @@ import dgl
 import pickle
 import time
 
+# NOTE: update for public use
+
 reac_sm = 'CC[C@H]1C[C@H](OS(C)(=O)=O)CO1'
 prod_sms = ['CC[C@H]1C[C@H]([O])CO1', 'C[S](=O)=O']
 broken_bond_idx = 5

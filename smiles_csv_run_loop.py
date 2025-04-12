@@ -11,6 +11,8 @@ import dgl
 
 from multiprocessing import Pool
 
+# NOTE: update for public use
+
 # Serial	Parentsmiles	BondIndex	Frag1smiles	Frag2smiles	BDH	BondType	Source
 
 def sm_to_mol(cann):
