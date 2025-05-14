@@ -17,4 +17,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    print(multi_predict(args.reactant_smiles, args.rdkit_bond_idxs))
+    print(multi_predict(args.reactant_smiles, args.rdkit_bond_idxs).numpy())

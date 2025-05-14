@@ -26,4 +26,4 @@ if __name__ == '__main__':
     else:
         prod_sms = None
 
-    print(single_predict(args.reactant_smiles, args.rdkit_bond_idx, prod_sms))
+    print(single_predict(args.reactant_smiles, args.rdkit_bond_idx, prod_sms).numpy())

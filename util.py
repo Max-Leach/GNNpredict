@@ -29,55 +29,11 @@ def sm_to_mol(cann):
     return Chem.AddHs(Chem.MolFromSmiles(cann))
 
 def single_predict(reac_sm, broken_bond_idx, prod_sms=None):
-    r_m = sm_to_mol(reac_sm)
+    with torch.no_grad():
+        r_m = sm_to_mol(reac_sm)
 
-    # take from dataset bond splitting method
-    Chem.Kekulize(r_m, clearAromaticFlags=True)
-    bond = r_m.GetBondWithIdx(broken_bond_idx)
-    mh = Chem.RWMol(r_m)
-    a1 = bond.GetBeginAtomIdx()
-    a2 = bond.GetEndAtomIdx()
-    mh.RemoveBond(a1, a2)
-
-    mh.GetAtomWithIdx(a1).SetNoImplicit(True)
-    mh.GetAtomWithIdx(a2).SetNoImplicit(True)
-
-    # Call SanitizeMol to update radicals
-    Chem.SanitizeMol(mh)
-    if prod_sms == None:
-        p_ms = list(Chem.GetMolFrags(mh, asMols=True))
-    else:
-        p_ms = [sm_to_mol(sm) for sm in prod_sms]
-
-    r_g = DGLwBDEMappings.dgl_from_mol(r_m)
-    p_gs = [DGLwBDEMappings.dgl_from_mol(m) for m in p_ms]
-
-    feats = {nt : [featurizers[nt](m) for m in [r_m, *p_ms]] for nt in featurizers}
-    # feats = {nt : stders[nt].transform(torch.cat(feats[nt])) for nt in ['bond', 'atom', 'global']}
-    feats = {nt : stders[nt](torch.cat(feats[nt])) for nt in ['bond', 'atom', 'global']}
-    feats = {nt : torch.tensor(feats[nt], dtype=torch.float) for nt in ['bond', 'atom', 'global']}
-
-    atom_map_for_rxn = prod_to_reac_atom_map([r_m, p_ms], [broken_bond_idx])
-    bond_map_for_rxn = prod_to_reac_bond_map(p_ms, atom_map_for_rxn, r_m, broken_bond_idx)
-    rxn_atom_mappings = DGLwBDEMappings.to_concat_map(atom_map_for_rxn)
-    rxn_bond_mappings = DGLwBDEMappings.to_concat_map(bond_map_for_rxn)
-    prods_has_bonds = [len(bm) > 0 for bm in bond_map_for_rxn[:-1]]
-
-    rxn_feat_gen = BondDissociate(rxn_atom_mappings, rxn_bond_mappings, prods_has_bonds, None)
-    rxn_feat_gen.reacs, rxn_feat_gen.prods = [0], [1, 2]
-
-    pred = out_mean + (out_stdev * model(dgl.batch([r_g, *p_gs]), feats, [rxn_feat_gen]))
-
-    return pred
-
-def multi_predict(reac_sm, broken_bond_idxs):
-    r_m = sm_to_mol(reac_sm)
-
-    # take from dataset bond splitting method
-    Chem.Kekulize(r_m, clearAromaticFlags=True)
-    r_g = DGLwBDEMappings.dgl_from_mol(r_m)
-
-    def get_products_from_broken_idx(broken_bond_idx):
+        # take from dataset bond splitting method
+        Chem.Kekulize(r_m, clearAromaticFlags=True)
         bond = r_m.GetBondWithIdx(broken_bond_idx)
         mh = Chem.RWMol(r_m)
         a1 = bond.GetBeginAtomIdx()
@@ -89,24 +45,19 @@ def multi_predict(reac_sm, broken_bond_idxs):
 
         # Call SanitizeMol to update radicals
         Chem.SanitizeMol(mh)
-        p_ms = list(Chem.GetMolFrags(mh, asMols=True))
+        if prod_sms == None:
+            p_ms = list(Chem.GetMolFrags(mh, asMols=True))
+        else:
+            p_ms = [sm_to_mol(sm) for sm in prod_sms]
 
+        r_g = DGLwBDEMappings.dgl_from_mol(r_m)
         p_gs = [DGLwBDEMappings.dgl_from_mol(m) for m in p_ms]
 
-        return p_ms, p_gs
-    
-    p_ms_gs = [get_products_from_broken_idx(broken_bond_idx) for broken_bond_idx in broken_bond_idxs]
+        feats = {nt : [featurizers[nt](m) for m in [r_m, *p_ms]] for nt in featurizers}
+        # feats = {nt : stders[nt].transform(torch.cat(feats[nt])) for nt in ['bond', 'atom', 'global']}
+        feats = {nt : stders[nt](torch.cat(feats[nt])) for nt in ['bond', 'atom', 'global']}
+        feats = {nt : torch.tensor(feats[nt], dtype=torch.float) for nt in ['bond', 'atom', 'global']}
 
-    p_mss = [p_ms for p_ms, _p_gs in p_ms_gs]
-    p_gss = [p_gs for _p_ms, p_gs in p_ms_gs]
-
-    feats = {nt : [featurizers[nt](m) for m in [r_m, *[p_m for p_ms in p_mss for p_m in p_ms]]] for nt in featurizers}
-    # feats = {nt : stders[nt].transform(torch.cat(feats[nt])) for nt in ['bond', 'atom', 'global']}
-    feats = {nt : stders[nt](torch.cat(feats[nt])) for nt in ['bond', 'atom', 'global']}
-    feats = {nt : torch.tensor(feats[nt], dtype=torch.float) for nt in ['bond', 'atom', 'global']}
-
-    # BondDissociate object for each reaction
-    def get_bond_dissociate(p_ms, broken_bond_idx, prod_pair_idx):
         atom_map_for_rxn = prod_to_reac_atom_map([r_m, p_ms], [broken_bond_idx])
         bond_map_for_rxn = prod_to_reac_bond_map(p_ms, atom_map_for_rxn, r_m, broken_bond_idx)
         rxn_atom_mappings = DGLwBDEMappings.to_concat_map(atom_map_for_rxn)
@@ -114,13 +65,64 @@ def multi_predict(reac_sm, broken_bond_idxs):
         prods_has_bonds = [len(bm) > 0 for bm in bond_map_for_rxn[:-1]]
 
         rxn_feat_gen = BondDissociate(rxn_atom_mappings, rxn_bond_mappings, prods_has_bonds, None)
-        rxn_feat_gen.reacs, rxn_feat_gen.prods = [0], [prod_pair_idx * 2 + 1, prod_pair_idx * 2 + 2]
+        rxn_feat_gen.reacs, rxn_feat_gen.prods = [0], [1, 2]
 
-        return rxn_feat_gen
+        pred = out_mean + (out_stdev * model(dgl.batch([r_g, *p_gs]), feats, [rxn_feat_gen]))
 
-    # for p_ms, broken_bond_idx in zip(p_mss, broken_bond_idxs):
-    bond_dissocs = [get_bond_dissociate(p_ms, broken_bond_idx, prod_pair_idx) for prod_pair_idx, (p_ms, broken_bond_idx) in enumerate(zip(p_mss, broken_bond_idxs))]
+        return pred
 
-    pred = out_mean + (out_stdev * model(dgl.batch([r_g, *[p_g for p_gs in p_gss for p_g in p_gs]]), feats, bond_dissocs))
+def multi_predict(reac_sm, broken_bond_idxs):
+    with torch.no_grad():
+        r_m = sm_to_mol(reac_sm)
 
-    return pred
+        # take from dataset bond splitting method
+        Chem.Kekulize(r_m, clearAromaticFlags=True)
+        r_g = DGLwBDEMappings.dgl_from_mol(r_m)
+
+        def get_products_from_broken_idx(broken_bond_idx):
+            bond = r_m.GetBondWithIdx(broken_bond_idx)
+            mh = Chem.RWMol(r_m)
+            a1 = bond.GetBeginAtomIdx()
+            a2 = bond.GetEndAtomIdx()
+            mh.RemoveBond(a1, a2)
+
+            mh.GetAtomWithIdx(a1).SetNoImplicit(True)
+            mh.GetAtomWithIdx(a2).SetNoImplicit(True)
+
+            # Call SanitizeMol to update radicals
+            Chem.SanitizeMol(mh)
+            p_ms = list(Chem.GetMolFrags(mh, asMols=True))
+
+            p_gs = [DGLwBDEMappings.dgl_from_mol(m) for m in p_ms]
+
+            return p_ms, p_gs
+        
+        p_ms_gs = [get_products_from_broken_idx(broken_bond_idx) for broken_bond_idx in broken_bond_idxs]
+
+        p_mss = [p_ms for p_ms, _p_gs in p_ms_gs]
+        p_gss = [p_gs for _p_ms, p_gs in p_ms_gs]
+
+        feats = {nt : [featurizers[nt](m) for m in [r_m, *[p_m for p_ms in p_mss for p_m in p_ms]]] for nt in featurizers}
+        # feats = {nt : stders[nt].transform(torch.cat(feats[nt])) for nt in ['bond', 'atom', 'global']}
+        feats = {nt : stders[nt](torch.cat(feats[nt])) for nt in ['bond', 'atom', 'global']}
+        feats = {nt : torch.tensor(feats[nt], dtype=torch.float) for nt in ['bond', 'atom', 'global']}
+
+        # BondDissociate object for each reaction
+        def get_bond_dissociate(p_ms, broken_bond_idx, prod_pair_idx):
+            atom_map_for_rxn = prod_to_reac_atom_map([r_m, p_ms], [broken_bond_idx])
+            bond_map_for_rxn = prod_to_reac_bond_map(p_ms, atom_map_for_rxn, r_m, broken_bond_idx)
+            rxn_atom_mappings = DGLwBDEMappings.to_concat_map(atom_map_for_rxn)
+            rxn_bond_mappings = DGLwBDEMappings.to_concat_map(bond_map_for_rxn)
+            prods_has_bonds = [len(bm) > 0 for bm in bond_map_for_rxn[:-1]]
+
+            rxn_feat_gen = BondDissociate(rxn_atom_mappings, rxn_bond_mappings, prods_has_bonds, None)
+            rxn_feat_gen.reacs, rxn_feat_gen.prods = [0], [prod_pair_idx * 2 + 1, prod_pair_idx * 2 + 2]
+
+            return rxn_feat_gen
+
+        # for p_ms, broken_bond_idx in zip(p_mss, broken_bond_idxs):
+        bond_dissocs = [get_bond_dissociate(p_ms, broken_bond_idx, prod_pair_idx) for prod_pair_idx, (p_ms, broken_bond_idx) in enumerate(zip(p_mss, broken_bond_idxs))]
+
+        pred = out_mean + (out_stdev * model(dgl.batch([r_g, *[p_g for p_gs in p_gss for p_g in p_gs]]), feats, bond_dissocs))
+
+        return pred
