@@ -11,7 +11,7 @@ if __name__ == "__main__":
     logging.basicConfig(format='%(message)s', level=logging.DEBUG)
     torch.multiprocessing.set_forkserver_preload(["torch"])
 
-    parser = argparse.ArgumentParser(description='Run DeepBDE trial with given hyperparameters, resume if train_state exists at path')
+    parser = argparse.ArgumentParser(description='Run DeepBDE trial with hyperparameters presented in CSV in specified row, resume if train_state exists at path')
 
     parser.add_argument('--path', type=str, required=True)
     parser.add_argument('--dset_path', type=str, required=True)

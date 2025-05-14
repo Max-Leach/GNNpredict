@@ -8,6 +8,8 @@ import torch
 import pandas as pd
 import argparse
 
+# NOTE: likely remove this in public repo
+
 def test_on_idxs(idxs):
     test_batch_size = 512
     ldr = RxnDataLoader(BDESubset(dset, idxs), batch_size=test_batch_size, num_workers=1)
