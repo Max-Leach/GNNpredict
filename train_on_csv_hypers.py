@@ -21,7 +21,7 @@ if __name__ == "__main__":
     parser.add_argument('--csv_path', type=str, required=True, help="path to find csv list of hyperparameters")
     parser.add_argument('--param_row', type=int, required=True, help="row into the csv to use as hyperparameters for this experiment")
 
-    parser.add_argument('--device', type=str, required=False)
+    parser.add_argument('--device', type=str, required=False, help="cpu or cuda")
     parser.add_argument('--num_workers', type=int, required=True, help="pytorch dataloader's num_workers for use on given dataset - usually set this to 1")
     parser.add_argument('--min_epochs', type=int, required=True, help="minimum number of epochs before early stopping this experiment - just set to a high number as we didn't use this in the end")
     parser.add_argument('--epochs_of_no_mae_drop_before_stop', type=int, required=True, help="if using early stopping, how much drop in MAE should be achieved to not stop an experiment")

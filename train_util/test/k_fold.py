@@ -2,8 +2,8 @@ import random
 import math
 import copy
 import itertools
-from train.trainer import Trainer
-from train.test.test_on_set import TestonSet
+from train_util.trainer import Trainer
+from train_util.test.test_on_set import TestonSet
 import logging
 import os
 import pickle

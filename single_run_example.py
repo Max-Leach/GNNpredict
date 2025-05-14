@@ -2,7 +2,7 @@ from architecture.data.dset_generate import from_csv
 from architecture.data.dataloader import RxnDataLoader
 from architecture.data.dataset import BDEDataset, BDESubset
 
-from train.test.test_on_set import TestonSet
+from train_util.test.test_on_set import TestonSet
 from architecture.item_handle import deep_bde_item_handle
 from architecture import construct_model
 from architecture.model import DeepBDE
@@ -12,7 +12,7 @@ from lion_pytorch import Lion
 from torch.optim import Adam
 from torch.nn import MSELoss
 import torch
-from train.trainer import Trainer
+from train_util.trainer import Trainer
 
 from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error
 

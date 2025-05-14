@@ -1,7 +1,7 @@
 from architecture.data.dataloader import RxnDataLoader
 from architecture.data.dataset import BDEDataset, BDESubset
 
-from train.test.test_on_set import TestonSet
+from train_util.test.test_on_set import TestonSet
 from architecture.item_handle import deep_bde_item_handle
 from architecture import construct_model
 
@@ -9,7 +9,7 @@ from torch.optim import Adam
 from torch.nn import MSELoss
 from torch import nn
 import torch
-from train.trainer import Trainer
+from train_util.trainer import Trainer
 
 from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error, max_error, root_mean_squared_error, r2_score
 from torch.optim.lr_scheduler import ReduceLROnPlateau
