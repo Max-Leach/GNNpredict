@@ -1,10 +1,8 @@
 #!/bin/bash
 #SBATCH --array=1-7
 #SBATCH --job-name=selected_trial
-#SBATCH --mail-user=preet.mistry@mail.utoronto.ca
 #SBATCH --mail-type=ALL
 
-#SBATCH --account=def-jacobsen
 #SBATCH --cpus-per-task=3
 #SBATCH --gpus-per-node=1
 #SBATCH --mem=20G
