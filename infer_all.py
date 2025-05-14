@@ -3,7 +3,7 @@ import logging
 import torch
 import pickle
 import json
-from util import predict_all
+from inference_util import predict_all
 
 # run inference on input reaction
 
