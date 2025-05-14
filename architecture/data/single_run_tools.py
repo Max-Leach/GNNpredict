@@ -14,6 +14,9 @@ def prod_and_react_nx_graphs(mols, broken_idx): # return nx graphs, first has pr
 def prod_to_reac_atom_map(mols, broken_idx): # assumes single reactant, single bond broken, two products, find mapping from prod graph to reactant given mols
     p_mol_nxs, p_nxs = prod_and_react_nx_graphs(mols, broken_idx)
 
+    if len(p_mol_nxs) < 2: # did not properly match
+        return []
+
     nm = nx_iso.categorical_node_match('specie', 'BAD_MATCH')
     # assumes two products from here
     # find which product maps to which product in split molecule

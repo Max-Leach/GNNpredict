@@ -100,29 +100,57 @@ def multi_predict(reac_sm, broken_bond_idxs):
         p_ms_gs = [get_products_from_broken_idx(broken_bond_idx) for broken_bond_idx in broken_bond_idxs]
 
         p_mss = [p_ms for p_ms, _p_gs in p_ms_gs]
-        p_gss = [p_gs for _p_ms, p_gs in p_ms_gs]
-
-        feats = {nt : [featurizers[nt](m) for m in [r_m, *[p_m for p_ms in p_mss for p_m in p_ms]]] for nt in featurizers}
-        # feats = {nt : stders[nt].transform(torch.cat(feats[nt])) for nt in ['bond', 'atom', 'global']}
-        feats = {nt : stders[nt](torch.cat(feats[nt])) for nt in ['bond', 'atom', 'global']}
-        feats = {nt : torch.tensor(feats[nt], dtype=torch.float) for nt in ['bond', 'atom', 'global']}
 
         # BondDissociate object for each reaction
         def get_bond_dissociate(p_ms, broken_bond_idx, prod_pair_idx):
             atom_map_for_rxn = prod_to_reac_atom_map([r_m, p_ms], [broken_bond_idx])
+            # print(atom_map_for_rxn)
+            if len(atom_map_for_rxn) == 0:
+                return None
             bond_map_for_rxn = prod_to_reac_bond_map(p_ms, atom_map_for_rxn, r_m, broken_bond_idx)
             rxn_atom_mappings = DGLwBDEMappings.to_concat_map(atom_map_for_rxn)
             rxn_bond_mappings = DGLwBDEMappings.to_concat_map(bond_map_for_rxn)
             prods_has_bonds = [len(bm) > 0 for bm in bond_map_for_rxn[:-1]]
 
             rxn_feat_gen = BondDissociate(rxn_atom_mappings, rxn_bond_mappings, prods_has_bonds, None)
-            rxn_feat_gen.reacs, rxn_feat_gen.prods = [0], [prod_pair_idx * 2 + 1, prod_pair_idx * 2 + 2]
+            # rxn_feat_gen.reacs, rxn_feat_gen.prods = [0], [prod_pair_idx * 2 + 1, prod_pair_idx * 2 + 2]
 
             return rxn_feat_gen
 
-        # for p_ms, broken_bond_idx in zip(p_mss, broken_bond_idxs):
+        # filtering step for matches that were not found
         bond_dissocs = [get_bond_dissociate(p_ms, broken_bond_idx, prod_pair_idx) for prod_pair_idx, (p_ms, broken_bond_idx) in enumerate(zip(p_mss, broken_bond_idxs))]
+        bond_dissocs_gs = [(bd, p_m_g) for bd, p_m_g in zip(bond_dissocs, p_ms_gs) if bd != None]
+        bond_dissocs = [bd for bd, p_m_g in bond_dissocs_gs]
+        p_ms_gs = [p_m_g for _bd, p_m_g in bond_dissocs_gs]
+        p_mss = [p_ms for p_ms, _p_gs in p_ms_gs]
+        p_gss = [p_gs for _p_ms, p_gs in p_ms_gs]
+
+        for idx, bd in enumerate(bond_dissocs):
+            bd.reacs = [0]
+            bd.prods = [idx * 2 + 1, idx * 2 + 2]
+
+        feats = {nt : [featurizers[nt](m) for m in [r_m, *[p_m for p_ms in p_mss for p_m in p_ms]]] for nt in featurizers}
+        # feats = {nt : stders[nt].transform(torch.cat(feats[nt])) for nt in ['bond', 'atom', 'global']}
+        feats = {nt : stders[nt](torch.cat(feats[nt])) for nt in ['bond', 'atom', 'global']}
+        feats = {nt : torch.tensor(feats[nt], dtype=torch.float) for nt in ['bond', 'atom', 'global']}
 
         pred = out_mean + (out_stdev * model(dgl.batch([r_g, *[p_g for p_gs in p_gss for p_g in p_gs]]), feats, bond_dissocs))
 
         return pred
+
+# return all valid bonds for deepbde and their predictions
+def predict_all(reac_sm):    
+    def valid_bond(bond):
+        # if skip_rings and bond.IsInRing():
+        #     return False
+
+        if bond.GetBondTypeAsDouble() > 1.9999:
+            return False
+        
+        return True
+    
+    bond_idxs = [i for i, bond in enumerate(sm_to_mol(reac_sm).GetBonds()) if valid_bond(bond)]
+
+    preds = multi_predict(reac_sm, bond_idxs)
+
+    return bond_idxs, preds
