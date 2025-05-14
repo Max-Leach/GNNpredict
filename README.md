@@ -1,5 +1,5 @@
 <div align="center">
-<h2>DeepBDE: whatever else is in the paper</h2>
+<h2>DeepBDE: whatever else is in the paper title</h2>
 
 </div>
 
