@@ -13,18 +13,18 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Run DeepBDE trial with hyperparameters presented in CSV in specified row, resume if train_state exists at path')
 
-    parser.add_argument('--path', type=str, required=True)
-    parser.add_argument('--dset_path', type=str, required=True)
-    parser.add_argument('--train_indices_path', type=str, required=True)
-    parser.add_argument('--valid_indices_path', type=str, required=True)
+    parser.add_argument('--path', type=str, required=True, help="training root directory - to store all results and resume training")
+    parser.add_argument('--dset_path', type=str, required=True, help="path of dataset, point to root directory of dataset directory. look at README.md for instructions on generating a dataset")
+    parser.add_argument('--train_indices_path', type=str, required=True, help="list of indices into the dataset to use as the training set")
+    parser.add_argument('--valid_indices_path', type=str, required=True, help="list of indices into the dataset to use as the validation set")
 
-    parser.add_argument('--csv_path', type=str, required=True)
-    parser.add_argument('--param_row', type=int, required=True)
+    parser.add_argument('--csv_path', type=str, required=True, help="path to find csv list of hyperparameters")
+    parser.add_argument('--param_row', type=int, required=True, help="row into the csv to use as hyperparameters for this experiment")
 
     parser.add_argument('--device', type=str, required=False)
-    parser.add_argument('--num_workers', type=int, required=True)
-    parser.add_argument('--min_epochs', type=int, required=True)
-    parser.add_argument('--epochs_of_no_mae_drop_before_stop', type=int, required=True)
+    parser.add_argument('--num_workers', type=int, required=True, help="pytorch dataloader's num_workers for use on given dataset - usually set this to 1")
+    parser.add_argument('--min_epochs', type=int, required=True, help="minimum number of epochs before early stopping this experiment - just set to a high number as we didn't use this in the end")
+    parser.add_argument('--epochs_of_no_mae_drop_before_stop', type=int, required=True, help="if using early stopping, how much drop in MAE should be achieved to not stop an experiment")
 
     args = parser.parse_args()
     # if train_state exists, check arg signature to see if matches current one
