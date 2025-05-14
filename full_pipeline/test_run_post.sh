@@ -12,7 +12,7 @@ python $RUN_PATH \
         --device 'cpu' \
         \
         --num_workers 1 \
-        --csv_path '/home/moistry/Documents/research/data/02-11 cleaned dset/post_tune-02_25--1.csv'\
+        --csv_path '/home/moistry/Documents/research/data/02-11 cleaned dset/post_tune (cancelled)/post_tune-02_25--1.csv'\
         --param_row 0 \
         \
         --min_epochs 5 \
