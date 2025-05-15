@@ -3,9 +3,7 @@
 
 </div>
 
----
-
-Development of quantum algorithms for bridging the gap between quantum chemistry and deep learning via GNNs et al.
+This repository contains the official implementation of **DeepBDE: our paper title eh?**, available on [arXiv](https://arxiv.org/abs/2504.02191) (or nature once we publish?).
 
 ## Getting Started
 
@@ -71,3 +69,9 @@ should we include training or ditch it for the public repo?
 3. **Create encoded dataset**
 
 4. **Train model given hyperparameters**
+
+## Citation
+
+```
+arxiv or nature bib whatever
+```
