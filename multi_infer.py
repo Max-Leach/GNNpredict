@@ -3,7 +3,7 @@ import logging
 import torch
 import pickle
 import json
-from inference_util import multi_predict
+from architecture.inference_util import multi_predict
 
 # run inference on input reaction
 

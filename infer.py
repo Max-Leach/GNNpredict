@@ -2,7 +2,7 @@ import argparse
 import logging
 import torch
 import pickle
-from inference_util import single_predict
+from architecture.inference_util import single_predict
 
 # run inference on input reaction
 
