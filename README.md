@@ -66,12 +66,12 @@ This repository contains the official implementation of **DeepBDE: our paper tit
 
 should we include training or ditch it for the public repo?
 
-3. **Create encoded dataset and subset split**
+3. **Encoding dataset and subset split**
     
     Create the encoded dataset that can be used with our training code from a CSV file (find download above). Also creates a train, validation, test index split that will be required. We use a typical 8:1:1 split as an example.
 
     ```bash
-    python create_dataset.py --save_dir [save directory] --csv_path [path to dataset csv] --split '[0.8,0.1,0.1]'
+    python encode_dataset.py --save_dir [save directory] --csv_path [path to dataset csv] --split '[0.8,0.1,0.1]'
     ```
 
 4. **Train model given hyperparameters**
