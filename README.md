@@ -10,6 +10,7 @@ Development of quantum algorithms for bridging the gap between quantum chemistry
 ## Getting Started
 
 1. **Setup Environment**
+
     Create an environment with all necessary dependencies. This can be done using Conda:
 
     ```bash
@@ -23,13 +24,15 @@ Development of quantum algorithms for bridging the gap between quantum chemistry
 ### To run predictions
 
 3. **Extract model and transform**
+
     Place these files in the parent directory of this repo.
 
 4. **Inferencing**
 
     **Single reaction inferencing** - requires reactant SMILES and bond index. Bond index is defined by how RDkit arranges bond order in the molecule.
 
-    Example: split reactant given by SMILES: CCOc1cccc(O)c1 at bond index 1
+    Example: split reactant given by SMILES: CCOc1cccc(O)c1 at bond index 1.
+    
     Products are: [O]c1cccc(O)c1	[CH2]C
 
     ```bash
