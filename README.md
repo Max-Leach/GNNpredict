@@ -9,7 +9,7 @@ Development of quantum algorithms for bridging the gap between quantum chemistry
 
 ## Getting Started
 
-1. **Setup Environment**
+1. **Setup environment**
 
     Create an environment with all necessary dependencies. This can be done using Conda:
 
@@ -64,7 +64,7 @@ Development of quantum algorithms for bridging the gap between quantum chemistry
     python infer_all.py 'C[C@H](O)C(=O)O'
     ```
 
-## Training
+### Training
 
 should we include training or ditch it for the public repo?
 
