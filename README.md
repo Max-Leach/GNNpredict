@@ -1,5 +1,5 @@
 <div align="center">
-<h2>DeepBDE: whatever else is in the paper title</h2>
+<h2>DeepBDE: a graph neural network for fast and accurate bond dissociation enthalpies</h2>
 
 </div>
 
