@@ -3,7 +3,7 @@
 
 </div>
 
-This repository contains the official implementation of **DeepBDE: our paper title eh?**, available on [arXiv](https://arxiv.org/abs/2504.02191) (or nature once we publish?).
+This repository contains the official implementation of **DeepBDE**, available on [arXiv](https://arxiv.org/XXXXX).
 
 ## Getting Started
 
