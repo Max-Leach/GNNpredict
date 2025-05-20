@@ -1,9 +1,9 @@
 <div align="center">
-<h2>DeepBDE: whatever else is in the paper title</h2>
+<h2>DeepBDE: a graph neural network for fast and accurate bond dissociation enthalpies</h2>
 
 </div>
 
-This repository contains the official implementation of **DeepBDE: our paper title eh?**, available on [arXiv](https://arxiv.org/abs/2504.02191) (or nature once we publish?).
+This repository contains the official implementation of **DeepBDE**, available on [arXiv](https://arxiv.org/XXXXX).
 
 ## Getting Started
 
