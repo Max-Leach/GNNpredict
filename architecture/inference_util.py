@@ -8,13 +8,13 @@ import dgl
 import pickle
 import time
 
-with open('../transforms', 'rb') as f:
+with open('model_data/transforms', 'rb') as f:
     transforms = pickle.load(f)
 
 out_mean, out_stdev = transforms['val_mean'], transforms['val_stdev']
 stders = transforms['transform']
 
-model_path = '../model'
+model_path = 'model_data/model'
 model = torch.load(model_path, map_location='cpu')
 model.eval()
 
