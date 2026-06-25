@@ -96,6 +96,13 @@ class BDEDataset(Dataset):
                 dset._populate_reac_graph()
         return dset
 
+    def get_smiles_list(self, idxs):
+        """
+        Returns a list/Series of SMILES strings for a given batch of indices.
+        """
+        # assuming self.data has a column 'Parentsmiles' with SMILES for each reaction
+        return self.data['Parentsmiles'].iloc[idxs]
+
     def save(self, path, as_lazy=False):
         if as_lazy:
             try:
@@ -174,9 +181,28 @@ class BDEDataset(Dataset):
     # create dgl graphs and features associated with them
     def _graph_data(self, dsr: DirectSmilesRepo, bdemap: DGLwBDEMappings, featurizers):
         self.dgl = list(bdemap.canon_to_dgl.values())
-        # assume featurizers has 'atom', 'bond', 'global' keys
-        # use canon_to_dgl for values to preserve ordering b/w that and self.dgl created above
-        self.feats = {nt : [featurizers[nt](dsr.canon_to_mol[c]) for c in bdemap.canon_to_dgl.keys()] for nt in featurizers}
+        canons = list(bdemap.canon_to_dgl.keys())
+
+        # build canon -> broken bond index mapping (first occurrence wins)
+        canon_to_broken_bond = {}
+        for rxn_idx, (react_canons, _) in enumerate(dsr.r_p_canon):
+            for rc in react_canons:
+                if rc not in canon_to_broken_bond and dsr.react_broken_bonds[rxn_idx]:
+                    canon_to_broken_bond[rc] = dsr.react_broken_bonds[rxn_idx][0]
+
+        self.feats = {}
+        for nt in featurizers:
+            if nt == 'global':
+                self.feats[nt] = [
+                    featurizers[nt](
+                        dsr.canon_to_mol[c],
+                        canon_smiles=c if c in canon_to_broken_bond else None,
+                        broken_bond_idx=canon_to_broken_bond.get(c),
+                    )
+                    for c in canons
+                ]
+            else:
+                self.feats[nt] = [featurizers[nt](dsr.canon_to_mol[c]) for c in canons]
         self._std_setup()
     
     def _std_setup(self):
@@ -282,3 +308,4 @@ class BDESubset(Dataset):
     @property
     def val_mean(self):
         return self.dataset.val_mean
+
